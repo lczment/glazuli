@@ -3,7 +3,13 @@
   "minVersion": "0.8",
   "package": "com.lczme.liquidglass.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": [],
+  "client": [
+    "KeyboardHandlerMixin",
+    "LoadingOverlayAccessor",
+    "MinecraftMixin",
+    "MouseHandlerMixin",
+    "NeoForgeLoadingOverlayAccessor"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

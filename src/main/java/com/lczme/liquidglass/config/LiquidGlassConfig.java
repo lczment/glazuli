@@ -10,6 +10,10 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_REFRACTION;
     public static final ModConfigSpec.BooleanValue ENABLE_CHROMATIC_ABERRATION;
 
+    public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
+    public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
+    public static final ModConfigSpec.BooleanValue DARK_EARLY_WINDOW;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -28,10 +32,29 @@ public final class LiquidGlassConfig {
                 .define("enableChromaticAberration", true);
         builder.pop();
 
+        builder.push("intro");
+        INTRO_MODE = builder
+                .comment("When to replace the startup loading screen with the Liquid Glass intro. OFF keeps the NeoForge/vanilla screen.")
+                .defineEnum("introMode", IntroMode.ALWAYS);
+        STYLE_RELOAD_OVERLAY = builder
+                .comment("Also use the glass loading overlay for later resource reloads (F3+T, resource pack changes).")
+                .define("styleReloadOverlay", true);
+        DARK_EARLY_WINDOW = builder
+                .comment("After the intro played, enable vanilla's dark loading screen option (darkMojangStudiosBackground) so the",
+                        "NeoForge early loading window starts dark on the next launch and blends into the intro instead of flashing red.")
+                .define("darkEarlyWindow", true);
+        builder.pop();
+
         SPEC = builder.build();
     }
 
     private LiquidGlassConfig() {
+    }
+
+    public enum IntroMode {
+        ALWAYS,
+        FIRST_LAUNCH_ONLY,
+        OFF
     }
 
     public enum BlurQuality {
