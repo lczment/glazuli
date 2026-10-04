@@ -12,8 +12,8 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Glass look for vanilla buttons, applied by {@code AbstractButtonMixin} in place of the button sprite, and by
- * {@code GuiGraphicsMixin} wherever else the vanilla button/slider sprites are drawn. The sprites are never read, so
- * resource packs that retexture widgets don't change the look.
+ * {@code GuiGraphicsMixin} wherever else the vanilla button/slider sprites are drawn. Sprites retextured by a player
+ * resource pack are left to the pack ({@link PackOverrides}).
  * <p>
  * Buttons use transparent glass ({@link #BUTTON_CLEAR}), except title screen buttons which use the neutral level
  * because the panorama has too little detail for clear glass to be visible. A button's look never changes with its
@@ -71,7 +71,8 @@ public final class GlassButtons {
     /** Glass replacing a vanilla widget sprite, or {@code null} for sprites we leave alone. */
     @Nullable
     public static GlassStyle styleForSprite(ResourceLocation sprite) {
-        return SPRITES.get(sprite);
+        GlassStyle style = SPRITES.get(sprite);
+        return style == null || PackOverrides.sprite(sprite) ? null : style;
     }
 
     public static boolean isEnabled() {

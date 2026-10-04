@@ -6,6 +6,7 @@ import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.GlassRenderer;
 import com.lczme.liquidglass.render.GlassStyle;
 import com.lczme.liquidglass.render.GlassUi;
+import com.lczme.liquidglass.render.PackOverrides;
 import java.util.Map;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
@@ -54,7 +55,7 @@ public final class JeiGlass {
             return false;
         }
         Look look = LOOKS.get(sprite);
-        if (look == null) {
+        if (look == null || PackOverrides.sprite(sprite)) {
             return false;
         }
         if (look.style() == null) {

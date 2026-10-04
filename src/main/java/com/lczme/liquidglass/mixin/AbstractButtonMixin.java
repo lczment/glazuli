@@ -5,6 +5,7 @@ import com.lczme.liquidglass.anim.Spring;
 import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.GlassPressable;
 import com.lczme.liquidglass.render.GlassRenderer;
+import com.lczme.liquidglass.render.PackOverrides;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -22,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Swaps only the background sprite, so labels and subclass decorations (e.g. icon buttons) still render as usual.
- * Wrapping the call (rather than the sprite lookup) keeps resource packs from affecting the button's look.
+ * A sprite supplied by a player resource pack is drawn as is; the press and hover animations still apply.
  */
 @Mixin(AbstractButton.class)
 public abstract class AbstractButtonMixin implements GlassPressable {
@@ -52,7 +53,7 @@ public abstract class AbstractButtonMixin implements GlassPressable {
             target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Lnet/minecraft/resources/ResourceLocation;IIII)V"))
     private void liquidglass$drawGlassBackground(GuiGraphics guiGraphics, ResourceLocation sprite, int x, int y, int width, int height,
                                                  Operation<Void> original) {
-        if (!GlassButtons.isEnabled()) {
+        if (!GlassButtons.isEnabled() || PackOverrides.sprite(sprite)) {
             original.call(guiGraphics, sprite, x, y, width, height);
             return;
         }

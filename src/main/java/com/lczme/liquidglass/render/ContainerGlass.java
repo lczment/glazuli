@@ -28,6 +28,8 @@ public final class ContainerGlass {
     private static final float FRAME = 4.0F;
     private static final int MIN_FRAMED_SIZE = 64;
 
+    private static int[] pendingPanel;
+
     private ContainerGlass() {
     }
 
@@ -35,10 +37,16 @@ public final class ContainerGlass {
         return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_INVENTORY.get();
     }
 
-    public static void drawPanel(GuiGraphics guiGraphics, int x, int y, int width, int height) {
-        if (isEnabled()) {
-            GlassRenderer.drawPanel(guiGraphics, x, y, width, height, WINDOW);
-        }
+    /**
+     * Called before a container screen draws its background: the window panel is drawn under the first background
+     * texture that is actually turned into glass, so a screen retextured by a resource pack keeps the pack's art alone.
+     */
+    public static void beginBackground(int x, int y, int width, int height) {
+        pendingPanel = isEnabled() ? new int[]{x, y, width, height} : null;
+    }
+
+    public static void endBackground() {
+        pendingPanel = null;
     }
 
     private static boolean isGlassTexture(ResourceLocation texture) {
@@ -52,6 +60,14 @@ public final class ContainerGlass {
         ShaderInstance shader = LiquidGlassShaders.containerGlass();
         if (shader == null || !isEnabled() || !isGlassTexture(texture)) {
             return false;
+        }
+        int[] panel = pendingPanel;
+        pendingPanel = null;
+        if (PackOverrides.texture(texture)) {
+            return false;
+        }
+        if (panel != null) {
+            GlassRenderer.drawPanel(guiGraphics, panel[0], panel[1], panel[2], panel[3], WINDOW);
         }
         int width = x2 - x1;
         int height = y2 - y1;
@@ -80,7 +96,8 @@ public final class ContainerGlass {
 
     /** Glass replacements for HUD and creative-tab sprites; returns false to let vanilla draw the sprite. */
     public static boolean sprite(GuiGraphics guiGraphics, ResourceLocation sprite, int x, int y, int width, int height) {
-        if (!isEnabled() || !sprite.getNamespace().equals(ResourceLocation.DEFAULT_NAMESPACE)) {
+        if (!isEnabled() || !sprite.getNamespace().equals(ResourceLocation.DEFAULT_NAMESPACE) || !isGlassSprite(sprite.getPath())
+                || PackOverrides.sprite(sprite)) {
             return false;
         }
         String path = sprite.getPath();
@@ -99,5 +116,9 @@ public final class ContainerGlass {
             }
         }
         return true;
+    }
+
+    private static boolean isGlassSprite(String path) {
+        return path.startsWith("hud/hotbar") || path.startsWith("container/creative_inventory/tab_");
     }
 }

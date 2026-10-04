@@ -23,6 +23,12 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "renderBackground", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V"))
     private void liquidglass$glassPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        ContainerGlass.drawPanel(guiGraphics, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+        ContainerGlass.beginBackground(this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+    }
+
+    @Inject(method = "renderBackground", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
+            target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V"))
+    private void liquidglass$glassPanelEnd(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        ContainerGlass.endBackground();
     }
 }
