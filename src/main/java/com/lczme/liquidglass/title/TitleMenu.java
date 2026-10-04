@@ -5,6 +5,7 @@ import com.lczme.liquidglass.anim.Timeline;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroLogo;
 import com.lczme.liquidglass.intro.IntroState;
+import com.lczme.liquidglass.render.GlassButtons;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -155,6 +156,7 @@ public final class TitleMenu {
 
     private void place(AbstractWidget widget, int x, int y) {
         widget.setPosition(x, y);
+        GlassButtons.useNeutral(widget);
         slots.add(new Slot(widget, y));
     }
 

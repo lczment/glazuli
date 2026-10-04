@@ -33,7 +33,8 @@ public abstract class AbstractButtonMixin {
             liquidglass$press = Spring.of(GlassButtons.PRESS_RESPONSE, GlassButtons.PRESS_DAMPING, 1.0F);
         }
         liquidglass$press.setTarget(liquidglass$isPressed() ? GlassButtons.PRESSED_SCALE : 1.0F);
-        GlassButtons.draw(guiGraphics, x, y, width, height, liquidglass$press.value());
+        GlassButtons.draw(guiGraphics, x, y, width, height, liquidglass$press.value(),
+                GlassButtons.styleFor((AbstractWidget) (Object) this));
     }
 
     /** Held by the mouse while hovered, or by Enter/Space while keyboard-focused; released as soon as either ends. */
