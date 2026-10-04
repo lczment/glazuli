@@ -16,6 +16,9 @@ uniform float RimFrac;
 uniform float Material;
 uniform float Shadow;
 uniform float Opacity;
+// Glass only: specular rim / fill light strength, and pointer hover 0..1.
+uniform float Specular;
+uniform float Highlight;
 
 in vec2 localPos;
 
@@ -79,8 +82,24 @@ void main() {
             float disp = max(radial, 0.0) * (1.0 - 1.0 / k);
             vec2 sampleUv = uv + (pixelPerLocal * (-n * disp)) / ScreenSize;
             col = textureLod(Sampler0, sampleUv, 0.0).rgb;
+            // iOS 26 glass keeps the backdrop vivid through the frost.
+            float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+            col = mix(vec3(luma), col, 1.0 + 0.25 * Specular);
             float a = Tint.a * (1.0 - 0.5 * f);
             col = mix(col, Tint.rgb, a);
+            if (Specular > 0.0) {
+                // Fill light, stronger under the pointer.
+                col = mix(col, vec3(1.0), Specular * (0.05 + 0.10 * Highlight));
+                // Specular rim lit from the top left, with a weaker bounce on the opposite edge.
+                float depth = max(-d, 0.0);
+                float band = 1.0 - smoothstep(0.0, 1.2, depth);
+                float glow = 1.0 - smoothstep(0.0, 5.0, depth);
+                vec2 light = normalize(vec2(-0.55, -1.0));
+                float key = pow(max(dot(n, light), 0.0), 1.5);
+                float bounce = 0.45 * pow(max(dot(n, -light), 0.0), 1.5);
+                float rim = band * (0.25 + 0.75 * (key + bounce)) * (0.55 + 0.35 * Highlight);
+                col = mix(col, vec3(1.0), Specular * clamp(rim + 0.06 * glow * (key + bounce), 0.0, 1.0));
+            }
         } else {
             col = mix(textureLod(Sampler0, uv, 0.0).rgb, Tint.rgb, Tint.a);
             // --glass-ring: inset 0 1px 1px rgba(255,255,255,.95), i.e. a soft 1px line along the top edge.

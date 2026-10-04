@@ -38,6 +38,15 @@ public abstract class AbstractButtonMixin implements GlassPressable {
     private double liquidglass$lastFrame = Double.NEGATIVE_INFINITY;
     @Unique
     private double liquidglass$releasedAt = Double.NaN;
+    @Unique
+    private Spring liquidglass$hoverSpring;
+    @Unique
+    private float liquidglass$hoverValue;
+
+    @Override
+    public float liquidglass$hover() {
+        return liquidglass$hoverValue;
+    }
 
     @WrapOperation(method = "renderWidget", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Lnet/minecraft/resources/ResourceLocation;IIII)V"))
@@ -47,7 +56,8 @@ public abstract class AbstractButtonMixin implements GlassPressable {
             original.call(guiGraphics, sprite, x, y, width, height);
             return;
         }
-        GlassRenderer.drawPanel(guiGraphics, x, y, width, height, GlassButtons.styleFor((AbstractWidget) (Object) this));
+        GlassRenderer.drawPanel(guiGraphics, x, y, width, height,
+                GlassButtons.styleFor((AbstractWidget) (Object) this).withHover(liquidglass$hover()));
     }
 
     /** Mouse clicks act on release (see {@link #liquidglass$pressScale}); keyboard and programmatic presses are untouched. */
@@ -85,7 +95,10 @@ public abstract class AbstractButtonMixin implements GlassPressable {
 
         if (liquidglass$press == null) {
             liquidglass$press = Spring.of(GlassButtons.PRESS_RESPONSE, GlassButtons.PRESS_DAMPING, 1.0F);
+            liquidglass$hoverSpring = Spring.of(GlassButtons.HOVER_RESPONSE, GlassButtons.HOVER_DAMPING, 0.0F);
         }
+        liquidglass$hoverSpring.setTarget(self.active && self.isHovered());
+        liquidglass$hoverValue = Math.max(0.0F, liquidglass$hoverSpring.value());
         if (liquidglass$isPressed()) {
             liquidglass$press.retune(GlassButtons.PRESS_RESPONSE, GlassButtons.PRESS_DAMPING);
             liquidglass$press.setTarget(GlassButtons.PRESSED_SCALE);

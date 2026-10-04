@@ -77,10 +77,11 @@ public final class GlassRenderer {
         shader.safeGetUniform("Material").set(film ? 1.0F : 0.0F);
         shader.safeGetUniform("Shadow").set(style.shadow());
         shader.safeGetUniform("Opacity").set(Mth.clamp(style.opacity(), 0.0F, 1.0F));
+        shader.safeGetUniform("Specular").set(film ? 0.0F : style.specular());
+        shader.safeGetUniform("Highlight").set(Mth.clamp(style.hover(), 0.0F, 1.0F));
 
         RenderSystem.setShader(() -> shader);
-        // Spec §3.1-A: glass bodies are not blurred; only films may sample the blurred copy.
-        RenderSystem.setShaderTexture(0, film && style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
+        RenderSystem.setShaderTexture(0, style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
         RenderSystem.enableBlend();
         // The shader outputs premultiplied alpha so the AA edge and the outer shadow composite correctly.
         RenderSystem.blendFuncSeparate(

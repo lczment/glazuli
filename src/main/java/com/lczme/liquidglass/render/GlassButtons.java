@@ -36,8 +36,14 @@ public final class GlassButtons {
 
     /** Rounded rectangle rather than a capsule: Minecraft's buttons are wide and short, pills read as text fields. */
     public static final float BUTTON_RADIUS = 4.0F;
-    public static final GlassStyle BUTTON_CLEAR = GlassStyle.CLEAR.withCornerRadius(BUTTON_RADIUS);
-    public static final GlassStyle BUTTON_NEUTRAL = GlassStyle.NEUTRAL.withCornerRadius(BUTTON_RADIUS);
+    public static final GlassStyle BUTTON_CLEAR = GlassStyle.button(BUTTON_RADIUS, 0.08F);
+    /** A little more body where the backdrop is busy and labels need contrast (title screen). */
+    public static final GlassStyle BUTTON_NEUTRAL = GlassStyle.button(BUTTON_RADIUS, 0.18F);
+
+    /** Hover: the glass brightens and lifts slightly, like iOS 26 pointer hover. */
+    public static final float HOVER_RESPONSE = 0.3F;
+    public static final float HOVER_DAMPING = 0.8F;
+    public static final float HOVER_GROW = 0.025F;
 
     private static final Map<ResourceLocation, GlassStyle> SPRITES = Map.of(
             ResourceLocation.withDefaultNamespace("widget/button"), BUTTON_CLEAR,
@@ -73,15 +79,17 @@ public final class GlassButtons {
     }
 
     /**
-     * Pushes the press squash {@code scale(2 - s, s)} around the widget's centre (spec §6, first-order area
-     * compensation). Applied to the whole widget so the label and icons move with the glass; pair with popPose.
+     * Pushes the hover lift and the press squash {@code scale(2 - s, s)} (spec §6, first-order area compensation)
+     * around the widget's centre. Applied to the whole widget so the label and icons move with the glass; pair with
+     * popPose.
      */
-    public static void pushSquash(GuiGraphics guiGraphics, AbstractWidget widget, float s) {
+    public static void pushTransform(GuiGraphics guiGraphics, AbstractWidget widget, float s, float hover) {
         float cx = widget.getX() + widget.getWidth() * 0.5F;
         float cy = widget.getY() + widget.getHeight() * 0.5F;
+        float grow = 1.0F + HOVER_GROW * hover;
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(cx, cy, 0.0F);
-        guiGraphics.pose().scale(2.0F - s, s, 1.0F);
+        guiGraphics.pose().scale((2.0F - s) * grow, s * grow, 1.0F);
         guiGraphics.pose().translate(-cx, -cy, 0.0F);
     }
 }

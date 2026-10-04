@@ -17,6 +17,8 @@
         { "name": "RimFrac", "type": "float", "count": 1, "values": [ 1.0 ] },
         { "name": "Material", "type": "float", "count": 1, "values": [ 0.0 ] },
         { "name": "Shadow", "type": "float", "count": 1, "values": [ 0.0 ] },
-        { "name": "Opacity", "type": "float", "count": 1, "values": [ 1.0 ] }
+        { "name": "Opacity", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "Specular", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "Highlight", "type": "float", "count": 1, "values": [ 0.0 ] }
     ]
 }

@@ -35,8 +35,18 @@ public final class TitleMenu {
     /** Bottom of vanilla's logo + "Java Edition" badge ({@code LogoRenderer}, drawn at y = 30). */
     private static final float VANILLA_LOGO_BOTTOM = 82.0F;
 
+    /** Vertical centre of the logo + badge, the pivot of the logo entrance. */
+    private static final float LOGO_PIVOT_Y = 55.0F;
+    // LabyMod-style logo entrance: the logo settles from slightly larger and higher while fading in, then the menu rises.
+    private static final float LOGO_START_SCALE = 1.18F;
+    private static final float LOGO_DROP = 14.0F;
+    private static final float LOGO_SECONDS = 1.1F;
+    private static final float FADE_SECONDS = 0.6F;
+    private static final float BUTTONS_DELAY = 0.3F;
+
     private final Timeline entrance = new Timeline();
-    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, EASE_SECONDS, 1.0F, Easing.SPEC_EASE);
+    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, FADE_SECONDS, 1.0F, Easing.SPEC_EASE);
+    private final Timeline.Track logoIn = entrance.track(0.0F).to(0.0F, LOGO_SECONDS, 1.0F, Easing.OUT_EXPO);
     private final List<Timeline.Track> rises = new ArrayList<>();
     private final List<Slot> slots = new ArrayList<>();
     private final boolean continuesIntro;
@@ -111,7 +121,7 @@ public final class TitleMenu {
 
         while (rises.size() < slots.size()) {
             int i = rises.size();
-            rises.add(entrance.track(0.0F).to(0.08F + STAGGER * i, EASE_SECONDS, 1.0F, Easing.SPEC_EASE));
+            rises.add(entrance.track(0.0F).to(BUTTONS_DELAY + STAGGER * i, EASE_SECONDS, 1.0F, Easing.SPEC_EASE));
         }
         if (settled) {
             applyEntrance(1.0F);
@@ -147,6 +157,24 @@ public final class TitleMenu {
      */
     public float chromeAlpha() {
         return settled ? 1.0F : logoAlpha.value();
+    }
+
+    /**
+     * Pushes the logo entrance transform (shared by the logo and the splash text so they move together); returns
+     * false, without pushing, once it's at rest. Pair a true result with popPose.
+     */
+    public boolean pushLogoTransform(GuiGraphics guiGraphics, int width) {
+        float t = settled ? 1.0F : logoIn.value();
+        if (t >= 1.0F) {
+            return false;
+        }
+        float scale = Mth.lerp(t, LOGO_START_SCALE, 1.0F);
+        float cx = width * 0.5F;
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(cx, LOGO_PIVOT_Y - (1.0F - t) * LOGO_DROP, 0.0F);
+        guiGraphics.pose().scale(scale, scale, 1.0F);
+        guiGraphics.pose().translate(-cx, -LOGO_PIVOT_Y, 0.0F);
+        return true;
     }
 
     /** Called after vanilla's fade has set every widget's alpha: puts our staggered entrance back on top. */

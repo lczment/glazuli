@@ -9,7 +9,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Squashes the whole button (glass, label, subclass icons) while pressed; wraps renderWidget so overrides are covered. */
+/** Lifts and squashes the whole button (glass, label, subclass icons); wraps renderWidget so overrides are covered. */
 @Mixin(AbstractWidget.class)
 public abstract class AbstractWidgetMixin {
     @WrapOperation(method = "render", at = @At(value = "INVOKE",
@@ -21,11 +21,12 @@ public abstract class AbstractWidgetMixin {
             return;
         }
         float s = pressable.liquidglass$pressScale();
-        if (s == 1.0F) {
+        float hover = pressable.liquidglass$hover();
+        if (s == 1.0F && hover == 0.0F) {
             original.call(self, guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
-        GlassButtons.pushSquash(guiGraphics, self, s);
+        GlassButtons.pushTransform(guiGraphics, self, s, hover);
         original.call(self, guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.pose().popPose();
     }
