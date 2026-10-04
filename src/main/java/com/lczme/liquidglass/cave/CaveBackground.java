@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import com.lczme.liquidglass.render.LiquidGlassShaders;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -192,7 +193,11 @@ public final class CaveBackground {
                 continue;
             }
             layer.setupRenderState();
-            ShaderInstance shader = RenderSystem.getShader();
+            // Our own copy of the chunk shader: with a shader pack loaded, Iris (and shader-patching mods) replace
+            // the vanilla chunk programs with ones that write into their G-buffers instead of the screen.
+            ShaderInstance own = layer == RenderType.cutout() || layer == RenderType.cutoutMipped()
+                    ? LiquidGlassShaders.caveCutout() : LiquidGlassShaders.caveBlock();
+            ShaderInstance shader = own != null ? own : RenderSystem.getShader();
             if (shader != null) {
                 RenderSystem.setShaderTexture(2, lightmapId);
                 if (shader.CHUNK_OFFSET != null) {

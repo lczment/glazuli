@@ -107,6 +107,8 @@ public final class DevHooks {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(menu);
             }),
+            // Switching shader packs on the title screen rebuilds Iris' pipeline while the cave is showing.
+            new Shot("liquidglass_autoshot_menu_shader_switch.png", 4.0, DevHooks::switchIrisPack),
             // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
             new Shot("liquidglass_autoshot_world.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(DevHooks::enterWorld),
                     () -> Minecraft.getInstance().player != null && Minecraft.getInstance().screen == null, true),
@@ -185,6 +187,30 @@ public final class DevHooks {
             screen.init(mc, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
         } catch (ReflectiveOperationException e) {
             LiquidGlass.LOGGER.warn("[autoshot] could not open Iris options", e);
+        }
+    }
+
+    /** Selects the next pack in the shaderpacks folder and reloads Iris, like the shader pack screen's Apply. */
+    private static void switchIrisPack() {
+        if (!ModList.get().isLoaded("iris")) {
+            return;
+        }
+        try {
+            Class<?> iris = Class.forName("net.irisshaders.iris.Iris");
+            Object config = iris.getMethod("getIrisConfig").invoke(null);
+            java.nio.file.Path dir = Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks");
+            List<String> packs;
+            try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(dir)) {
+                packs = files.map(p -> p.getFileName().toString()).filter(n -> n.endsWith(".zip")).sorted().toList();
+            }
+            Object current = config.getClass().getMethod("getShaderPackName").invoke(config);
+            String currentName = current instanceof java.util.Optional<?> o ? String.valueOf(o.orElse(null)) : String.valueOf(current);
+            String next = packs.get((packs.indexOf(currentName) + 1) % packs.size());
+            config.getClass().getMethod("setShaderPackName", String.class).invoke(config, next);
+            iris.getMethod("reload").invoke(null);
+            LiquidGlass.LOGGER.info("[autoshot] switched shader pack {} -> {}", currentName, next);
+        } catch (ReflectiveOperationException | java.io.IOException | RuntimeException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not switch shader pack", e);
         }
     }
 

@@ -24,6 +24,10 @@ public final class LiquidGlassShaders {
     private static ShaderInstance screenFade;
     @Nullable
     private static ShaderInstance containerGlass;
+    @Nullable
+    private static ShaderInstance caveBlock;
+    @Nullable
+    private static ShaderInstance caveCutout;
 
     private LiquidGlassShaders() {
     }
@@ -40,6 +44,22 @@ public final class LiquidGlassShaders {
         register(event, "screen_fade", DefaultVertexFormat.BLIT_SCREEN, s -> screenFade = s);
         containerGlass = null;
         register(event, "container_glass", DefaultVertexFormat.POSITION_TEX_COLOR, s -> containerGlass = s);
+        caveBlock = null;
+        caveCutout = null;
+        register(event, "cave_block", DefaultVertexFormat.BLOCK, s -> caveBlock = s);
+        register(event, "cave_cutout", DefaultVertexFormat.BLOCK, s -> caveCutout = s);
+    }
+
+    /** Chunk shader for the title screen cave (solid and translucent layers); never replaced by shader packs. */
+    @Nullable
+    public static ShaderInstance caveBlock() {
+        return caveBlock;
+    }
+
+    /** Like {@link #caveBlock()}, with the cutout layers' alpha test. */
+    @Nullable
+    public static ShaderInstance caveCutout() {
+        return caveCutout;
     }
 
     @Nullable
