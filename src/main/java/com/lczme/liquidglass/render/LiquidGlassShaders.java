@@ -20,6 +20,8 @@ public final class LiquidGlassShaders {
     private static ShaderInstance kawaseUp;
     @Nullable
     private static ShaderInstance glassPanel;
+    @Nullable
+    private static ShaderInstance screenFade;
 
     private LiquidGlassShaders() {
     }
@@ -32,6 +34,13 @@ public final class LiquidGlassShaders {
         register(event, "kawase_down", DefaultVertexFormat.BLIT_SCREEN, s -> kawaseDown = s);
         register(event, "kawase_up", DefaultVertexFormat.BLIT_SCREEN, s -> kawaseUp = s);
         register(event, "glass_panel", DefaultVertexFormat.POSITION_TEX, s -> glassPanel = s);
+        screenFade = null;
+        register(event, "screen_fade", DefaultVertexFormat.BLIT_SCREEN, s -> screenFade = s);
+    }
+
+    @Nullable
+    public static ShaderInstance screenFade() {
+        return screenFade;
     }
 
     private static void register(RegisterShadersEvent event, String name, VertexFormat format, Consumer<ShaderInstance> onLoaded) {

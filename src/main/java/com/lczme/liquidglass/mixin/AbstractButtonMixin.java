@@ -20,7 +20,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Swaps only the background sprite, so labels and subclass decorations (e.g. icon buttons) still render as usual. */
+/**
+ * Swaps only the background sprite, so labels and subclass decorations (e.g. icon buttons) still render as usual.
+ * Wrapping the call (rather than the sprite lookup) keeps resource packs from affecting the button's look.
+ */
 @Mixin(AbstractButton.class)
 public abstract class AbstractButtonMixin implements GlassPressable {
     // A deferred click is only trusted while the button keeps being drawn; otherwise it would fire later, out of context.
@@ -33,6 +36,8 @@ public abstract class AbstractButtonMixin implements GlassPressable {
     private boolean liquidglass$pendingClick;
     @Unique
     private double liquidglass$lastFrame = Double.NEGATIVE_INFINITY;
+    @Unique
+    private double liquidglass$releasedAt = Double.NaN;
 
     @WrapOperation(method = "renderWidget", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Lnet/minecraft/resources/ResourceLocation;IIII)V"))
@@ -60,9 +65,18 @@ public abstract class AbstractButtonMixin implements GlassPressable {
         AbstractButton self = (AbstractButton) (Object) this;
         double now = AnimClock.now();
         boolean held = liquidglass$mouseHeld();
-        if (liquidglass$pendingClick && (now - liquidglass$lastFrame >= LIQUIDGLASS$STALE_SECONDS || !held)) {
+        boolean stale = now - liquidglass$lastFrame >= LIQUIDGLASS$STALE_SECONDS;
+        if (liquidglass$pendingClick && (stale || !held)) {
             liquidglass$pendingClick = false;
-            if (!held && self.isHovered() && self.active && self.visible) {
+            if (!stale && self.isHovered() && self.active && self.visible) {
+                liquidglass$releasedAt = now;
+            }
+        }
+        if (!Double.isNaN(liquidglass$releasedAt)) {
+            if (stale) {
+                liquidglass$releasedAt = Double.NaN;
+            } else if (now - liquidglass$releasedAt >= GlassButtons.ACTION_DELAY) {
+                liquidglass$releasedAt = Double.NaN;
                 // Run outside the render pass: onPress usually switches screens.
                 Minecraft.getInstance().tell(self::onPress);
             }
@@ -72,7 +86,13 @@ public abstract class AbstractButtonMixin implements GlassPressable {
         if (liquidglass$press == null) {
             liquidglass$press = Spring.of(GlassButtons.PRESS_RESPONSE, GlassButtons.PRESS_DAMPING, 1.0F);
         }
-        liquidglass$press.setTarget(liquidglass$isPressed() ? GlassButtons.PRESSED_SCALE : 1.0F);
+        if (liquidglass$isPressed()) {
+            liquidglass$press.retune(GlassButtons.PRESS_RESPONSE, GlassButtons.PRESS_DAMPING);
+            liquidglass$press.setTarget(GlassButtons.PRESSED_SCALE);
+        } else {
+            liquidglass$press.retune(GlassButtons.RELEASE_RESPONSE, GlassButtons.RELEASE_DAMPING);
+            liquidglass$press.setTarget(1.0F);
+        }
         return liquidglass$press.value();
     }
 

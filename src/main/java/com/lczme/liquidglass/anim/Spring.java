@@ -12,8 +12,8 @@ public final class Spring {
     private static final float MAX_DELTA = 0.1F;
     private static final float REST_EPSILON = 0.001F;
 
-    private final float stiffness;
-    private final float damping;
+    private float stiffness;
+    private float damping;
     private float value;
     private float velocity;
     private float target;
@@ -43,6 +43,13 @@ public final class Spring {
     /** Under-damped: slight overshoot and settle, the "liquid" feel for hover and pop-in. */
     public static Spring bouncy(float initial) {
         return new Spring(initial, 320.0F, 20.0F);
+    }
+
+    /** Changes the response/damping (as in {@link #of}) without disturbing the current motion. */
+    public void retune(float response, float dampingRatio) {
+        float omega = Mth.TWO_PI / response;
+        this.stiffness = omega * omega;
+        this.damping = 2.0F * dampingRatio * omega;
     }
 
     public void setTarget(float target) {

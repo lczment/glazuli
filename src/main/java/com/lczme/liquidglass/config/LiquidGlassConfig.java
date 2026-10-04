@@ -14,6 +14,7 @@ public final class LiquidGlassConfig {
 
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
+    public static final ModConfigSpec.BooleanValue SCREEN_FADE;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -50,6 +51,9 @@ public final class LiquidGlassConfig {
         GLASS_BUTTONS = builder
                 .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
                 .define("glassButtons", true);
+        SCREEN_FADE = builder
+                .comment("Cross-fade from the previous screen when switching between menus.")
+                .define("screenFade", true);
         builder.pop();
 
         SPEC = builder.build();

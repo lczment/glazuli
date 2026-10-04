@@ -1,0 +1,10 @@
+{
+    "vertex": "liquidglass:fullscreen",
+    "fragment": "liquidglass:screen_fade",
+    "samplers": [
+        { "name": "DiffuseSampler" }
+    ],
+    "uniforms": [
+        { "name": "Alpha", "type": "float", "count": 1, "values": [ 1.0 ] }
+    ]
+}

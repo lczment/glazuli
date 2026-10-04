@@ -3,6 +3,7 @@ package com.lczme.liquidglass;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.render.BlurPipeline;
+import com.lczme.liquidglass.render.ScreenFade;
 import com.lczme.liquidglass.render.LiquidGlassShaders;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +28,8 @@ public final class LiquidGlass {
 
         modBus.addListener(LiquidGlassShaders::onRegisterShaders);
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onRenderFramePre);
+        NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
+        NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         DevHooks.register(NeoForge.EVENT_BUS);
     }
 
