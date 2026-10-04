@@ -101,6 +101,7 @@ public final class DevHooks {
             }),
             new Shot("liquidglass_autoshot_create_world.png", 3.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
             new Shot("liquidglass_autoshot_iris.png", SETTLED, () -> openReflective("iris", "net.irisshaders.iris.gui.screen.ShaderPackScreen")),
+            new Shot("liquidglass_autoshot_iris_options.png", SETTLED, DevHooks::openIrisOptions),
             new Shot("liquidglass_autoshot_fallback.png", SETTLED, () -> LiquidGlassConfig.ENABLE_GLASS.set(false)),
             new Shot("liquidglass_autoshot_menu.png", SETTLED, () -> {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
@@ -169,6 +170,23 @@ public final class DevHooks {
                 }
             }),
     };
+
+    /** Switches the open Iris shader pack screen to the pack's option menu, as its "Shader Pack Settings" button does. */
+    private static void openIrisOptions() {
+        Minecraft mc = Minecraft.getInstance();
+        Screen screen = mc.screen;
+        if (screen == null || !screen.getClass().getName().equals("net.irisshaders.iris.gui.screen.ShaderPackScreen")) {
+            return;
+        }
+        try {
+            java.lang.reflect.Field open = screen.getClass().getDeclaredField("optionMenuOpen");
+            open.setAccessible(true);
+            open.setBoolean(screen, true);
+            screen.init(mc, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+        } catch (ReflectiveOperationException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not open Iris options", e);
+        }
+    }
 
     private static void openReflective(String modId, String screenClass) {
         if (!ModList.get().isLoaded(modId)) {
