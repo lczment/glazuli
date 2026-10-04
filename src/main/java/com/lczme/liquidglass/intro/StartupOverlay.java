@@ -1,7 +1,6 @@
 package com.lczme.liquidglass.intro;
 
 import com.lczme.liquidglass.anim.AnimClock;
-import com.lczme.liquidglass.anim.Easing;
 import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.dev.DevHooks;
 import java.util.Optional;
@@ -17,11 +16,11 @@ import org.joml.Matrix4f;
 
 /**
  * LabyMod-style startup: the familiar Mojang Studios loading screen (brand colour, logo, vanilla progress bar) takes
- * over seamlessly from the early loading window. When loading is done the letters turn into windows onto the cave and
+ * over from the early loading window with a hard cut (background and logo line up, so only FML's progress bars and log
+ * lines disappear; dissolving them made them flash). When loading is done the letters turn into windows onto the cave and
  * the camera flies through the logo while the cave camera flies into the title screen behind it.
  */
 public final class StartupOverlay extends GlassLoadingOverlay {
-    private static final float HANDOFF_SECONDS = 0.5F;
     // Fast loads (small modpacks, dev) would otherwise skip straight to the transition.
     private static final float MIN_LOADING_SECONDS = 1.5F;
     private static final float MAX_FILL_SECONDS = 0.6F;
@@ -109,13 +108,6 @@ public final class StartupOverlay extends GlassLoadingOverlay {
             splash.drawLoading(pose, w, h, brandColor(), progress, 1.0F);
         }
         IntroDraw.end();
-
-        if (!outroActive && early != null) {
-            float handoff = Mth.clamp(elapsed() / HANDOFF_SECONDS, 0.0F, 1.0F);
-            if (handoff < 1.0F) {
-                early.draw(pose, w, h, 1.0F - Easing.IN_OUT_CUBIC.apply(handoff));
-            }
-        }
     }
 
     private int brandColor() {

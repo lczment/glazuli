@@ -4,10 +4,8 @@ import com.lczme.liquidglass.title.TitleMenu;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.Util;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.LogoRenderer;
-import net.minecraft.client.gui.components.SplashRenderer;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -66,21 +64,8 @@ public abstract class TitleScreenMixin {
     @WrapOperation(method = "render", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/components/LogoRenderer;renderLogo(Lnet/minecraft/client/gui/GuiGraphics;IF)V"))
     private void liquidglass$logoEntrance(LogoRenderer logo, GuiGraphics guiGraphics, int width, float alpha, Operation<Void> original) {
-        boolean pushed = liquidglass$menu != null && liquidglass$menu.pushLogoTransform(guiGraphics, width);
-        original.call(logo, guiGraphics, width, alpha);
-        if (pushed) {
-            guiGraphics.pose().popPose();
-        }
-    }
-
-    @WrapOperation(method = "render", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/components/SplashRenderer;render(Lnet/minecraft/client/gui/GuiGraphics;ILnet/minecraft/client/gui/Font;I)V"))
-    private void liquidglass$splashEntrance(SplashRenderer splash, GuiGraphics guiGraphics, int width, Font font, int color,
-                                            Operation<Void> original) {
-        boolean pushed = liquidglass$menu != null && liquidglass$menu.pushLogoTransform(guiGraphics, width);
-        original.call(splash, guiGraphics, width, font, color);
-        if (pushed) {
-            guiGraphics.pose().popPose();
+        if (liquidglass$menu == null || !liquidglass$menu.drawLogo(guiGraphics, width)) {
+            original.call(logo, guiGraphics, width, alpha);
         }
     }
 

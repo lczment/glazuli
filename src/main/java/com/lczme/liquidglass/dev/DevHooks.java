@@ -50,6 +50,8 @@ public final class DevHooks {
 
     // In-memory config changes only (ConfigValue#set does not write to disk); glass is re-enabled at the end.
     private static final Shot[] SHOTS = {
+            new Shot("liquidglass_autoshot_title_letters.png", 1.1, () -> {
+            }),
             new Shot("liquidglass_autoshot_title.png", 2.5, () -> {
             }),
             new Shot("liquidglass_autoshot_reload.png", RELOAD_TIMEOUT, () -> Minecraft.getInstance().reloadResourcePacks(),

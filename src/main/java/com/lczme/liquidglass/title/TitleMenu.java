@@ -9,8 +9,10 @@ import com.lczme.liquidglass.render.GlassButtons;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.LogoRenderer;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.contents.TranslatableContents;
@@ -35,18 +37,32 @@ public final class TitleMenu {
     /** Bottom of vanilla's logo + "Java Edition" badge ({@code LogoRenderer}, drawn at y = 30). */
     private static final float VANILLA_LOGO_BOTTOM = 82.0F;
 
-    /** Vertical centre of the logo + badge, the pivot of the logo entrance. */
-    private static final float LOGO_PIVOT_Y = 55.0F;
-    // LabyMod-style logo entrance: the logo settles from slightly larger and higher while fading in, then the menu rises.
-    private static final float LOGO_START_SCALE = 1.18F;
-    private static final float LOGO_DROP = 14.0F;
-    private static final float LOGO_SECONDS = 1.1F;
-    private static final float FADE_SECONDS = 0.6F;
-    private static final float BUTTONS_DELAY = 0.3F;
+    // LabyMod-style logo entrance: the letters of the vanilla logo drop in one by one with a small bounce, then the
+    // edition badge, splash and menu follow.
+    /** Letter boundaries of the vanilla logo in its 256-unit width (seams between the stone letters M I N E C R A F T). */
+    private static final int[] LETTER_EDGES = {0, 42, 57, 89, 117, 145, 174, 203, 232, 256};
+    private static final float LETTER_DROP = 36.0F;
+    private static final float LETTER_STAGGER = 0.07F;
+    private static final float LETTER_SECONDS = 0.55F;
+    private static final float LETTER_FADE_SECONDS = 0.18F;
+    private static final float LETTERS_END = LETTER_STAGGER * (LETTER_EDGES.length - 2) + LETTER_SECONDS;
+    private static final float BADGE_DELAY = LETTERS_END - 0.25F;
+    private static final float FADE_SECONDS = 0.45F;
+    private static final float BUTTONS_DELAY = LETTERS_END - 0.35F;
+    private static final int LOGO_Y = 30;
+    private static final float MIN_CHROME_ALPHA = 0.02F;
 
     private final Timeline entrance = new Timeline();
-    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, FADE_SECONDS, 1.0F, Easing.SPEC_EASE);
-    private final Timeline.Track logoIn = entrance.track(0.0F).to(0.0F, LOGO_SECONDS, 1.0F, Easing.OUT_EXPO);
+    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(BADGE_DELAY, FADE_SECONDS, 1.0F, Easing.SPEC_EASE);
+    private final Timeline.Track[] letterDrop = new Timeline.Track[LETTER_EDGES.length - 1];
+    private final Timeline.Track[] letterAlpha = new Timeline.Track[LETTER_EDGES.length - 1];
+
+    {
+        for (int i = 0; i < letterDrop.length; i++) {
+            letterDrop[i] = entrance.track(0.0F).to(LETTER_STAGGER * i, LETTER_SECONDS, 1.0F, Easing.OUT_BACK);
+            letterAlpha[i] = entrance.track(0.0F).to(LETTER_STAGGER * i, LETTER_FADE_SECONDS, 1.0F, Easing.OUT_CUBIC);
+        }
+    }
     private final List<Timeline.Track> rises = new ArrayList<>();
     private final List<Slot> slots = new ArrayList<>();
     private final boolean continuesIntro;
@@ -156,24 +172,44 @@ public final class TitleMenu {
      * through vanilla's own title fade so all of it appears together with our entrance.
      */
     public float chromeAlpha() {
-        return settled ? 1.0F : logoAlpha.value();
+        if (settled) {
+            return 1.0F;
+        }
+        // Vanilla skips the logo (and everything else) below ~4/255, but the letters must drop in before the rest.
+        return entrance.isStarted() ? Math.max(MIN_CHROME_ALPHA, logoAlpha.value()) : 0.0F;
     }
 
     /**
-     * Pushes the logo entrance transform (shared by the logo and the splash text so they move together); returns
-     * false, without pushing, once it's at rest. Pair a true result with popPose.
+     * Draws the logo during the entrance, letter by letter (same textures and placement as {@code LogoRenderer});
+     * returns false once the entrance is over so vanilla draws it again.
      */
-    public boolean pushLogoTransform(GuiGraphics guiGraphics, int width) {
-        float t = settled ? 1.0F : logoIn.value();
-        if (t >= 1.0F) {
+    public boolean drawLogo(GuiGraphics guiGraphics, int width) {
+        if (settled) {
             return false;
         }
-        float scale = Mth.lerp(t, LOGO_START_SCALE, 1.0F);
-        float cx = width * 0.5F;
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(cx, LOGO_PIVOT_Y - (1.0F - t) * LOGO_DROP, 0.0F);
-        guiGraphics.pose().scale(scale, scale, 1.0F);
-        guiGraphics.pose().translate(-cx, -LOGO_PIVOT_Y, 0.0F);
+        int x0 = width / 2 - 128;
+        RenderSystem.enableBlend();
+        for (int i = 0; i < letterDrop.length; i++) {
+            float alpha = letterAlpha[i].value();
+            if (alpha <= 0.0F) {
+                continue;
+            }
+            int u0 = LETTER_EDGES[i];
+            int u1 = LETTER_EDGES[i + 1];
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0.0F, -(1.0F - letterDrop[i].value()) * LETTER_DROP, 0.0F);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+            guiGraphics.blit(LogoRenderer.MINECRAFT_LOGO, x0 + u0, LOGO_Y, u1 - u0, 44, u0, 0.0F, u1 - u0, 44, 256, 64);
+            guiGraphics.pose().popPose();
+        }
+        float badge = logoAlpha.value();
+        if (badge > 0.0F) {
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, badge);
+            guiGraphics.blit(LogoRenderer.MINECRAFT_EDITION, width / 2 - 64, Math.round(LOGO_Y + 37 + (1.0F - badge) * 6.0F),
+                    0.0F, 0.0F, 128, 14, 128, 16);
+        }
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableBlend();
         return true;
     }
 
