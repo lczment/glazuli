@@ -49,7 +49,10 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
-        NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> DarkText.reset());
+        NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> {
+            DarkText.reset();
+            CaveBackground.onFrameStart();
+        });
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
     }

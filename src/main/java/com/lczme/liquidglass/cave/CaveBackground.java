@@ -87,6 +87,10 @@ public final class CaveBackground {
         return now - waitingSince > ENTRANCE_WAIT_LIMIT;
     }
 
+    public static void onFrameStart() {
+        ShaderCave.newFrame();
+    }
+
     public static void render(GuiGraphics guiGraphics, int width, int height) {
         try {
             renderUnsafe(guiGraphics, width, height);

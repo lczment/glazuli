@@ -94,6 +94,8 @@ final class ShaderCave {
     @Nullable
     private static LocalPlayer player;
     private static boolean failed;
+    private static boolean drawnThisFrame;
+    private static boolean loggedRepeat;
     @Nullable
     private static Object irisApi;
     @Nullable
@@ -138,12 +140,28 @@ final class ShaderCave {
             if (level == null && !build(minecraft, world)) {
                 return false;
             }
+            if (drawnThisFrame) {
+                if (!loggedRepeat) {
+                    loggedRepeat = true;
+                    LiquidGlass.LOGGER.info("Shader cave asked to render twice in one frame; reusing the first image");
+                }
+                return true;
+            }
+            drawnThisFrame = true;
             draw(minecraft, camera);
             return true;
         } catch (RuntimeException | LinkageError e) {
             fail("Shader cave failed, falling back to the plain cave", e);
             return false;
         }
+    }
+
+    /**
+     * Shader packs advance their temporal history (previous camera, previous frame) on every world render, so a second
+     * render in the same frame would make them reproject from a "previous" view identical to the current one.
+     */
+    static void newFrame() {
+        drawnThisFrame = false;
     }
 
     private static void fail(String message, Throwable e) {

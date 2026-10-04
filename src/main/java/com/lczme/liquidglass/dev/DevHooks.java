@@ -108,7 +108,13 @@ public final class DevHooks {
                 Minecraft.getInstance().setScreen(menu);
             }),
             // Switching shader packs on the title screen rebuilds Iris' pipeline while the cave is showing.
-            new Shot("liquidglass_autoshot_menu_shader_switch.png", 4.0, DevHooks::switchIrisPack),
+            // Mid-flight between two camera spots: temporal shader effects show their smearing here.
+            new Shot("liquidglass_autoshot_cave_motion.png", 0.7, () -> Minecraft.getInstance().setScreen(
+                    new OptionsScreen(menu, Minecraft.getInstance().options))),
+            new Shot("liquidglass_autoshot_menu_shader_switch.png", 4.0, () -> {
+                Minecraft.getInstance().setScreen(menu);
+                switchIrisPack();
+            }),
             // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
             new Shot("liquidglass_autoshot_world.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(DevHooks::enterWorld),
                     () -> Minecraft.getInstance().player != null && Minecraft.getInstance().screen == null, true),
