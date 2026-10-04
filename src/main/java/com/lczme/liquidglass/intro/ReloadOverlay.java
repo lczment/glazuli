@@ -3,8 +3,7 @@ package com.lczme.liquidglass.intro;
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.anim.Easing;
-import com.lczme.liquidglass.render.GlassRenderer;
-import com.lczme.liquidglass.render.GlassStyle;
+import com.lczme.liquidglass.cave.CaveBackground;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -13,7 +12,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.resources.language.I18n;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.client.ClientHooks;
@@ -22,37 +20,34 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
 /**
- * Lighter overlay for resource reloads after startup: the current frame is frozen and frosted, with a small glass
- * card showing progress. Freezing matters because textures, models and fonts are swapped while the reload runs, so
- * live screen/world content is not safe to show (vanilla covers it completely for the same reason).
+ * Resource reloads after startup (resource packs, language, F3+T) use the same Mojang Studios screen as the startup:
+ * it fades in over the frozen frame, shows progress, and exits by flying through the logo onto the live screen.
+ * Freezing matters because textures, models and fonts are swapped while the reload runs, so live screen/world content
+ * is not safe to show until the reload has finished (vanilla covers it completely for the same reason).
  */
 public final class ReloadOverlay extends GlassLoadingOverlay {
-    private static final String LABEL_KEY = "liquidglass.loading.reloading";
-    private static final float FADE_IN_SECONDS = 0.3F;
-    /** Vanilla keeps a fading-in overlay up for at least one second; ours is snappier but still avoids a flash. */
+    private static final float FADE_IN_SECONDS = 0.35F;
+    /** Vanilla keeps a fading-in overlay up for at least one second; ours is a bit snappier but still avoids a flash. */
     private static final float MIN_SECONDS_WITH_FADE_IN = 0.8F;
-    private static final float FADE_OUT_SECONDS = 0.45F;
+    private static final float MAX_FILL_SECONDS = 0.6F;
+    private static final float MAX_BACKDROP_WAIT_SECONDS = 2.0F;
     private static final int FREEZE_FALLBACK = 0xFF0B0D12;
-    private static final GlassStyle FROST = GlassStyle.film(0x0B0D12, GlassStyle.TINT_NEUTRAL).withCornerRadius(0.0F).withShadow(0.0F);
-    private static final GlassStyle CARD = GlassStyle.FILM;
 
-    private final String label;
+    private final MojangSplash splash;
     @Nullable
     private TextureTarget frozen;
     private boolean frozenTaken;
-    private double fadeOutStart = Double.NaN;
+    private double fillStart = Double.NaN;
     private boolean released;
 
     ReloadOverlay(Minecraft minecraft, ReloadInstance reload, Consumer<Optional<Throwable>> onFinish, boolean fadeIn) {
         super(minecraft, reload, onFinish, fadeIn);
-        String text = I18n.get(LABEL_KEY);
-        this.label = text.equals(LABEL_KEY) ? "Reloading resources" : text;
-        bar.setLabel(label);
+        this.splash = new MojangSplash(minecraft);
     }
 
-    /** Seconds since the reload finished and the frost started thawing, or a negative value before that. */
+    /** Seconds since the exit animation started, or a negative value before that. */
     public float fadeOutElapsed() {
-        return Double.isNaN(fadeOutStart) ? -1.0F : (float) (AnimClock.now() - fadeOutStart);
+        return splash.outro.isStarted() ? splash.outro.elapsed() : -1.0F;
     }
 
     @Override
@@ -62,28 +57,34 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
         }
         markFrame();
         float t = elapsed();
-        bar.update(reload.getActualProgress(), reload.isDone());
+        float progress = bar.update(reload.getActualProgress(), reload.isDone());
         if (!frozenTaken) {
             freeze(guiGraphics, mouseX, mouseY, partialTick);
         }
 
         if (!isFinishCalled() && reload.isDone() && (!fadeIn || t >= MIN_SECONDS_WITH_FADE_IN)) {
             finishReload(guiGraphics);
-            fadeOutStart = AnimClock.now();
+            fillStart = AnimClock.now();
             if (isReplaced()) {
                 release();
                 return;
             }
         }
+        if (isFinishCalled() && !splash.outro.isStarted()) {
+            CaveBackground.prepare();
+            double sinceFill = AnimClock.now() - fillStart;
+            boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
+            boolean backdropReady = CaveBackground.isUpToDate() || sinceFill >= MAX_BACKDROP_WAIT_SECONDS;
+            if (filled && backdropReady) {
+                splash.outro.start();
+            }
+        }
 
-        float in = fadeIn ? Easing.OUT_CUBIC.apply(Mth.clamp(t / FADE_IN_SECONDS, 0.0F, 1.0F)) : 1.0F;
-        float out = Double.isNaN(fadeOutStart) ? 0.0F
-                : Easing.IN_OUT_CUBIC.apply(Mth.clamp((float) (AnimClock.now() - fadeOutStart) / FADE_OUT_SECONDS, 0.0F, 1.0F));
         float w = guiGraphics.guiWidth();
         float h = guiGraphics.guiHeight();
-
-        if (isFinishCalled()) {
-            // Resources are consistent again: show the live screen under the thawing frost.
+        boolean outroActive = splash.outro.isStarted();
+        if (outroActive) {
+            // Resources are consistent again: the live screen (and world, if any) shows through the letters.
             if (minecraft.screen != null) {
                 ClientHooks.drawScreen(minecraft.screen, guiGraphics, mouseX, mouseY, partialTick);
             }
@@ -92,40 +93,21 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
             drawFrozen(guiGraphics, w, h);
         }
 
-        float frost = in * (1.0F - out);
-        if (frost > 0.0F) {
-            GlassRenderer.recaptureBackdrop(guiGraphics);
-            GlassRenderer.drawPanel(guiGraphics, -16.0F, -16.0F, w + 32.0F, h + 32.0F, FROST.withOpacity(frost));
+        Matrix4f pose = guiGraphics.pose().last().pose();
+        int background = MojangSplash.brandColor(minecraft);
+        IntroDraw.begin();
+        if (outroActive) {
+            splash.drawOutro(pose, w, h, background, progress);
+        } else {
+            float in = fadeIn ? Easing.OUT_CUBIC.apply(Mth.clamp(t / FADE_IN_SECONDS, 0.0F, 1.0F)) : 1.0F;
+            splash.drawLoading(pose, w, h, background, progress, in);
         }
-        drawCard(guiGraphics, w, h, in, out);
+        IntroDraw.end();
 
-        if (out >= 1.0F) {
+        if (splash.outro.isFinished()) {
             release();
             remove();
         }
-    }
-
-    private void drawCard(GuiGraphics guiGraphics, float w, float h, float in, float out) {
-        float alpha = in * (1.0F - out);
-        if (alpha <= 0.0F) {
-            return;
-        }
-        float cardW = Mth.clamp(w * 0.36F, 160.0F, 240.0F);
-        float cardH = 58.0F;
-        float cx = w * 0.5F;
-        float cy = h * 0.5F;
-        float scale = Mth.lerp(in, 0.94F, 1.0F) * Mth.lerp(out, 1.0F, 0.96F);
-
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(cx, cy, 0.0F);
-        guiGraphics.pose().scale(scale, scale, 1.0F);
-        GlassRenderer.drawPanel(guiGraphics, -cardW * 0.5F, -cardH * 0.5F, cardW, cardH, CARD.withOpacity(alpha));
-        Matrix4f pose = guiGraphics.pose().last().pose();
-        float logoHeight = 15.0F;
-        IntroLogo.prepare(logoHeight);
-        IntroLogo.draw(pose, 0.0F, -cardH * 0.5F + 16.0F, logoHeight, alpha, 2.0F);
-        bar.draw(pose, 0.0F, 4.0F, cardW - 40.0F, alpha);
-        guiGraphics.pose().popPose();
     }
 
     private void freeze(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
@@ -171,6 +153,7 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
 
     private void release() {
         released = true;
+        splash.close();
         if (frozen != null) {
             frozen.destroyBuffers();
             frozen = null;

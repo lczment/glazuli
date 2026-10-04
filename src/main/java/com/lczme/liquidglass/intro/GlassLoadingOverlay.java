@@ -41,7 +41,8 @@ public abstract class GlassLoadingOverlay extends LoadingOverlay {
         }
     }
 
-    protected final boolean isFinishCalled() {
+    /** The reload result has been applied, so resources are consistent again even though the overlay is still up. */
+    public final boolean isFinishCalled() {
         return finishCalled;
     }
 

@@ -35,7 +35,7 @@ public final class LiquidGlassConfig {
                 .comment("When to replace the startup loading screen with the Liquid Glass intro. OFF keeps the NeoForge/vanilla screen.")
                 .defineEnum("introMode", IntroMode.ALWAYS);
         STYLE_RELOAD_OVERLAY = builder
-                .comment("Also use the glass loading overlay for later resource reloads (F3+T, resource pack changes).")
+                .comment("Also use the Mojang Studios screen with the fly-through exit for later resource reloads (resource packs, language, F3+T).")
                 .define("styleReloadOverlay", true);
         builder.pop();
 

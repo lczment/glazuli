@@ -70,12 +70,6 @@ public final class IntroState {
     public static boolean isOutroPlaying() {
         return phase == Phase.OUTRO;
     }
-
-    /** The startup reload has finished (models are in place), though the overlay may still be showing. */
-    public static boolean isLoadingDone() {
-        return loadingDone;
-    }
-
     /** {@code true} once nothing intro-related will be drawn anymore this session. */
     public static boolean isDone() {
         return phase == Phase.FINISHED || phase == Phase.DISABLED;

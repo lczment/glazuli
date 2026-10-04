@@ -3,6 +3,7 @@ package com.lczme.liquidglass.cave;
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
+import com.lczme.liquidglass.intro.GlassLoadingOverlay;
 import com.lczme.liquidglass.intro.IntroState;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
@@ -135,9 +136,15 @@ public final class CaveBackground {
         return !isActive() || mesh != null;
     }
 
+    /** Like {@link #isReady()}, but also requires the mesh to match the current resources (after a reload). */
+    public static boolean isUpToDate() {
+        return !isActive() || mesh != null && !dirty && building == null;
+    }
+
     private static void pollBuild(Minecraft minecraft, double now) {
-        // During a reload the models are being swapped; wait until it's over (the startup overlay lingers after loading).
-        boolean reloading = minecraft.getOverlay() != null && !(IntroState.isPlaying() && IntroState.isLoadingDone());
+        // During a reload the models are being swapped; wait until it's applied (our overlays linger after that).
+        boolean reloading = minecraft.getOverlay() != null
+                && !(minecraft.getOverlay() instanceof GlassLoadingOverlay overlay && overlay.isFinishCalled());
         if (building == null && dirty && world != null && !reloading) {
             dirty = false;
             building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());

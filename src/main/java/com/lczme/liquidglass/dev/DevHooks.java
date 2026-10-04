@@ -55,7 +55,7 @@ public final class DevHooks {
             new Shot("liquidglass_autoshot_reload.png", RELOAD_TIMEOUT, () -> Minecraft.getInstance().reloadResourcePacks(),
                     () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.elapsed() >= 0.8F, true),
             new Shot("liquidglass_autoshot_reload_thaw.png", RELOAD_TIMEOUT, () -> {
-            }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.fadeOutElapsed() >= 0.18F, false),
+            }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.fadeOutElapsed() >= 0.95F, false),
             new Shot("liquidglass_autoshot_intro.png", MID_INTRO, () -> {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(new GlassDemoScreen(menu));
