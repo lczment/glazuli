@@ -2,6 +2,7 @@ package com.lczme.liquidglass.mixin;
 
 import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.intro.IntroOverlays;
+import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
@@ -24,6 +25,13 @@ public abstract class MinecraftMixin {
     @Inject(method = "resizeDisplay", at = @At("TAIL"))
     private void liquidglass$refitFont(CallbackInfo ci) {
         FontScale.onResize();
+    }
+
+    @Inject(method = "stop", at = @At("HEAD"), cancellable = true)
+    private void liquidglass$fadeOutOnQuit(CallbackInfo ci) {
+        if (QuitFade.deferStop()) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "setScreen", at = @At("HEAD"))

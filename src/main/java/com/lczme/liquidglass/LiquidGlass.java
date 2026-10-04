@@ -8,6 +8,7 @@ import com.lczme.liquidglass.font.FontPack;
 import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.render.BlurPipeline;
 import com.lczme.liquidglass.render.PackOverrides;
+import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
 import com.lczme.liquidglass.render.LiquidGlassShaders;
 import com.mojang.logging.LogUtils;
@@ -45,6 +46,7 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onScreenRenderPre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
+        NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
     }
