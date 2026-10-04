@@ -57,6 +57,14 @@ neoForge {
             jvmArgument '-Dmixin.debug.export=true'
         }
 
+        // Opens the glass demo screen, saves run/screenshots/liquidglass_autoshot.png and exits.
+        clientAutoshot {
+            client()
+            systemProperty 'liquidglass.autoshot', 'true'
+            systemProperty 'liquidglass.autoshot.exit', 'true'
+            programArguments.addAll '--width', '1280', '--height', '720'
+        }
+
         data {
             data()
             // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it

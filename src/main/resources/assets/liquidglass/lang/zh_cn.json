@@ -6,5 +6,14 @@
   "liquidglass.configuration.enableGlass": "启用玻璃效果",
   "liquidglass.configuration.blurQuality": "模糊质量",
   "liquidglass.configuration.enableRefraction": "边缘折射",
-  "liquidglass.configuration.enableChromaticAberration": "色散"
+  "liquidglass.configuration.enableChromaticAberration": "色散",
+  "liquidglass.demo.open": "玻璃演示",
+  "liquidglass.demo.title": "液态玻璃演示",
+  "liquidglass.demo.subtitle": "模糊背景、折射边缘、高光反射",
+  "liquidglass.demo.button.play": "开始",
+  "liquidglass.demo.button.options": "选项",
+  "liquidglass.demo.button.quit": "退出",
+  "liquidglass.demo.scaled": "缩放",
+  "liquidglass.demo.popup": "弹窗",
+  "liquidglass.demo.popup.detail": "重新捕获背景"
 }
