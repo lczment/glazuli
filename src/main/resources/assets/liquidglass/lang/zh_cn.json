@@ -14,6 +14,8 @@
   "liquidglass.configuration.glassButtons": "玻璃按钮",
   "liquidglass.configuration.screenFade": "界面切换渐变",
   "liquidglass.configuration.caveBackground": "动态洞穴背景",
+  "liquidglass.configuration.font": "字体",
+  "liquidglass.configuration.customFont": "鸿蒙黑体 / 苹方字体",
   "liquidglass.configuration.compat": "模组适配",
   "liquidglass.configuration.glassSodiumScreen": "玻璃风格钠视频设置",
   "liquidglass.configuration.glassJei": "玻璃风格 JEI",

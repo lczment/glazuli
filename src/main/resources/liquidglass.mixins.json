@@ -10,6 +10,7 @@
     "GuiGraphicsMixin",
     "KeyboardHandlerMixin",
     "LoadingOverlayAccessor",
+    "MinecraftAccessor",
     "MinecraftMixin",
     "NeoForgeLoadingOverlayAccessor",
     "PanoramaRendererMixin",

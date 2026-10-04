@@ -14,6 +14,8 @@
   "liquidglass.configuration.glassButtons": "Glass Buttons",
   "liquidglass.configuration.screenFade": "Screen Cross-fade",
   "liquidglass.configuration.caveBackground": "Dynamic Cave Background",
+  "liquidglass.configuration.font": "Font",
+  "liquidglass.configuration.customFont": "HarmonyOS Sans / PingFang Font",
   "liquidglass.configuration.compat": "Mod Compatibility",
   "liquidglass.configuration.glassSodiumScreen": "Glass Sodium Video Settings",
   "liquidglass.configuration.glassJei": "Glass JEI",

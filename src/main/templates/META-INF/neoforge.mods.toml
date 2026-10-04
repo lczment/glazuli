@@ -50,6 +50,9 @@ authors="lczme"
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 LabyMod-style startup animation and a liquid-glass themed user interface.
+
+This mod uses HarmonyOS Sans Fonts (Copyright 2021 Huawei Device Co., Ltd., HarmonyOS Sans Fonts License Agreement).
+The glass Sodium video settings are based on Reese's Sodium Options (MIT).
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

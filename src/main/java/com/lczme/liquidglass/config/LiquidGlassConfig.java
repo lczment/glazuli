@@ -14,6 +14,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
+    public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
     public static final ModConfigSpec.BooleanValue GLASS_SODIUM_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_JEI;
 
@@ -54,6 +55,14 @@ public final class LiquidGlassConfig {
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);
+        builder.pop();
+
+        builder.push("font");
+        CUSTOM_FONT = builder
+                .comment("Replace the pixel font with HarmonyOS Sans (bundled; by Huawei Device Co., Ltd., see META-INF/licenses).",
+                        "PingFang is used instead when installed on the system, and any .ttf/.otf/.ttc placed in",
+                        "config/liquidglass/fonts takes precedence over both.")
+                .define("customFont", true);
         builder.pop();
 
         builder.push("compat");

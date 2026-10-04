@@ -1,0 +1,152 @@
+package com.lczme.liquidglass.font;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.lczme.liquidglass.LiquidGlass;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
+import net.minecraft.SharedConstants;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackSelectionConfig;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
+import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.resources.IoSupplier;
+import net.neoforged.neoforge.event.AddPackFindersEvent;
+
+/**
+ * Always-on hidden resource pack that points {@code minecraft:default} at HarmonyOS Sans, preceded by PingFang or a
+ * user-supplied font when one is found (see {@link UserFont}). Generated rather than static so the config can turn it
+ * off and so glyphs are rasterised at the current GUI scale.
+ */
+public final class FontPack implements PackResources {
+    private static final String ID = "liquidglass/fonts";
+    private static final ResourceLocation DEFAULT_FONT = ResourceLocation.withDefaultNamespace("font/default.json");
+    private static final ResourceLocation USER_FONT_FILE = LiquidGlass.id("font/user_font.ttf");
+    private static final String USER_FONT = LiquidGlass.MODID + ":user_font.ttf";
+    private static final String BUNDLED_FONT = LiquidGlass.MODID + ":harmonyos_sans_sc_regular.ttf";
+    /** Em size in GUI pixels; CJK glyphs then fill the 9 px line like the vanilla unifont glyphs do. */
+    private static final float SIZE = 10.0F;
+    private static final float SHIFT_Y = 0.5F;
+
+    private final PackLocationInfo location;
+    @Nullable
+    private final UserFont userFont;
+
+    private FontPack(PackLocationInfo location) {
+        this.location = location;
+        this.userFont = UserFont.find();
+    }
+
+    public static void onAddPackFinders(AddPackFindersEvent event) {
+        if (event.getPackType() != PackType.CLIENT_RESOURCES) {
+            return;
+        }
+        PackLocationInfo info = new PackLocationInfo(ID, Component.literal("Liquid Glass fonts"), PackSource.BUILT_IN, Optional.empty());
+        Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
+            @Override
+            public PackResources openPrimary(PackLocationInfo location) {
+                return new FontPack(location);
+            }
+
+            @Override
+            public PackResources openFull(PackLocationInfo location, Pack.Metadata metadata) {
+                return new FontPack(location);
+            }
+        };
+        // Above vanilla and the mods' resources; not fixed, so resource packs enabled later are placed above it and their
+        // fonts still win.
+        Pack pack = Pack.readMetaAndCreate(info, resources, PackType.CLIENT_RESOURCES, new PackSelectionConfig(true, Pack.Position.TOP, false));
+        if (pack != null) {
+            event.addRepositorySource(consumer -> consumer.accept(pack.hidden()));
+        }
+    }
+
+    private byte[] fontDefinition() {
+        int oversample = FontScale.oversampleForLoad();
+        JsonArray providers = new JsonArray();
+        if (this.userFont != null) {
+            providers.add(ttf(USER_FONT, oversample));
+        }
+        providers.add(ttf(BUNDLED_FONT, oversample));
+        JsonObject root = new JsonObject();
+        root.add("providers", providers);
+        return root.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static JsonObject ttf(String file, int oversample) {
+        JsonObject provider = new JsonObject();
+        provider.addProperty("type", "ttf");
+        provider.addProperty("file", file);
+        provider.addProperty("size", SIZE);
+        provider.addProperty("oversample", oversample);
+        JsonArray shift = new JsonArray();
+        shift.add(0.0F);
+        shift.add(SHIFT_Y);
+        provider.add("shift", shift);
+        return provider;
+    }
+
+    @Nullable
+    @Override
+    public IoSupplier<InputStream> getRootResource(String... elements) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
+        if (type != PackType.CLIENT_RESOURCES || !FontScale.isEnabled()) {
+            return null;
+        }
+        if (location.equals(DEFAULT_FONT)) {
+            return () -> new ByteArrayInputStream(this.fontDefinition());
+        }
+        if (location.equals(USER_FONT_FILE) && this.userFont != null) {
+            return this.userFont::open;
+        }
+        return null;
+    }
+
+    @Override
+    public void listResources(PackType type, String namespace, String path, ResourceOutput output) {
+        if (type == PackType.CLIENT_RESOURCES && namespace.equals(DEFAULT_FONT.getNamespace()) && path.equals("font")
+                && FontScale.isEnabled()) {
+            output.accept(DEFAULT_FONT, () -> new ByteArrayInputStream(this.fontDefinition()));
+        }
+    }
+
+    @Override
+    public Set<String> getNamespaces(PackType type) {
+        return type == PackType.CLIENT_RESOURCES ? Set.of(DEFAULT_FONT.getNamespace(), LiquidGlass.MODID) : Set.of();
+    }
+
+    @Nullable
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getMetadataSection(MetadataSectionSerializer<T> deserializer) {
+        if (deserializer == PackMetadataSection.TYPE) {
+            return (T) new PackMetadataSection(Component.literal("HarmonyOS Sans / PingFang UI font"),
+                    SharedConstants.getCurrentVersion().getPackVersion(PackType.CLIENT_RESOURCES), Optional.empty());
+        }
+        return null;
+    }
+
+    @Override
+    public PackLocationInfo location() {
+        return this.location;
+    }
+
+    @Override
+    public void close() {
+    }
+}
