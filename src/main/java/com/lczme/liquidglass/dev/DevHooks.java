@@ -11,7 +11,16 @@ import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.client.gui.components.toasts.TutorialToast;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
+import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
+import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.world.BossEvent;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -90,6 +99,8 @@ public final class DevHooks {
                     Minecraft.getInstance().setScreen(SodiumScreens.videoSettings(Minecraft.getInstance().screen));
                 }
             }),
+            new Shot("liquidglass_autoshot_create_world.png", 3.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
+            new Shot("liquidglass_autoshot_iris.png", SETTLED, () -> openReflective("iris", "net.irisshaders.iris.gui.screen.ShaderPackScreen")),
             new Shot("liquidglass_autoshot_fallback.png", SETTLED, () -> LiquidGlassConfig.ENABLE_GLASS.set(false)),
             new Shot("liquidglass_autoshot_menu.png", SETTLED, () -> {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
@@ -107,7 +118,7 @@ public final class DevHooks {
             // Hover the first ingredient of JEI's list (tooltip), then open JEI's crafting recipes.
             new Shot("liquidglass_autoshot_jei_hover.png", SETTLED, () -> {
                 Minecraft mc = Minecraft.getInstance();
-                GLFW.glfwSetCursorPos(mc.getWindow().getWindow(), mc.getWindow().getScreenWidth() * 0.756, mc.getWindow().getScreenHeight() * 0.155);
+                GLFW.glfwSetCursorPos(mc.getWindow().getWindow(), mc.getWindow().getScreenWidth() * 0.923, mc.getWindow().getScreenHeight() * 0.153);
             }),
             new Shot("liquidglass_autoshot_jei_recipes.png", SETTLED, DevHooks::showJeiCraftingRecipes),
             // Client-side menus are enough to see how container screens render.
@@ -125,7 +136,51 @@ public final class DevHooks {
                     mc.setScreen(new FurnaceScreen(new FurnaceMenu(0, inventory), inventory, Component.translatable("container.furnace")));
                 }
             }),
+            new Shot("liquidglass_autoshot_toast.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                mc.setScreen(null);
+                SystemToast.add(mc.getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Liquid Glass"), Component.literal("System toast"));
+                mc.getToasts().addToast(new TutorialToast(TutorialToast.Icons.MOVEMENT_KEYS,
+                        Component.literal("Tutorial"), Component.literal("Press W to move"), false));
+            }),
+            new Shot("liquidglass_autoshot_chat.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                mc.gui.getChat().addMessage(Component.literal("<Steve> hello liquid glass"));
+                mc.gui.getChat().addMessage(Component.literal("Gold text").withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(" and aqua").withStyle(ChatFormatting.AQUA)));
+                mc.gui.getChat().addMessage(Component.literal("Grey system message").withStyle(ChatFormatting.GRAY));
+                mc.gui.getBossOverlay().update(ClientboundBossEventPacket.createAddPacket(new ServerBossEvent(
+                        Component.literal("Ender Dragon"), BossEvent.BossBarColor.PINK, BossEvent.BossBarOverlay.PROGRESS)));
+                mc.setScreen(new ChatScreen("/gamem"));
+            }),
+            // Look down at the ground so Jade shows its HUD tooltip.
+            new Shot("liquidglass_autoshot_jade.png", 2.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                mc.setScreen(null);
+                if (mc.player != null) {
+                    mc.player.setXRot(70.0F);
+                }
+            }),
+            new Shot("liquidglass_autoshot_advancements.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.setScreen(new AdvancementsScreen(mc.player.connection.getAdvancements()));
+                }
+            }),
     };
+
+    private static void openReflective(String modId, String screenClass) {
+        if (!ModList.get().isLoaded(modId)) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            mc.setScreen((Screen) Class.forName(screenClass).getConstructor(Screen.class).newInstance(mc.screen));
+        } catch (ReflectiveOperationException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not open {}", screenClass, e);
+        }
+    }
 
     /** JEI is not on the compile classpath; reflection keeps this dev-only shot free of a hard dependency. */
     private static void showJeiCraftingRecipes() {

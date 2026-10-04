@@ -6,8 +6,17 @@
   "client": [
     "AbstractButtonMixin",
     "AbstractContainerScreenMixin",
+    "AbstractSelectionListMixin",
     "AbstractSliderButtonMixin",
     "AbstractWidgetMixin",
+    "AdvancementsScreenMixin",
+    "BossHealthOverlayMixin",
+    "ChatComponentMixin",
+    "ChatScreenMixin",
+    "CommandSuggestionsListMixin",
+    "CommandSuggestionsMixin",
+    "FontMixin",
+    "FontStringRenderOutputMixin",
     "GuiGraphicsMixin",
     "KeyboardHandlerMixin",
     "LoadingOverlayAccessor",
@@ -16,7 +25,9 @@
     "NeoForgeLoadingOverlayAccessor",
     "PanoramaRendererMixin",
     "ScreenMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "ToastComponentMixin",
+    "TooltipRenderUtilMixin"
   ],
   "injectors": {
     "defaultRequire": 1

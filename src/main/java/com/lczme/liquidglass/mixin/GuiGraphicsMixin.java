@@ -1,10 +1,16 @@
 package com.lczme.liquidglass.mixin;
 
 import com.lczme.liquidglass.render.ContainerGlass;
+import com.lczme.liquidglass.render.DarkText;
 import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.GlassRenderer;
 import com.lczme.liquidglass.render.GlassStyle;
+import com.lczme.liquidglass.render.VanillaGlass;
+import java.util.List;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,7 +25,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class GuiGraphicsMixin {
     @Inject(method = "blitSprite(Lnet/minecraft/resources/ResourceLocation;IIII)V", at = @At("HEAD"), cancellable = true)
     private void liquidglass$glassWidgetSprite(ResourceLocation sprite, int x, int y, int width, int height, CallbackInfo ci) {
-        if (ContainerGlass.sprite((GuiGraphics) (Object) this, sprite, x, y, width, height)) {
+        if (ContainerGlass.sprite((GuiGraphics) (Object) this, sprite, x, y, width, height)
+                || VanillaGlass.sprite((GuiGraphics) (Object) this, sprite, x, y, width, height)) {
             ci.cancel();
             return;
         }
@@ -36,8 +43,25 @@ public abstract class GuiGraphicsMixin {
     @Inject(method = "innerBlit(Lnet/minecraft/resources/ResourceLocation;IIIIIFFFF)V", at = @At("HEAD"), cancellable = true)
     private void liquidglass$glassContainerTexture(ResourceLocation texture, int x1, int x2, int y1, int y2, int z,
                                                    float u0, float u1, float v0, float v1, CallbackInfo ci) {
-        if (ContainerGlass.blit((GuiGraphics) (Object) this, texture, x1, x2, y1, y2, z, u0, u1, v0, v1)) {
+        if (ContainerGlass.blit((GuiGraphics) (Object) this, texture, x1, x2, y1, y2, z, u0, u1, v0, v1)
+                || VanillaGlass.blit((GuiGraphics) (Object) this, texture, x1, x2, y1, y2)) {
             ci.cancel();
+        }
+    }
+
+    @Inject(method = "renderTooltipInternal", at = @At("HEAD"))
+    private void liquidglass$beginTooltipText(Font font, List<ClientTooltipComponent> components, int mouseX, int mouseY,
+                                              ClientTooltipPositioner positioner, CallbackInfo ci) {
+        if (VanillaGlass.isEnabled()) {
+            DarkText.push();
+        }
+    }
+
+    @Inject(method = "renderTooltipInternal", at = @At("RETURN"))
+    private void liquidglass$endTooltipText(Font font, List<ClientTooltipComponent> components, int mouseX, int mouseY,
+                                            ClientTooltipPositioner positioner, CallbackInfo ci) {
+        if (VanillaGlass.isEnabled()) {
+            DarkText.pop();
         }
     }
 }

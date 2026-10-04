@@ -105,7 +105,8 @@ void main() {
             // --glass-ring: inset 0 1px 1px rgba(255,255,255,.95), i.e. a soft 1px line along the top edge.
             float depth = max(-d, 0.0);
             float ring = (1.0 - smoothstep(0.0, 1.5, depth)) * clamp(-n.y, 0.0, 1.0);
-            col = mix(col, vec3(1.0), 0.95 * ring);
+            // RimFrac 0 turns the ring off, for films tiled into seamless rows.
+            col = mix(col, vec3(1.0), 0.95 * ring * RimFrac);
         }
 
         col += (hash12(gl_FragCoord.xy) - 0.5) / 255.0;

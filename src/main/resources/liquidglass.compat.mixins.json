@@ -5,6 +5,8 @@
   "plugin": "com.lczme.liquidglass.compat.CompatMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "iris.IrisGuiUtilMixin",
+    "jade.JadeBoxElementMixin",
     "jei.JeiDrawableSpriteMixin",
     "jei.JeiScalableDrawableMixin",
     "sodium.SodiumAbstractWidgetMixin",

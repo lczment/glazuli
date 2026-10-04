@@ -7,6 +7,7 @@ import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.font.FontPack;
 import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.render.BlurPipeline;
+import com.lczme.liquidglass.render.DarkText;
 import com.lczme.liquidglass.render.PackOverrides;
 import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
@@ -20,6 +21,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
@@ -47,6 +49,7 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
+        NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> DarkText.reset());
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
     }

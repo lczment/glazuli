@@ -45,18 +45,28 @@ public final class GlassButtons {
     public static final float HOVER_DAMPING = 0.8F;
     public static final float HOVER_GROW = 0.025F;
 
-    private static final Map<ResourceLocation, GlassStyle> SPRITES = Map.of(
-            ResourceLocation.withDefaultNamespace("widget/button"), BUTTON_CLEAR,
-            ResourceLocation.withDefaultNamespace("widget/button_highlighted"), BUTTON_CLEAR,
-            ResourceLocation.withDefaultNamespace("widget/button_disabled"), BUTTON_CLEAR,
-            ResourceLocation.withDefaultNamespace("widget/slider"), BUTTON_CLEAR,
-            ResourceLocation.withDefaultNamespace("widget/slider_highlighted"), BUTTON_CLEAR,
-            ResourceLocation.withDefaultNamespace("widget/slider_handle"), BUTTON_NEUTRAL,
-            ResourceLocation.withDefaultNamespace("widget/slider_handle_highlighted"), BUTTON_NEUTRAL);
+    private static final Map<ResourceLocation, GlassStyle> SPRITES = Map.ofEntries(
+            sprite("widget/button", BUTTON_CLEAR),
+            sprite("widget/button_highlighted", BUTTON_CLEAR),
+            sprite("widget/button_disabled", BUTTON_CLEAR),
+            sprite("widget/slider", BUTTON_CLEAR),
+            sprite("widget/slider_highlighted", BUTTON_CLEAR),
+            sprite("widget/slider_handle", BUTTON_NEUTRAL),
+            sprite("widget/slider_handle_highlighted", BUTTON_NEUTRAL),
+            sprite("widget/text_field", BUTTON_CLEAR),
+            sprite("widget/text_field_highlighted", BUTTON_CLEAR.withHover(1.0F)),
+            sprite("widget/tab", BUTTON_CLEAR),
+            sprite("widget/tab_highlighted", BUTTON_CLEAR.withHover(1.0F)),
+            sprite("widget/tab_selected", BUTTON_NEUTRAL),
+            sprite("widget/tab_selected_highlighted", BUTTON_NEUTRAL.withHover(1.0F)));
 
     private static final Set<AbstractWidget> NEUTRAL = Collections.newSetFromMap(new WeakHashMap<>());
 
     private GlassButtons() {
+    }
+
+    private static Map.Entry<ResourceLocation, GlassStyle> sprite(String path, GlassStyle style) {
+        return Map.entry(ResourceLocation.withDefaultNamespace(path), style);
     }
 
     /** Draws {@code widget} with the neutral glass level instead of clear glass (title screen, low-detail backdrop). */

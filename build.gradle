@@ -118,14 +118,23 @@ configurations {
 }
 
 dependencies {
-    // Optional integrations. Sodium's API is compiled against; JEI is only targeted by name from mixins.
+    // Optional integrations. Sodium's and Jade's APIs are compiled against; the others are only targeted by name.
     compileOnly "net.caffeinemc:sodium-neoforge-mod:${sodium_version}"
+    compileOnly "maven.modrinth:jade:${jade_modrinth_version}"
 
     // Present in dev runs only (not published). Disable with -Pcompat_runtime=false to test without them.
     if (project.findProperty('compat_runtime') != 'false') {
         // Sodium ships as a bootstrap service jar that nests the mod; that only works from the mods folder.
         devMods "maven.modrinth:sodium:${sodium_modrinth_version}"
         localRuntime "maven.modrinth:jei:${jei_modrinth_version}"
+        if (project.findProperty('compat_extra') != 'false') {
+            devMods "maven.modrinth:jade:${jade_modrinth_version}"
+            devMods "maven.modrinth:appleskin:${appleskin_modrinth_version}"
+            devMods "maven.modrinth:iris:${iris_modrinth_version}"
+            devMods "maven.modrinth:xaeros-minimap:${xaeros_minimap_modrinth_version}"
+            devMods "maven.modrinth:xaeros-world-map:${xaeros_world_map_modrinth_version}"
+            devMods "maven.modrinth:curios:${curios_modrinth_version}"
+        }
     }
 }
 
@@ -135,7 +144,7 @@ def syncDevMods = tasks.register('syncDevMods', Sync) {
     // Only manage our own jars; anything else dropped into run/mods is left alone.
     preserve {
         include '**'
-        exclude 'sodium-*.jar'
+        ['sodium', 'jade', 'appleskin', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'curios'].each { exclude "${it}-*.jar" }
     }
 }
 tasks.matching { it.name ==~ /runClient.*/ }.configureEach { dependsOn syncDevMods }
