@@ -1,5 +1,7 @@
 package com.lczme.liquidglass.anim;
 
+import net.minecraft.util.Mth;
+
 /**
  * Damped spring (unit mass) chasing a target. Advances lazily on {@link #value()}, so it only needs to be queried
  * once per frame. Good for hover/press feedback where the target changes at any time.
@@ -22,6 +24,15 @@ public final class Spring {
         this.target = initial;
         this.stiffness = stiffness;
         this.damping = damping;
+    }
+
+    /**
+     * Spring in the design spec's terms (§6): {@code response} is the undamped period in seconds, {@code dampingRatio}
+     * 1 = critical. E.g. button press {@code 0.28 / 0.68}, popup entrance {@code 0.36 / 0.74}.
+     */
+    public static Spring of(float response, float dampingRatio, float initial) {
+        float omega = Mth.TWO_PI / response;
+        return new Spring(initial, omega * omega, 2.0F * dampingRatio * omega);
     }
 
     /** Critically damped: fast, no overshoot. */

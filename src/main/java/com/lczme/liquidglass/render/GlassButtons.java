@@ -3,9 +3,16 @@ package com.lczme.liquidglass.render;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import net.minecraft.client.gui.GuiGraphics;
 
-/** Glass look for vanilla buttons, applied by {@code AbstractButtonMixin} in place of the button sprite. */
+/**
+ * Glass look for vanilla buttons, applied by {@code AbstractButtonMixin} in place of the button sprite.
+ * Every button uses the same transparent glass ({@link GlassStyle#CLEAR}); state is shown by the press spring and
+ * vanilla's label colour (grey when inactive), never by switching to another tint.
+ */
 public final class GlassButtons {
-    private static final GlassStyle INACTIVE = GlassStyle.BUTTON.withTint(0x0CFFFFFF).withRim(0.2F).withShadow(0.1F).withOpacity(0.6F);
+    /** Spec §6 button press: target scale and spring (response 0.28 s, damping ratio 0.68). */
+    public static final float PRESSED_SCALE = 0.92F;
+    public static final float PRESS_RESPONSE = 0.28F;
+    public static final float PRESS_DAMPING = 0.68F;
 
     private GlassButtons() {
     }
@@ -15,13 +22,14 @@ public final class GlassButtons {
     }
 
     /**
-     * Draws the button background. The caller's {@code guiGraphics.setColor} alpha (widget fade) is applied by the
-     * glass shader, so it is not folded into the style here.
-     *
-     * @param hover hover amount from a spring, may overshoot [0, 1]
+     * Draws the button background squashed as {@code scale(2 - s, s)} around its centre (spec §6, first-order area
+     * compensation). The caller's {@code guiGraphics.setColor} alpha (widget fade) is applied by the glass shader.
      */
-    public static void draw(GuiGraphics guiGraphics, int x, int y, int width, int height, boolean active, float hover) {
-        GlassStyle style = active ? GlassStyle.lerp(GlassStyle.BUTTON, GlassStyle.BUTTON_HOVER, hover) : INACTIVE;
-        GlassRenderer.drawPanel(guiGraphics, x, y, width, height, style);
+    public static void draw(GuiGraphics guiGraphics, int x, int y, int width, int height, float s) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(x + width * 0.5F, y + height * 0.5F, 0.0F);
+        guiGraphics.pose().scale(2.0F - s, s, 1.0F);
+        GlassRenderer.drawPanel(guiGraphics, -width * 0.5F, -height * 0.5F, width, height, GlassStyle.CLEAR);
+        guiGraphics.pose().popPose();
     }
 }

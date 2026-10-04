@@ -25,7 +25,8 @@ import org.joml.Matrix4f;
 public final class GlassRenderer {
     /** Quad padding around the panel for the drop shadow; must cover the shader's shadow extent + offset. */
     private static final float SHADOW_MARGIN = 8.0F;
-    private static final int FALLBACK_BASE = 0x202228;
+    private static final int FALLBACK_BASE = GlassStyle.FILM_COLOR;
+    private static final float FALLBACK_GLASS_BODY = 0.62F;
     private static final int CORNER_SEGMENTS = 8;
 
     private GlassRenderer() {
@@ -62,24 +63,24 @@ public final class GlassRenderer {
         guiGraphics.flush();
 
         ShaderInstance shader = LiquidGlassShaders.glassPanel();
-        float tintA = FastColor.ARGB32.alpha(style.tint()) / 255.0F;
+        boolean film = style.material() == GlassStyle.Material.FILM;
         shader.safeGetUniform("RectSize").set(width, height);
         shader.safeGetUniform("Radius").set(style.cornerRadius());
         shader.safeGetUniform("Tint").set(
-                FastColor.ARGB32.red(style.tint()) / 255.0F,
-                FastColor.ARGB32.green(style.tint()) / 255.0F,
-                FastColor.ARGB32.blue(style.tint()) / 255.0F,
-                tintA);
-        shader.safeGetUniform("Refraction").set(LiquidGlassConfig.ENABLE_REFRACTION.get() ? style.refraction() : 0.0F);
-        shader.safeGetUniform("Bevel").set(style.bevel());
-        shader.safeGetUniform("Rim").set(style.rim());
-        shader.safeGetUniform("Chromatic").set(LiquidGlassConfig.ENABLE_CHROMATIC_ABERRATION.get() ? style.chromatic() : 0.0F);
-        shader.safeGetUniform("Saturation").set(style.saturation());
+                FastColor.ARGB32.red(style.color()) / 255.0F,
+                FastColor.ARGB32.green(style.color()) / 255.0F,
+                FastColor.ARGB32.blue(style.color()) / 255.0F,
+                film ? style.bodyOpacity() : style.tint());
+        shader.safeGetUniform("Shift").set(LiquidGlassConfig.ENABLE_REFRACTION.get() ? style.shift() : 0.0F);
+        shader.safeGetUniform("Falloff").set(style.falloff());
+        shader.safeGetUniform("RimFrac").set(style.rimFrac());
+        shader.safeGetUniform("Material").set(film ? 1.0F : 0.0F);
         shader.safeGetUniform("Shadow").set(style.shadow());
         shader.safeGetUniform("Opacity").set(Mth.clamp(style.opacity(), 0.0F, 1.0F));
 
         RenderSystem.setShader(() -> shader);
-        RenderSystem.setShaderTexture(0, style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
+        // Spec §3.1-A: glass bodies are not blurred; only films may sample the blurred copy.
+        RenderSystem.setShaderTexture(0, film && style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
         RenderSystem.enableBlend();
         // The shader outputs premultiplied alpha so the AA edge and the outer shadow composite correctly.
         RenderSystem.blendFuncSeparate(
@@ -101,11 +102,13 @@ public final class GlassRenderer {
 
     private static void drawFallback(GuiGraphics guiGraphics, float x, float y, float width, float height, GlassStyle style) {
         guiGraphics.flush();
+        // Spec fallback: a translucent body plus a 1px inner ring (dark body on this platform, see GlassStyle).
         float opacity = Mth.clamp(style.opacity(), 0.0F, 1.0F);
-        float tintA = FastColor.ARGB32.alpha(style.tint()) / 255.0F;
-        int rgb = FastColor.ARGB32.lerp(Math.min(1.0F, tintA * 1.5F), FALLBACK_BASE, style.tint()) & 0xFFFFFF;
-        int fill = FastColor.ARGB32.color(Math.round(Mth.lerp(tintA, 0.55F, 0.8F) * opacity * 255.0F), rgb);
-        int highlight = FastColor.ARGB32.color(Math.round(0.18F * style.rim() * opacity * 255.0F), 0xFFFFFF);
+        boolean film = style.material() == GlassStyle.Material.FILM;
+        int rgb = film ? style.color() : FALLBACK_BASE;
+        float body = film ? style.bodyOpacity() : FALLBACK_GLASS_BODY;
+        int fill = FastColor.ARGB32.color(Math.round(body * opacity * 255.0F), rgb);
+        int highlight = FastColor.ARGB32.color(Math.round(0.95F * opacity * 255.0F), 0xFFFFFF);
 
         float r = Math.min(style.cornerRadius(), Math.min(width, height) * 0.5F);
         Matrix4f pose = guiGraphics.pose().last().pose();

@@ -1,18 +1,19 @@
 #version 150
 
-// Blurred (or sharp) copy of the backdrop, same orientation as the main framebuffer.
+// Backdrop copy (sharp for glass, blurred for films), same orientation as the main framebuffer.
 uniform sampler2D Sampler0;
 uniform vec2 ScreenSize;
 uniform vec4 ColorModulator;
 
 uniform vec2 RectSize;
 uniform float Radius;
+// rgb = accent (glass) or body colour (film); a = colour mix (glass) or body opacity (film).
 uniform vec4 Tint;
-uniform float Refraction;
-uniform float Bevel;
-uniform float Rim;
-uniform float Chromatic;
-uniform float Saturation;
+uniform float Shift;
+uniform float Falloff;
+uniform float RimFrac;
+// 0 = refracting glass, 1 = film.
+uniform float Material;
 uniform float Shadow;
 uniform float Opacity;
 
@@ -22,8 +23,7 @@ out vec4 fragColor;
 
 // Must stay in sync with GlassRenderer.SHADOW_MARGIN.
 const float SHADOW_EXTENT = 6.0;
-const float SHADOW_OFFSET_Y = 1.5;
-const vec2 LIGHT_DIR = vec2(-0.5, -0.866);
+const float SHADOW_OFFSET_Y = 2.0;
 
 float sdRoundBox(vec2 p, vec2 b, float r) {
     vec2 q = abs(p) - b + r;
@@ -40,14 +40,13 @@ void main() {
     // Derivatives first: they are undefined inside non-uniform control flow.
     vec2 dx = dFdx(localPos);
     vec2 dy = dFdy(localPos);
-    // Maps a framebuffer-pixel delta to a local delta; inverted to go back. Handles GUI scale,
-    // PoseStack scale and the GUI-down / framebuffer-up Y flip in one go.
-    mat2 localPerPixel = mat2(dx, dy);
-    mat2 pixelPerLocal = inverse(localPerPixel);
+    // Maps a local delta back to framebuffer pixels. Handles GUI scale, PoseStack scale and the Y flip.
+    mat2 pixelPerLocal = inverse(mat2(dx, dy));
     float px = max(length(dx) + length(dy), 1e-4) * 0.5;
 
     vec2 halfSize = RectSize * 0.5;
-    float radius = min(Radius, min(halfSize.x, halfSize.y));
+    float halfH = min(halfSize.x, halfSize.y);
+    float radius = min(Radius, halfH);
     vec2 p = localPos - halfSize;
     float d = sdRoundBox(p, halfSize, radius);
     float coverage = clamp(0.5 - d / px, 0.0, 1.0);
@@ -56,7 +55,7 @@ void main() {
     if (Shadow > 0.0) {
         float sd = sdRoundBox(p - vec2(0.0, SHADOW_OFFSET_Y), halfSize, radius);
         float s = 1.0 - clamp(sd / SHADOW_EXTENT, 0.0, 1.0);
-        shadowA = Shadow * s * s * s * (1.0 - coverage);
+        shadowA = Shadow * s * s * (1.0 - coverage);
     }
 
     vec3 col = vec3(0.0);
@@ -67,39 +66,28 @@ void main() {
             sdRoundBox(p + e.yx, halfSize, radius) - sdRoundBox(p - e.yx, halfSize, radius)
         );
         vec2 n = dot(grad, grad) > 1e-10 ? normalize(grad) : vec2(0.0);
-
-        float depth = max(-d, 0.0);
-        float bevel = max(min(Bevel, min(halfSize.x, halfSize.y)), 1e-3);
-        float edge = 1.0 - clamp(depth / bevel, 0.0, 1.0);
-        // Lens-like bevel: displacement grows steeply towards the rim.
-        float bend = edge * edge * edge;
-
         vec2 uv = gl_FragCoord.xy / ScreenSize;
-        vec2 refr = (pixelPerLocal * (n * Refraction * bend)) / ScreenSize;
-        vec2 ca = (pixelPerLocal * (n * Chromatic * edge * edge)) / ScreenSize;
 
-        // Sampling outward pulls the surroundings into the rim, like a thick glass edge.
-        col.r = textureLod(Sampler0, uv + refr + ca, 0.0).r;
-        col.g = textureLod(Sampler0, uv + refr, 0.0).g;
-        col.b = textureLod(Sampler0, uv + refr - ca, 0.0).b;
-
-        float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
-        col = max(mix(vec3(luma), col, Saturation), 0.0);
-        col = mix(col, Tint.rgb, Tint.a);
-
-        float facing = dot(n, LIGHT_DIR);
-        float lit = pow(max(facing, 0.0), 1.5) + 0.45 * pow(max(-facing, 0.0), 1.5);
-
-        // Subtle inner shadow on the side facing away from the light.
-        float inner = exp(-depth / (bevel * 0.45)) * (0.35 + 0.65 * max(-facing, 0.0));
-        col *= 1.0 - 0.10 * inner * Rim;
-
-        // Fresnel: glass reflects more towards grazing angles at the bevel.
-        col += vec3(0.07) * edge * edge * Rim;
-
-        float rimLine = exp(-depth / (1.1 * px));
-        float glow = exp(-depth / (bevel * 0.35));
-        col += vec3(Rim * (rimLine * (0.22 + 0.78 * lit) + glow * 0.22 * lit));
+        if (Material < 0.5) {
+            // Spec §3 refraction model, verbatim.
+            float radial = halfH + d;
+            float rho = clamp(radial / halfH, 0.0, 1.0);
+            float edge0 = 1.0 - RimFrac;
+            float t = clamp((rho - edge0) / max(RimFrac, 1e-4), 0.0, 1.0);
+            float f = pow(t, Falloff);
+            float k = 1.0 + Shift * f;
+            float disp = max(radial, 0.0) * (1.0 - 1.0 / k);
+            vec2 sampleUv = uv + (pixelPerLocal * (-n * disp)) / ScreenSize;
+            col = textureLod(Sampler0, sampleUv, 0.0).rgb;
+            float a = Tint.a * (1.0 - 0.5 * f);
+            col = mix(col, Tint.rgb, a);
+        } else {
+            col = mix(textureLod(Sampler0, uv, 0.0).rgb, Tint.rgb, Tint.a);
+            // --glass-ring: inset 0 1px 1px rgba(255,255,255,.95), i.e. a soft 1px line along the top edge.
+            float depth = max(-d, 0.0);
+            float ring = (1.0 - smoothstep(0.0, 1.5, depth)) * clamp(-n.y, 0.0, 1.0);
+            col = mix(col, vec3(1.0), 0.95 * ring);
+        }
 
         col += (hash12(gl_FragCoord.xy) - 0.5) / 255.0;
         col = clamp(col, 0.0, 1.0);

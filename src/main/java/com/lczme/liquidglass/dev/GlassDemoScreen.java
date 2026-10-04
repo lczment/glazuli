@@ -1,46 +1,67 @@
 package com.lczme.liquidglass.dev;
 
 import com.lczme.liquidglass.anim.Easing;
-import com.lczme.liquidglass.anim.Spring;
 import com.lczme.liquidglass.anim.Timeline;
 import com.lczme.liquidglass.render.GlassRenderer;
 import com.lczme.liquidglass.render.GlassStyle;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
-import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 
-/** Dev-only showcase of the glass renderer: plain panel, buttons, a PoseStack-scaled panel and a recaptured popup. */
+/**
+ * Dev-only showcase following the design spec: a film panel for content, real (glass-skinned) vanilla buttons
+ * sitting directly on a high-contrast backdrop, a neutral glass lens, and a film popup over a re-captured backdrop.
+ */
 public class GlassDemoScreen extends Screen {
     private static final int[] STRIPE_COLORS = {0xFFFF4D4D, 0xFFFFB13B, 0xFFFFE94D, 0xFF4DDB6B, 0xFF3BB4FF, 0xFF7A5CFF, 0xFFFF5CD6};
-
-    private static final String[] BUTTON_LABELS = {"liquidglass.demo.button.play", "liquidglass.demo.button.options", "liquidglass.demo.button.quit"};
+    private static final float EASE_SECONDS = 0.38F;
+    private static final int BUTTON_W = 90;
+    private static final int BUTTON_GAP = 8;
 
     @Nullable
     private final Screen parent;
     private final Timeline intro = new Timeline();
-    private final Timeline.Track panelAlpha = intro.track(0.0F).to(0.0F, 0.45F, 1.0F, Easing.OUT_CUBIC);
-    private final Timeline.Track panelScale = intro.track(0.92F).to(0.0F, 0.6F, 1.0F, Easing.OUT_BACK);
-    private final Timeline.Track[] buttonRise = new Timeline.Track[BUTTON_LABELS.length];
-    private final Spring[] hover = new Spring[BUTTON_LABELS.length];
+    private final Timeline.Track panelAlpha = intro.track(0.0F).to(0.0F, EASE_SECONDS, 1.0F, Easing.SPEC_EASE);
+    private final List<Timeline.Track> buttonRise = new ArrayList<>();
+    private final List<Button> buttons = new ArrayList<>();
+    private final List<Integer> buttonBaseY = new ArrayList<>();
 
     public GlassDemoScreen(@Nullable Screen parent) {
         super(Component.translatable("liquidglass.demo.title"));
         this.parent = parent;
-        for (int i = 0; i < BUTTON_LABELS.length; i++) {
-            buttonRise[i] = intro.track(0.0F).to(0.2F + 0.07F * i, 0.5F, 1.0F, Easing.OUT_BACK);
-            hover[i] = Spring.bouncy(0.0F);
+        for (int i = 0; i < 3; i++) {
+            buttonRise.add(intro.track(0.0F).to(0.08F + 0.04F * i, EASE_SECONDS, 1.0F, Easing.SPEC_EASE));
         }
     }
 
     @Override
     protected void init() {
+        buttons.clear();
+        buttonBaseY.clear();
+        int rowW = BUTTON_W * 3 + BUTTON_GAP * 2;
+        int x = (width - rowW) / 2;
+        int y = height / 2 + 82;
+        addButton(Button.builder(Component.translatable("liquidglass.demo.button.play"), b -> minecraft.setScreen(new SelectWorldScreen(this))), x, y);
+        addButton(Button.builder(Component.translatable("liquidglass.demo.button.options"), b -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))),
+                x + BUTTON_W + BUTTON_GAP, y);
+        addButton(Button.builder(CommonComponents.GUI_BACK, b -> onClose()), x + 2 * (BUTTON_W + BUTTON_GAP), y);
         if (!intro.isStarted()) {
             intro.start();
         }
+    }
+
+    private void addButton(Button.Builder builder, int x, int y) {
+        buttons.add(addRenderableWidget(builder.bounds(x, y, BUTTON_W, 20).build()));
+        buttonBaseY.add(y);
     }
 
     private static boolean isTextVisible(float alpha) {
@@ -57,13 +78,13 @@ public class GlassDemoScreen extends Screen {
         // Panorama only: the vanilla menu blur + dirt overlay would hide what the glass is doing.
         renderPanorama(guiGraphics, partialTick);
 
-        // High-contrast content so blur and edge refraction are easy to judge.
+        // High-contrast stage detail so refraction is visible (spec §4.1).
         int stripeW = Math.max(6, width / 40);
         for (int i = 0; i * stripeW * 2 < width + height; i++) {
             int color = STRIPE_COLORS[i % STRIPE_COLORS.length];
             int sx = i * stripeW * 2;
             guiGraphics.fill(sx, height / 2 - 70, sx + stripeW, height / 2 - 62, color);
-            guiGraphics.fill(sx + stripeW, height / 2 + 64, sx + stripeW * 2, height / 2 + 74, color);
+            guiGraphics.fill(sx + stripeW, height / 2 + 86, sx + stripeW * 2, height / 2 + 98, color);
         }
         guiGraphics.fill(width / 2 - 2, 0, width / 2 + 2, height, 0xFFFFFFFF);
         guiGraphics.pose().pushPose();
@@ -76,71 +97,36 @@ public class GlassDemoScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        for (int i = 0; i < buttons.size(); i++) {
+            float rise = buttonRise.get(i).value();
+            Button button = buttons.get(i);
+            button.setY(Math.round(buttonBaseY.get(i) + (1.0F - rise) * 10.0F));
+            button.setAlpha(rise);
+            button.visible = isTextVisible(rise);
+        }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         float pw = Math.min(width - 40, 300);
-        float ph = 150;
+        float ph = 120;
         float px = (width - pw) / 2.0F;
         float py = (height - ph) / 2.0F;
-
         float alpha = panelAlpha.value();
-        float scale = panelScale.value();
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(px + pw / 2.0F, py + ph / 2.0F, 0.0F);
-        guiGraphics.pose().scale(scale, scale, 1.0F);
-        guiGraphics.pose().translate(-(px + pw / 2.0F), -(py + ph / 2.0F), 0.0F);
-
-        GlassRenderer.drawPanel(guiGraphics, px, py, pw, ph, GlassStyle.PANEL.withOpacity(alpha));
+        GlassRenderer.drawPanel(guiGraphics, px, py, pw, ph, GlassStyle.FILM.withOpacity(alpha));
         if (isTextVisible(alpha)) {
             guiGraphics.drawString(font, title, (int) px + 16, (int) py + 14, withAlpha(0xFFFFFF, alpha), true);
             guiGraphics.drawString(font, Component.translatable("liquidglass.demo.subtitle"), (int) px + 16, (int) py + 28, withAlpha(0xE0E6F0, alpha), true);
         }
 
-        float bw = (pw - 16 * 2 - 8 * 2) / 3.0F;
-        float baseY = py + ph - 20 - 16;
-        for (int i = 0; i < BUTTON_LABELS.length; i++) {
-            float rise = buttonRise[i].value();
-            float buttonAlpha = Math.min(alpha, Mth.clamp(rise, 0.0F, 1.0F));
-            float bx = px + 16 + i * (bw + 8);
-            float by = baseY + (1.0F - rise) * 14.0F;
-            boolean hovered = mouseX >= bx && mouseX < bx + bw && mouseY >= by && mouseY < by + 20;
-            // The middle button stays "hovered" so screenshots show the hover look.
-            hover[i].setTarget(hovered || i == 1);
-            float h = hover[i].value();
-            float pop = 1.0F + 0.05F * h;
+        // Neutral glass lens over the sharp stripes: refraction per spec §3.
+        GlassRenderer.drawPanel(guiGraphics, px + pw - 66, py - 50, 44, 44, GlassStyle.NEUTRAL);
 
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(bx + bw / 2.0F, by + 10.0F, 0.0F);
-            guiGraphics.pose().scale(pop, pop, 1.0F);
-            GlassRenderer.drawPanel(guiGraphics, -bw / 2.0F, -10.0F, bw, 20,
-                    GlassStyle.lerp(GlassStyle.BUTTON, GlassStyle.BUTTON_HOVER, h).withOpacity(buttonAlpha));
-            if (isTextVisible(buttonAlpha)) {
-                guiGraphics.drawCenteredString(font, Component.translatable(BUTTON_LABELS[i]), 0, -4, withAlpha(0xFFFFFF, buttonAlpha));
-            }
-            guiGraphics.pose().popPose();
-        }
-        guiGraphics.pose().popPose();
-
-        // Clear lens over the stripes to show refraction on a sharp backdrop.
-        GlassRenderer.drawPanel(guiGraphics, px + pw - 66, py - 50, 44, 44, GlassStyle.LENS);
-
-        // Scaled + translated through the PoseStack, as animations will do.
-        float t = (Util.getMillis() % 4000L) / 4000.0F;
-        float pulse = 1.1F + 0.1F * Mth.sin(t * Mth.TWO_PI);
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(px + 60, py - 24, 0.0F);
-        guiGraphics.pose().scale(pulse, pulse, 1.0F);
-        GlassRenderer.drawPanel(guiGraphics, -40, -10, 80, 20, GlassStyle.BUTTON);
-        guiGraphics.drawCenteredString(font, Component.translatable("liquidglass.demo.scaled"), 0, -4, 0xFFFFFFFF);
-        guiGraphics.pose().popPose();
-
-        // Popup above the main panel: re-capture so its glass blurs the panel beneath it.
+        // Popup above the panel: re-capture so the panel is part of what the popup film covers.
         GlassRenderer.recaptureBackdrop(guiGraphics);
         float popW = 120;
         float popH = 60;
         float popX = px + pw - popW + 30;
         float popY = py + 44;
-        GlassRenderer.drawPanel(guiGraphics, popX, popY, popW, popH, GlassStyle.DARK_PANEL.withCornerRadius(12.0F));
+        GlassRenderer.drawPanel(guiGraphics, popX, popY, popW, popH, GlassStyle.FILM);
         guiGraphics.drawString(font, Component.translatable("liquidglass.demo.popup"), (int) popX + 12, (int) popY + 12, 0xFFFFFFFF, true);
         guiGraphics.drawString(font, Component.translatable("liquidglass.demo.popup.detail"), (int) popX + 12, (int) popY + 26, 0xFFB8C0CC, true);
     }

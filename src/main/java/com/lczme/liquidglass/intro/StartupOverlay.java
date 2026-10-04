@@ -40,7 +40,7 @@ public final class StartupOverlay extends GlassLoadingOverlay {
     private static final float SHEEN_SWEEP = 1.1F;
     private static final String DEFAULT_STAGE = "Loading resources";
     private static final String READY_STAGE = "Ready";
-    private static final GlassStyle FROST = new GlassStyle(0.0F, 0xB30B0D12, 0.0F, 1.0F, 0.0F, 0.0F, 1.1F, 0.0F, 1.0F, true);
+    private static final GlassStyle FROST = GlassStyle.film(0x0B0D12, GlassStyle.TINT_NEUTRAL).withCornerRadius(0.0F).withShadow(0.0F);
 
     @Nullable
     private final EarlyWindowHandoff early;

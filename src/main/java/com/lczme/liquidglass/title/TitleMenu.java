@@ -5,8 +5,6 @@ import com.lczme.liquidglass.anim.Timeline;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroLogo;
 import com.lczme.liquidglass.intro.IntroState;
-import com.lczme.liquidglass.render.GlassRenderer;
-import com.lczme.liquidglass.render.GlassStyle;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -27,23 +25,18 @@ import net.minecraft.util.Mth;
 public final class TitleMenu {
     private static final int BUTTON_WIDTH = 200;
     private static final int ROW = 24;
-    private static final int PADDING = 10;
     private static final int ICON = 20;
     private static final int GAP = 4;
-    private static final float RISE = 14.0F;
-    private static final GlassStyle CARD = GlassStyle.PANEL.withCornerRadius(16.0F);
+    private static final float RISE = 10.0F;
+    // Spec §6: page state changes use --ease over ~0.35-0.40 s.
+    private static final float EASE_SECONDS = 0.38F;
+    private static final float STAGGER = 0.04F;
 
     private final Timeline entrance = new Timeline();
-    private final Timeline.Track cardAlpha = entrance.track(0.0F).to(0.0F, 0.45F, 1.0F, Easing.OUT_CUBIC);
-    private final Timeline.Track cardScale = entrance.track(0.96F).to(0.0F, 0.6F, 1.0F, Easing.OUT_BACK);
-    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, 0.5F, 1.0F, Easing.OUT_CUBIC);
+    private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, EASE_SECONDS, 1.0F, Easing.SPEC_EASE);
     private final List<Timeline.Track> rises = new ArrayList<>();
     private final List<Slot> slots = new ArrayList<>();
     private final boolean continuesIntro;
-    private float cardX;
-    private float cardY;
-    private float cardW;
-    private float cardH;
     private boolean settled;
 
     public TitleMenu() {
@@ -82,20 +75,14 @@ public final class TitleMenu {
 
         int rows = main.size() + (options != null || quit != null || language != null || accessibility != null ? 1 : 0);
         if (rows == 0) {
-            cardW = 0.0F;
             return;
         }
         int height = screen.height;
-        int innerH = rows * ROW - GAP + (main.isEmpty() || rows == main.size() ? 0 : GAP);
-        cardW = BUTTON_WIDTH + PADDING * 2;
-        cardH = innerH + PADDING * 2;
+        int columnH = rows * ROW - GAP + (main.isEmpty() || rows == main.size() ? 0 : GAP);
         float logoBottom = IntroState.menuLogoCenterY(height) + IntroState.menuLogoHeight(height) * 0.5F;
         // Keep clear of the two branding lines vanilla/NeoForge draw in the bottom corners.
-        cardY = Math.max(4.0F, Math.min(logoBottom + 16.0F, height - 24.0F - cardH));
-        cardX = (screen.width - cardW) * 0.5F;
-
-        int x = Math.round(cardX) + PADDING;
-        int y = Math.round(cardY) + PADDING;
+        int x = (screen.width - BUTTON_WIDTH) / 2;
+        int y = Math.round(Math.max(4.0F, Math.min(logoBottom + 26.0F, height - 34.0F - columnH)));
         for (AbstractWidget widget : main) {
             widget.setWidth(BUTTON_WIDTH);
             place(widget, x, y);
@@ -124,7 +111,7 @@ public final class TitleMenu {
 
         while (rises.size() < slots.size()) {
             int i = rises.size();
-            rises.add(entrance.track(0.0F).to(0.12F + 0.05F * i, 0.5F, 1.0F, Easing.OUT_BACK));
+            rises.add(entrance.track(0.0F).to(0.08F + STAGGER * i, EASE_SECONDS, 1.0F, Easing.SPEC_EASE));
         }
         if (settled) {
             applyEntrance(1.0F);
@@ -145,23 +132,12 @@ public final class TitleMenu {
         }
     }
 
-    /** Called right after the panorama is drawn: dims it and draws the glass card the buttons sit on. */
+    /**
+     * Called right after the panorama is drawn. The dimmed panorama is the backdrop the glass buttons refract; they sit
+     * directly on it (spec: no card between glass and backdrop, a uniform card would hide the refraction).
+     */
     public void drawBackdrop(GuiGraphics guiGraphics, int width, int height) {
         guiGraphics.fillGradient(0, 0, width, height, 0x300B0D12, 0x900B0D12);
-        float alpha = cardAlpha.value();
-        if (cardW <= 0.0F || alpha <= 0.0F) {
-            return;
-        }
-        float scale = cardScale.value();
-        float cx = cardX + cardW * 0.5F;
-        float cy = cardY + cardH * 0.5F;
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(cx, cy, 0.0F);
-        guiGraphics.pose().scale(scale, scale, 1.0F);
-        GlassRenderer.drawPanel(guiGraphics, -cardW * 0.5F, -cardH * 0.5F, cardW, cardH, CARD.withOpacity(alpha));
-        guiGraphics.pose().popPose();
-        // Buttons are glass too and should blur the card beneath them, not just the panorama.
-        GlassRenderer.recaptureBackdrop(guiGraphics);
     }
 
     /** Replaces the vanilla "Minecraft" logo. */

@@ -1,80 +1,86 @@
 package com.lczme.liquidglass.render;
 
-import net.minecraft.util.FastColor;
-import net.minecraft.util.Mth;
-
 /**
- * Immutable look of a glass panel. All lengths are in GUI units (before GUI scale and PoseStack scale).
+ * Immutable look of a glass surface, following the Liquid Glass design spec ({@code D:\ds\demo\design-spec.md}).
+ * Lengths are in GUI units (before GUI scale and PoseStack scale).
+ * <p>
+ * Two materials (spec §1): {@link Material#GLASS} refracts the backdrop by the shape's distance field (§3) and is
+ * used for small interactive controls; {@link Material#FILM} is a uniform translucent body for large surfaces.
+ * Edges are expressed only by refraction and the anti-aliased mask; there is no rim highlight (spec removed it).
+ * <p>
+ * Platform note (§13): the §3.1-C colour tokens belong to the light Web landing page. Minecraft draws white text on
+ * dark scenes, so films here use a dark body colour; the optical values (§3.1-A) are unchanged.
  *
- * @param cornerRadius     corner radius, clamped to half the shorter side
- * @param tint             ARGB tint; alpha is how strongly the tint covers the backdrop
- * @param refraction       maximum backdrop displacement at the rim
- * @param bevel            width of the curved edge band in which refraction, fresnel and chromatic aberration happen
- * @param rim              strength of the rim highlight / fresnel / inner shadow
- * @param chromatic        channel separation at the rim
- * @param saturation       backdrop saturation multiplier (1 = unchanged)
- * @param shadow           drop shadow opacity outside the panel
- * @param opacity          overall opacity multiplier, for fades
- * @param blur             sample the blurred backdrop; {@code false} gives clear refracting glass
+ * @param material     glass (refracting control) or film (large translucent surface)
+ * @param cornerRadius corner radius, clamped to half the shorter side ({@link #CAPSULE} for pills)
+ * @param color        RGB the body mixes towards: the accent for glass (white = neutral), the body colour for film
+ * @param tint         glass: colour mix amount (§3.1-B levels); film: concentration input, see {@link #bodyOpacity()}
+ * @param shift        edge magnification, {@code k = 1 + shift} at the rim
+ * @param falloff      exponent of the refraction falloff towards the centre
+ * @param rimFrac      fraction of the half height that refracts
+ * @param shadow       drop shadow opacity outside the shape
+ * @param opacity      overall opacity multiplier, for fades
+ * @param blur         film only: sample the blurred backdrop (spec §1 allows a light blur on films)
  */
 public record GlassStyle(
+        Material material,
         float cornerRadius,
-        int tint,
-        float refraction,
-        float bevel,
-        float rim,
-        float chromatic,
-        float saturation,
+        int color,
+        float tint,
+        float shift,
+        float falloff,
+        float rimFrac,
         float shadow,
         float opacity,
         boolean blur
 ) {
-    public static final GlassStyle PANEL = new GlassStyle(14.0F, 0x1FFFFFFF, 7.0F, 14.0F, 0.55F, 1.4F, 1.3F, 0.35F, 1.0F, true);
-    public static final GlassStyle DARK_PANEL = new GlassStyle(14.0F, 0x7A14161C, 7.0F, 14.0F, 0.5F, 1.4F, 1.2F, 0.45F, 1.0F, true);
-    public static final GlassStyle BUTTON = new GlassStyle(10.0F, 0x1AFFFFFF, 4.0F, 8.0F, 0.5F, 0.9F, 1.25F, 0.25F, 1.0F, true);
-    public static final GlassStyle BUTTON_HOVER = new GlassStyle(10.0F, 0x38FFFFFF, 4.5F, 8.0F, 0.85F, 1.0F, 1.35F, 0.3F, 1.0F, true);
-    public static final GlassStyle LENS = new GlassStyle(1000.0F, 0x08FFFFFF, 10.0F, 18.0F, 0.6F, 1.6F, 1.1F, 0.3F, 1.0F, false);
+    // Spec §3.1-A / §3.1-B locked values.
+    public static final float SHIFT = 0.37F;
+    public static final float FALLOFF = 1.9F;
+    public static final float RIM_FRAC = 1.0F;
+    public static final float TINT_NEUTRAL = 0.37F;
+    public static final float TINT_SECONDARY = 0.45F;
+    public static final float TINT_PRIMARY = 0.72F;
 
-    /** Blends every numeric property; {@code blur} switches at the halfway point. {@code t} may overshoot for springs. */
-    public static GlassStyle lerp(GlassStyle a, GlassStyle b, float t) {
-        return new GlassStyle(
-                Mth.lerp(t, a.cornerRadius, b.cornerRadius),
-                FastColor.ARGB32.lerp(Mth.clamp(t, 0.0F, 1.0F), a.tint, b.tint),
-                Mth.lerp(t, a.refraction, b.refraction),
-                Mth.lerp(t, a.bevel, b.bevel),
-                Math.max(0.0F, Mth.lerp(t, a.rim, b.rim)),
-                Math.max(0.0F, Mth.lerp(t, a.chromatic, b.chromatic)),
-                Math.max(0.0F, Mth.lerp(t, a.saturation, b.saturation)),
-                Math.max(0.0F, Mth.lerp(t, a.shadow, b.shadow)),
-                Mth.lerp(t, a.opacity, b.opacity),
-                t < 0.5F ? a.blur : b.blur);
+    public static final float CAPSULE = 9999.0F;
+    public static final float RADIUS = 12.0F;
+    public static final int NEUTRAL_ACCENT = 0xFFFFFF;
+    public static final int FILM_COLOR = 0x14161C;
+
+    /** Fully transparent refracting glass: the only button look. */
+    public static final GlassStyle CLEAR = glass(0.0F, NEUTRAL_ACCENT);
+    /** Neutral glass level (§3.1-B). */
+    public static final GlassStyle NEUTRAL = glass(TINT_NEUTRAL, NEUTRAL_ACCENT);
+    /** Card / panel film with the default concentration (body 0.679). */
+    public static final GlassStyle FILM = film(FILM_COLOR, TINT_NEUTRAL);
+
+    public static GlassStyle glass(float tint, int accent) {
+        return new GlassStyle(Material.GLASS, CAPSULE, accent, tint, SHIFT, FALLOFF, RIM_FRAC, 0.0F, 1.0F, false);
+    }
+
+    public static GlassStyle film(int color, float tint) {
+        return new GlassStyle(Material.FILM, RADIUS, color, tint, 0.0F, FALLOFF, RIM_FRAC, 0.10F, 1.0F, true);
+    }
+
+    /** Spec §3: film opacity derived from tint, never tint itself. */
+    public float bodyOpacity() {
+        return Math.min(0.9F, 0.42F + tint * 0.7F);
     }
 
     public GlassStyle withCornerRadius(float cornerRadius) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
-    }
-
-    public GlassStyle withTint(int tint) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
-    }
-
-    public GlassStyle withRefraction(float refraction) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
-    }
-
-    public GlassStyle withRim(float rim) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
+        return new GlassStyle(material, cornerRadius, color, tint, shift, falloff, rimFrac, shadow, opacity, blur);
     }
 
     public GlassStyle withShadow(float shadow) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
+        return new GlassStyle(material, cornerRadius, color, tint, shift, falloff, rimFrac, shadow, opacity, blur);
     }
 
     public GlassStyle withOpacity(float opacity) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
+        return new GlassStyle(material, cornerRadius, color, tint, shift, falloff, rimFrac, shadow, opacity, blur);
     }
 
-    public GlassStyle withBlur(boolean blur) {
-        return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
+    public enum Material {
+        GLASS,
+        FILM
     }
 }

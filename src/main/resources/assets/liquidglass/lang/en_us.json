@@ -6,7 +6,6 @@
   "liquidglass.configuration.enableGlass": "Enable Glass Effect",
   "liquidglass.configuration.blurQuality": "Blur Quality",
   "liquidglass.configuration.enableRefraction": "Edge Refraction",
-  "liquidglass.configuration.enableChromaticAberration": "Chromatic Aberration",
   "liquidglass.configuration.intro": "Startup Intro",
   "liquidglass.configuration.introMode": "Intro Mode",
   "liquidglass.configuration.styleReloadOverlay": "Glass Reload Overlay",
@@ -17,11 +16,9 @@
   "liquidglass.loading.reloading": "Reloading resources",
   "liquidglass.demo.open": "Glass Demo",
   "liquidglass.demo.title": "Liquid Glass Demo",
-  "liquidglass.demo.subtitle": "Blurred backdrop, refractive rim, specular highlight",
+  "liquidglass.demo.subtitle": "Film panel, clear refractive glass buttons",
   "liquidglass.demo.button.play": "Play",
   "liquidglass.demo.button.options": "Options",
-  "liquidglass.demo.button.quit": "Quit",
-  "liquidglass.demo.scaled": "Scaled",
   "liquidglass.demo.popup": "Popup",
   "liquidglass.demo.popup.detail": "Re-captured backdrop"
 }

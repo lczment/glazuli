@@ -33,8 +33,8 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
     private static final float MIN_SECONDS_WITH_FADE_IN = 0.8F;
     private static final float FADE_OUT_SECONDS = 0.45F;
     private static final int FREEZE_FALLBACK = 0xFF0B0D12;
-    private static final GlassStyle FROST = new GlassStyle(0.0F, 0x8C0B0D12, 0.0F, 1.0F, 0.0F, 0.0F, 1.1F, 0.0F, 1.0F, true);
-    private static final GlassStyle CARD = GlassStyle.DARK_PANEL.withCornerRadius(12.0F);
+    private static final GlassStyle FROST = GlassStyle.film(0x0B0D12, GlassStyle.TINT_NEUTRAL).withCornerRadius(0.0F).withShadow(0.0F);
+    private static final GlassStyle CARD = GlassStyle.FILM;
 
     private final String label;
     @Nullable

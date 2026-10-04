@@ -8,8 +8,6 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_GLASS;
     public static final ModConfigSpec.EnumValue<BlurQuality> BLUR_QUALITY;
     public static final ModConfigSpec.BooleanValue ENABLE_REFRACTION;
-    public static final ModConfigSpec.BooleanValue ENABLE_CHROMATIC_ABERRATION;
-
     public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
     public static final ModConfigSpec.BooleanValue DARK_EARLY_WINDOW;
@@ -30,9 +28,6 @@ public final class LiquidGlassConfig {
         ENABLE_REFRACTION = builder
                 .comment("Bend the backdrop near panel edges like real glass.")
                 .define("enableRefraction", true);
-        ENABLE_CHROMATIC_ABERRATION = builder
-                .comment("Split color channels slightly at panel edges.")
-                .define("enableChromaticAberration", true);
         builder.pop();
 
         builder.push("intro");
