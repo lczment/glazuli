@@ -1,0 +1,10 @@
+{
+  "liquidglass.configuration.title": "Liquid Glass UI Configs",
+  "liquidglass.configuration.section.liquidglass.client.toml": "Liquid Glass UI Configs",
+  "liquidglass.configuration.section.liquidglass.client.toml.title": "Liquid Glass UI Configs",
+  "liquidglass.configuration.glass": "Glass",
+  "liquidglass.configuration.enableGlass": "Enable Glass Effect",
+  "liquidglass.configuration.blurQuality": "Blur Quality",
+  "liquidglass.configuration.enableRefraction": "Edge Refraction",
+  "liquidglass.configuration.enableChromaticAberration": "Chromatic Aberration"
+}

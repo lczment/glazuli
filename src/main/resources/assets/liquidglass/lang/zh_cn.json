@@ -1,0 +1,10 @@
+{
+  "liquidglass.configuration.title": "液态玻璃 UI 设置",
+  "liquidglass.configuration.section.liquidglass.client.toml": "液态玻璃 UI 设置",
+  "liquidglass.configuration.section.liquidglass.client.toml.title": "液态玻璃 UI 设置",
+  "liquidglass.configuration.glass": "玻璃效果",
+  "liquidglass.configuration.enableGlass": "启用玻璃效果",
+  "liquidglass.configuration.blurQuality": "模糊质量",
+  "liquidglass.configuration.enableRefraction": "边缘折射",
+  "liquidglass.configuration.enableChromaticAberration": "色散"
+}
