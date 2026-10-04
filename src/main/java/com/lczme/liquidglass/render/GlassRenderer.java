@@ -112,6 +112,32 @@ public final class GlassRenderer {
         int highlight = FastColor.ARGB32.color(Math.round(0.95F * opacity * 255.0F), 0xFFFFFF);
 
         float r = Math.min(style.cornerRadius(), Math.min(width, height) * 0.5F);
+        fillRounded(guiGraphics, x, y, width, height, r, fill);
+
+        if (highlight >>> 24 != 0 && width > 2.0F * r) {
+            Matrix4f pose = guiGraphics.pose().last().pose();
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.disableDepthTest();
+            BufferBuilder line = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            line.addVertex(pose, x + r, y, 0.0F).setColor(highlight);
+            line.addVertex(pose, x + r, y + 1.0F, 0.0F).setColor(highlight);
+            line.addVertex(pose, x + width - r, y + 1.0F, 0.0F).setColor(highlight);
+            line.addVertex(pose, x + width - r, y, 0.0F).setColor(highlight);
+            BufferUploader.drawWithShader(line.buildOrThrow());
+        }
+
+        restoreGuiState();
+    }
+
+    /** Flat anti-alias-free rounded rectangle in ARGB, at GUI coordinates (honours the pose). */
+    public static void fillRounded(GuiGraphics guiGraphics, float x, float y, float width, float height, float radius, int argb) {
+        if (width <= 0.0F || height <= 0.0F || argb >>> 24 == 0) {
+            return;
+        }
+        guiGraphics.flush();
+        float r = Math.min(radius, Math.min(width, height) * 0.5F);
         Matrix4f pose = guiGraphics.pose().last().pose();
 
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -120,23 +146,14 @@ public final class GlassRenderer {
         RenderSystem.disableDepthTest();
 
         BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-        builder.addVertex(pose, x + width * 0.5F, y + height * 0.5F, 0.0F).setColor(fill);
+        builder.addVertex(pose, x + width * 0.5F, y + height * 0.5F, 0.0F).setColor(argb);
         // Same winding as vanilla quads (top-left, bottom-left, bottom-right, top-right) so back-face culling keeps it.
-        addCorner(builder, pose, x + r, y + r, r, 270.0F, fill);
-        addCorner(builder, pose, x + r, y + height - r, r, 180.0F, fill);
-        addCorner(builder, pose, x + width - r, y + height - r, r, 90.0F, fill);
-        addCorner(builder, pose, x + width - r, y + r, r, 0.0F, fill);
-        builder.addVertex(pose, x + r, y, 0.0F).setColor(fill);
+        addCorner(builder, pose, x + r, y + r, r, 270.0F, argb);
+        addCorner(builder, pose, x + r, y + height - r, r, 180.0F, argb);
+        addCorner(builder, pose, x + width - r, y + height - r, r, 90.0F, argb);
+        addCorner(builder, pose, x + width - r, y + r, r, 0.0F, argb);
+        builder.addVertex(pose, x + r, y, 0.0F).setColor(argb);
         BufferUploader.drawWithShader(builder.buildOrThrow());
-
-        if (highlight >>> 24 != 0 && width > 2.0F * r) {
-            BufferBuilder line = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-            line.addVertex(pose, x + r, y, 0.0F).setColor(highlight);
-            line.addVertex(pose, x + r, y + 1.0F, 0.0F).setColor(highlight);
-            line.addVertex(pose, x + width - r, y + 1.0F, 0.0F).setColor(highlight);
-            line.addVertex(pose, x + width - r, y, 0.0F).setColor(highlight);
-            BufferUploader.drawWithShader(line.buildOrThrow());
-        }
 
         restoreGuiState();
     }

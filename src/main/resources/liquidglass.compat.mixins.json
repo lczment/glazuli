@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.lczme.liquidglass.compat.mixin",
+  "plugin": "com.lczme.liquidglass.compat.CompatMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "jei.JeiDrawableSpriteMixin",
+    "jei.JeiScalableDrawableMixin",
+    "sodium.SodiumAbstractWidgetMixin",
+    "sodium.SodiumOptionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

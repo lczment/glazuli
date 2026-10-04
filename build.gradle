@@ -27,7 +27,14 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    maven {
+        url = 'https://maven.caffeinemc.net/releases'
+        content { includeGroup 'net.caffeinemc' }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
 }
 
 base {
@@ -57,7 +64,7 @@ neoForge {
             jvmArgument '-Dmixin.debug.export=true'
         }
 
-        // Opens the glass demo screen, saves run/screenshots/liquidglass_autoshot.png and exits.
+        // Walks through intro, reload, options and Sodium screens, saving run/screenshots/liquidglass_autoshot_*.png, then exits.
         clientAutoshot {
             client()
             systemProperty 'liquidglass.autoshot', 'true'
@@ -106,31 +113,32 @@ neoForge {
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
     runtimeClasspath.extendsFrom localRuntime
+    // Mod jars installed into run/mods, loaded exactly like in a real instance.
+    devMods { transitive = false }
 }
 
 dependencies {
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    // Optional integrations. Sodium's API is compiled against; JEI is only targeted by name from mixins.
+    compileOnly "net.caffeinemc:sodium-neoforge-mod:${sodium_version}"
 
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation "blank:coolmod-${mc_version}:${coolmod_version}"
-
-    // Example mod dependency using a file as dependency
-    // implementation files("libs/coolmod-${mc_version}-${coolmod_version}.jar")
-
-    // Example project dependency using a sister or child project:
-    // implementation project(":myproject")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    // Present in dev runs only (not published). Disable with -Pcompat_runtime=false to test without them.
+    if (project.findProperty('compat_runtime') != 'false') {
+        // Sodium ships as a bootstrap service jar that nests the mod; that only works from the mods folder.
+        devMods "maven.modrinth:sodium:${sodium_modrinth_version}"
+        localRuntime "maven.modrinth:jei:${jei_modrinth_version}"
+    }
 }
+
+def syncDevMods = tasks.register('syncDevMods', Sync) {
+    from configurations.devMods
+    into layout.projectDirectory.dir('run/mods')
+    // Only manage our own jars; anything else dropped into run/mods is left alone.
+    preserve {
+        include '**'
+        exclude 'sodium-*.jar'
+    }
+}
+tasks.matching { it.name ==~ /runClient.*/ }.configureEach { dependsOn syncDevMods }
 
 // This block of code expands all declared replace properties in the specified resource targets.
 // A missing property will result in an error. Properties are expanded using ${} Groovy notation.

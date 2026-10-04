@@ -56,6 +56,10 @@ LabyMod-style startup animation and a liquid-glass themed user interface.
 [[mixins]]
 config="${mod_id}.mixins.json"
 
+# Optional integrations; each mixin only applies when its mod is installed (see CompatMixinPlugin).
+[[mixins]]
+config="${mod_id}.compat.mixins.json"
+
 # The [[accessTransformers]] block allows you to declare where your AT file is.
 # If this block is omitted, a fallback attempt will be made to load an AT from META-INF/accesstransformer.cfg
 #[[accessTransformers]]
@@ -88,6 +92,20 @@ config="${mod_id}.mixins.json"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="sodium"
+    type="optional"
+    versionRange="[0.8.13,0.9)"
+    ordering="AFTER"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="jei"
+    type="optional"
+    versionRange="[19.21,)"
+    ordering="AFTER"
+    side="CLIENT"
 
 [features.${mod_id}]
 openGLVersion="[3.2,)"

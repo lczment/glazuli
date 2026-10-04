@@ -14,6 +14,8 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
+    public static final ModConfigSpec.BooleanValue GLASS_SODIUM_SCREEN;
+    public static final ModConfigSpec.BooleanValue GLASS_JEI;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -52,6 +54,15 @@ public final class LiquidGlassConfig {
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);
+        builder.pop();
+
+        builder.push("compat");
+        GLASS_SODIUM_SCREEN = builder
+                .comment("With Sodium installed, replace its video settings with a glass version of Reese's Sodium Options.")
+                .define("glassSodiumScreen", true);
+        GLASS_JEI = builder
+                .comment("Draw JEI's panels, buttons and search field as liquid glass.")
+                .define("glassJei", true);
         builder.pop();
 
         SPEC = builder.build();

@@ -2,36 +2,45 @@ package com.lczme.liquidglass.dev;
 
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
+import com.lczme.liquidglass.compat.sodium.SodiumScreens;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.intro.ReloadOverlay;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.options.LanguageSelectScreen;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import org.lwjgl.glfw.GLFW;
 
 /**
- * Development-only helpers: a title screen button that opens {@link GlassDemoScreen}, and the
- * {@code -Dliquidglass.autoshot=true} hook that screenshots the startup intro, a resource reload and the demo,
- * then optionally exits.
+ * Development-only {@code -Dliquidglass.autoshot=true} hook: screenshots the startup intro, a resource reload, the
+ * options screen, (with Sodium installed) the glass video settings and, in a throwaway world, the inventory with JEI's
+ * overlay; then optionally exits.
  */
 public final class DevHooks {
     private static final boolean AUTOSHOT = Boolean.getBoolean("liquidglass.autoshot");
     private static final boolean AUTOSHOT_EXIT = Boolean.getBoolean("liquidglass.autoshot.exit");
     // Time-based rather than frame-based so animation timing is the same regardless of frame rate.
     private static final double SETTLED = 1.5;
-    private static final double MID_INTRO = 0.2;
     private static final double SAVE_SECONDS = 0.5;
     private static final double RELOAD_TIMEOUT = 10.0;
+    private static final double WORLD_TIMEOUT = 120.0;
+    private static final String WORLD = "liquidglass-autoshot";
 
     // The game event bus only starts once loading has finished, so the startup overlay reports its frames directly.
     private static final BootShot[] BOOT_SHOTS = {
@@ -67,36 +76,69 @@ public final class DevHooks {
             }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.elapsed() >= 0.8F, false),
             new Shot("liquidglass_autoshot_reload_thaw.png", RELOAD_TIMEOUT, () -> {
             }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.fadeOutElapsed() >= 0.95F, false),
-            new Shot("liquidglass_autoshot_intro.png", MID_INTRO, () -> {
-                LiquidGlassConfig.ENABLE_GLASS.set(true);
-                Minecraft.getInstance().setScreen(new GlassDemoScreen(menu));
+            new Shot("liquidglass_autoshot_options.png", SETTLED, () -> Minecraft.getInstance().setScreen(
+                    new OptionsScreen(menu, Minecraft.getInstance().options))),
+            // Opened the way Sodium's options button does; the glass port replaces it on the way in.
+            new Shot("liquidglass_autoshot_sodium.png", SETTLED, () -> {
+                if (ModList.get().isLoaded("sodium")) {
+                    Minecraft.getInstance().setScreen(SodiumScreens.videoSettings(Minecraft.getInstance().screen));
+                }
             }),
-            new Shot("liquidglass_autoshot.png", SETTLED, () -> Minecraft.getInstance().setScreen(new GlassDemoScreen(menu))),
             new Shot("liquidglass_autoshot_fallback.png", SETTLED, () -> LiquidGlassConfig.ENABLE_GLASS.set(false)),
             new Shot("liquidglass_autoshot_menu.png", SETTLED, () -> {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(menu);
             }),
+            // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
+            new Shot("liquidglass_autoshot_world.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(DevHooks::enterWorld),
+                    () -> Minecraft.getInstance().player != null && Minecraft.getInstance().screen == null, true),
+            new Shot("liquidglass_autoshot_inventory.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.setScreen(new InventoryScreen(mc.player));
+                }
+            }),
+            // Hover the first ingredient of JEI's list (tooltip), then open JEI's crafting recipes.
+            new Shot("liquidglass_autoshot_jei_hover.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                GLFW.glfwSetCursorPos(mc.getWindow().getWindow(), mc.getWindow().getScreenWidth() * 0.756, mc.getWindow().getScreenHeight() * 0.155);
+            }),
+            new Shot("liquidglass_autoshot_jei_recipes.png", SETTLED, DevHooks::showJeiCraftingRecipes),
     };
+
+    /** JEI is not on the compile classpath; reflection keeps this dev-only shot free of a hard dependency. */
+    private static void showJeiCraftingRecipes() {
+        if (!ModList.get().isLoaded("jei")) {
+            return;
+        }
+        try {
+            Object runtime = Class.forName("mezz.jei.common.Internal").getMethod("getJeiRuntime").invoke(null);
+            Object recipesGui = runtime.getClass().getMethod("getRecipesGui").invoke(runtime);
+            Object crafting = Class.forName("mezz.jei.api.constants.RecipeTypes").getField("CRAFTING").get(null);
+            Class.forName("mezz.jei.api.runtime.IRecipesGui").getMethod("showTypes", List.class).invoke(recipesGui, List.of(crafting));
+        } catch (ReflectiveOperationException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not open JEI recipes", e);
+        }
+    }
+
+    private static void enterWorld() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getLevelSource().levelExists(WORLD)) {
+            mc.createWorldOpenFlows().openWorld(WORLD, () -> mc.setScreen(menu));
+            return;
+        }
+        LevelSettings settings = new LevelSettings(WORLD, GameType.SURVIVAL, false, Difficulty.PEACEFUL, true,
+                new GameRules(), WorldDataConfiguration.DEFAULT);
+        mc.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(0L, false, false),
+                WorldPresets::createNormalWorldDimensions, menu);
+    }
 
     private DevHooks() {
     }
 
     public static void register(IEventBus gameBus) {
-        if (!FMLEnvironment.production) {
-            gameBus.addListener(DevHooks::onScreenInit);
-        }
         if (AUTOSHOT) {
             gameBus.addListener(DevHooks::onRenderFramePost);
-        }
-    }
-
-    private static void onScreenInit(ScreenEvent.Init.Post event) {
-        if (event.getScreen() instanceof TitleScreen title) {
-            event.addListener(Button.builder(Component.translatable("liquidglass.demo.open"),
-                            b -> Minecraft.getInstance().setScreen(new GlassDemoScreen(title)))
-                    .bounds(4, 4, 80, 20)
-                    .build());
         }
     }
 
@@ -145,6 +187,7 @@ public final class DevHooks {
 
     private static void grab(String fileName) {
         Minecraft mc = Minecraft.getInstance();
+        LiquidGlass.LOGGER.info("[autoshot] {} <- screen {}", fileName, mc.screen == null ? null : mc.screen.getClass().getName());
         Screenshot.grab(mc.gameDirectory, fileName, mc.getMainRenderTarget(),
                 msg -> LiquidGlass.LOGGER.info("[autoshot] {}", msg.getString()));
     }
