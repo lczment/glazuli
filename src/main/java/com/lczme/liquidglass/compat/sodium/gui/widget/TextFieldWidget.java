@@ -78,7 +78,7 @@ public class TextFieldWidget extends BaseWidget implements ControlGuideProvider 
         updateCursorAlpha();
         this.hovered = this.isMouseOver(mouseX, mouseY);
         float highlight = this.hoverAmount(this.isFocused() || this.hovered);
-        GlassUi.panel(guiGraphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), GlassUi.LIGHT_FIELD.withHover(highlight));
+        GlassUi.panel(guiGraphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), GlassUi.FIELD.withHover(highlight));
         if (!this.isFocused() && this.text.isBlank() && this.placeholder != null) {
             this.drawString(guiGraphics, this.placeholder, this.getX() + 6, this.getY() + 6, GlassUi.SECONDARY_TEXT);
         }
@@ -95,7 +95,7 @@ public class TextFieldWidget extends BaseWidget implements ControlGuideProvider 
         }
         if (!displayedText.isEmpty()) {
             String preCursorText = isCursorWithinDisplayedText ? displayedText.substring(0, selectionStartOffset) : displayedText;
-            guiGraphics.drawString(this.font, formatted(preCursorText), textEndX, textStartY, GlassUi.TEXT, false);
+            guiGraphics.drawString(this.font, formatted(preCursorText), textEndX, textStartY, 0xFFFFFFFF);
             textEndX = textEndX + this.font.width(formatted(preCursorText));
         }
         boolean isCursorAtEnd = this.selectionStart < this.text.length() || this.text.length() >= this.maxLength;
@@ -107,7 +107,7 @@ public class TextFieldWidget extends BaseWidget implements ControlGuideProvider 
             --textEndX;
         }
         if (!displayedText.isEmpty() && isCursorWithinDisplayedText && selectionStartOffset < displayedText.length()) {
-            guiGraphics.drawString(this.font, formatted(displayedText.substring(selectionStartOffset)), textEndX, textStartY, GlassUi.TEXT, false);
+            guiGraphics.drawString(this.font, formatted(displayedText.substring(selectionStartOffset)), textEndX, textStartY, 0xFFFFFFFF);
         }
         // Cursor
         if (this.isFocused()) {

@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.compat.sodium.gui;
 
+import com.lczme.liquidglass.render.VanillaBackdrop;
 import com.lczme.liquidglass.compat.sodium.gui.frame.AbstractFrame;
 import com.lczme.liquidglass.compat.sodium.gui.frame.BasicFrame;
 import com.lczme.liquidglass.compat.sodium.gui.frame.option.OptionRow;
@@ -52,7 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable, PreviousScreenHolder {
+public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable, PreviousScreenHolder, VanillaBackdrop {
 
     private static final OptionsScreenUiState SHARED_UI_STATE = new OptionsScreenUiState();
     private static final Set<String> RSO_CONFIG_IDS = Set.of("reeses-sodium-options", "reeses_sodium_options");

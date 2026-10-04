@@ -8,30 +8,23 @@ import net.minecraft.util.Mth;
 /** Shared building blocks for restyled mod screens: cards, glass buttons, iOS switches and soft highlights. */
 public final class GlassUi {
     public static final float CARD_RADIUS = 8.0F;
-    /** Every panel (cards, windows, popovers, hotbar) shares this light frosted body (opacity 0.42) for one brightness. */
-    public static final GlassStyle SURFACE = GlassStyle.film(GlassStyle.FILM_COLOR, 0.0F);
-    public static final GlassStyle CARD = SURFACE.withCornerRadius(CARD_RADIUS);
-    public static final GlassStyle POPOVER = SURFACE.withCornerRadius(6.0F);
-    public static final int TEXT = 0xFF1D1D1F;
-    public static final GlassStyle SELECTION = GlassStyle.button(5.0F, 0.75F).withShadow(0.08F);
+    public static final GlassStyle CARD = GlassStyle.film(GlassStyle.FILM_COLOR, 0.12F).withCornerRadius(CARD_RADIUS);
+    public static final GlassStyle POPOVER = GlassStyle.film(GlassStyle.FILM_COLOR, 0.32F).withCornerRadius(6.0F);
+    public static final GlassStyle SELECTION = GlassStyle.button(5.0F, 0.16F).withShadow(0.0F);
     /** Text starts 6 px in, so the corners stay tighter than a capsule. */
     public static final GlassStyle FIELD = GlassButtons.BUTTON_CLEAR.withCornerRadius(6.0F);
-    /** Light controls for screens with dark text (restyled mod screens), matching the light surfaces. */
-    public static final GlassStyle LIGHT_BUTTON = GlassStyle.button(GlassButtons.BUTTON_RADIUS, 0.6F);
-    public static final GlassStyle LIGHT_FIELD = LIGHT_BUTTON.withCornerRadius(6.0F);
     public static final GlassStyle SWITCH_OFF = GlassStyle.button(GlassStyle.CAPSULE, 0.22F).withShadow(0.0F);
     public static final GlassStyle SWITCH_ON = new GlassStyle(GlassStyle.Material.GLASS, GlassStyle.CAPSULE, 0x34C759, 0.82F,
             0.5F, 2.2F, 0.7F, 0.0F, 1.0F, true, 1.0F, 0.0F);
     public static final GlassStyle KNOB = GlassStyle.button(GlassStyle.CAPSULE, 0.92F).withShadow(0.2F);
     public static final GlassStyle TRACK = GlassStyle.button(GlassStyle.CAPSULE, 0.2F).withShadow(0.0F);
 
-    public static final int ROW = 0x40FFFFFF;
-    public static final int ROW_HOVER = 0x73FFFFFF;
-    public static final int ROW_ACTIVE = 0x99FFFFFF;
-    public static final int SCROLL_THUMB = 0x40000000;
-    public static final int SCROLL_THUMB_ACTIVE = 0x73000000;
-    /** Dark enough for the surface over dark backdrops, where it frosts to mid grey. */
-    public static final int SECONDARY_TEXT = 0xFF4A4A4F;
+    public static final int ROW = 0x0CFFFFFF;
+    public static final int ROW_HOVER = 0x1EFFFFFF;
+    public static final int ROW_ACTIVE = 0x2CFFFFFF;
+    public static final int SCROLL_THUMB = 0x66FFFFFF;
+    public static final int SCROLL_THUMB_ACTIVE = 0xAAFFFFFF;
+    public static final int SECONDARY_TEXT = 0xFFB4B8C0;
     public static final float DISABLED_OPACITY = 0.45F;
     private static final int FLAT_SWITCH_OFF = 0x66787880;
 
@@ -52,7 +45,7 @@ public final class GlassUi {
     }
 
     public static void button(GuiGraphics g, int x1, int y1, int x2, int y2, float hover, boolean enabled) {
-        GlassStyle style = LIGHT_BUTTON.withHover(hover);
+        GlassStyle style = GlassButtons.BUTTON_CLEAR.withHover(hover);
         panel(g, x1, y1, x2 - x1, y2 - y1, enabled ? style : style.withOpacity(DISABLED_OPACITY));
     }
 

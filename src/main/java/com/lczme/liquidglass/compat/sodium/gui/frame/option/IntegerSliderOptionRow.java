@@ -91,9 +91,9 @@ final class IntegerSliderOptionRow extends AbstractOptionRow {
             GlassUi.roundedFill(guiGraphics, sliderX, trackY, (int) thumbCenter, trackY + TRACK_THICKNESS, 1, this.theme.theme);
             GlassUi.knob(guiGraphics, thumbCenter - TRACK_HEIGHT / 2.0F, sliderY, TRACK_HEIGHT, active ? 1.0F : 0.0F, 1.0F);
 
-            this.drawString(guiGraphics, value, sliderX - valueWidth - VALUE_GAP, sliderY + (TRACK_HEIGHT / 2) - 4, GlassUi.TEXT);
+            this.drawString(guiGraphics, value, sliderX - valueWidth - VALUE_GAP, sliderY + (TRACK_HEIGHT / 2) - 4, 0xFFFFFFFF);
         } else {
-            this.drawString(guiGraphics, value, sliderX + SLIDER_WIDTH - valueWidth, sliderY + (TRACK_HEIGHT / 2) - 4, GlassUi.TEXT);
+            this.drawString(guiGraphics, value, sliderX + SLIDER_WIDTH - valueWidth, sliderY + (TRACK_HEIGHT / 2) - 4, 0xFFFFFFFF);
         }
 
         if (this.isMouseOverSlider(mouseX, mouseY)) {        }

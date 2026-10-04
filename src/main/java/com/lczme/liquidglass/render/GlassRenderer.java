@@ -25,10 +25,7 @@ import org.joml.Matrix4f;
 public final class GlassRenderer {
     /** Quad padding around the panel for the drop shadow; must cover the shader's shadow extent + offset. */
     private static final float SHADOW_MARGIN = 8.0F;
-    /** Flat fallback body for glass controls, dark so their white labels stay readable. */
-    private static final int FALLBACK_BASE = 0x14161C;
-    /** Glass at least this tinted is a light control with dark text, so its fallback body is light. */
-    private static final float LIGHT_GLASS_TINT = 0.5F;
+    private static final int FALLBACK_BASE = GlassStyle.FILM_COLOR;
     private static final float FALLBACK_GLASS_BODY = 0.62F;
     private static final int CORNER_SEGMENTS = 8;
 
@@ -109,7 +106,7 @@ public final class GlassRenderer {
         // Spec fallback: a translucent body plus a 1px inner ring (dark body on this platform, see GlassStyle).
         float opacity = Mth.clamp(style.opacity(), 0.0F, 1.0F);
         boolean film = style.material() == GlassStyle.Material.FILM;
-        int rgb = film ? style.color() : style.tint() >= LIGHT_GLASS_TINT ? GlassStyle.FILM_COLOR : FALLBACK_BASE;
+        int rgb = film ? style.color() : FALLBACK_BASE;
         float body = film ? style.bodyOpacity() : FALLBACK_GLASS_BODY;
         int fill = FastColor.ARGB32.color(Math.round(body * opacity * 255.0F), rgb);
         int highlight = FastColor.ARGB32.color(Math.round(0.95F * opacity * 255.0F), 0xFFFFFF);

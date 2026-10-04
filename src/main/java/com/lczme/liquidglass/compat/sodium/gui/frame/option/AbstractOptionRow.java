@@ -279,7 +279,7 @@ abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHan
 
     protected MutableComponent formatDisabledControlValue(Component value) {
         return value.copy()
-                .withStyle(Style.EMPTY.withColor(ChatFormatting.DARK_GRAY).withItalic(true));
+                .withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY).withItalic(true));
     }
 
     protected @Nullable Component narrationValue() {
@@ -325,7 +325,7 @@ abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHan
         GlassUi.roundedFill(guiGraphics, this.getX(), this.getY(), rowLimitX, this.getLimitY(), 2,
                 FastColor.ARGB32.lerp(hover, GlassUi.ROW, GlassUi.ROW_HOVER));
         this.renderSearchResultMarker(guiGraphics, optionUiState);
-        this.drawString(guiGraphics, formattedLabel, this.getX() + CONTROL_RIGHT_PADDING, this.centeredTextY(), GlassUi.TEXT);
+        this.drawString(guiGraphics, formattedLabel, this.getX() + CONTROL_RIGHT_PADDING, this.centeredTextY(), 0xFFFFFFFF);
 
         int borderColor = this.rowBorderColor(optionUiState);
         if (borderColor != 0) {
@@ -371,9 +371,9 @@ abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHan
         if (option.isEnabled()) {
             formattedLabel = option.hasChanged()
                     ? ChatFormatting.ITALIC + label
-                    : label;
+                    : ChatFormatting.WHITE + label;
         } else {
-            formattedLabel = ChatFormatting.DARK_GRAY.toString() + ChatFormatting.STRIKETHROUGH + label;
+            formattedLabel = ChatFormatting.GRAY.toString() + ChatFormatting.STRIKETHROUGH + label;
         }
 
         return formattedLabel;

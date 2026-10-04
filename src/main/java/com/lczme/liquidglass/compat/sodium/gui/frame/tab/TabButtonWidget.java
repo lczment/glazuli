@@ -92,7 +92,7 @@ final class TabButtonWidget extends BaseWidget {
 
     private int textColor() {
         if (this.selected || !ReeseSodiumOptionsConfig.config().isColorThemes()) {
-            return GlassUi.TEXT;
+            return 0xFFFFFFFF;
         }
 
         return this.hovered ? this.theme.themeLighter : GlassUi.SECONDARY_TEXT;

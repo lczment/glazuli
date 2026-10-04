@@ -1,6 +1,5 @@
 package com.lczme.liquidglass.compat.sodium.gui.frame.option;
 
-import com.lczme.liquidglass.render.GlassUi;
 import com.lczme.liquidglass.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.liquidglass.compat.sodium.gui.state.OptionStateStore;
 import com.lczme.liquidglass.compat.sodium.gui.theme.GuiTheme;
@@ -42,7 +41,7 @@ final class ExternalButtonOptionRow extends AbstractOptionRow {
         int x = this.rightAlignedControlX(this.font.width(text));
         int y = this.centeredTextY();
 
-        this.drawString(guiGraphics, text, x, y, GlassUi.TEXT);
+        this.drawString(guiGraphics, text, x, y, 0xFFFFFFFF);
 
         if (this.option.isEnabled()) {
             this.requestPointerCursorIfHovered(guiGraphics);
@@ -63,7 +62,7 @@ final class ExternalButtonOptionRow extends AbstractOptionRow {
 
     private Component buttonText() {
         if (!this.option.isEnabled()) {
-            return BASE_BUTTON_TEXT.copy().withStyle(ChatFormatting.STRIKETHROUGH, ChatFormatting.DARK_GRAY);
+            return BASE_BUTTON_TEXT.copy().withStyle(ChatFormatting.STRIKETHROUGH, ChatFormatting.GRAY);
         }
 
         return Component.empty()
