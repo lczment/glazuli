@@ -12,7 +12,7 @@ final class OptionActionButtonRenderer {
     private static final int BACKGROUND = GlassUi.ROW_HOVER;
     private static final int BACKGROUND_HOVERED = 0x40FFFFFF;
     private static final int BACKGROUND_DISABLED = GlassUi.ROW;
-    private static final int BORDER_FOCUSED = 0xFFFFFFFF;
+    private static final int BORDER_FOCUSED = GlassUi.TEXT;
     private static final float ICON_ALPHA_DISABLED = 0.4F;
 
     static LayoutBounds buttonBounds(LayoutBounds rowBounds, int buttonsFromRight) {

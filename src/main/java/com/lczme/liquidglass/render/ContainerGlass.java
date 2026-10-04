@@ -17,13 +17,12 @@ import org.joml.Matrix4f;
  * panel grey made transparent (see {@code container_glass.fsh}), and the hotbar and creative tabs drawn as glass.
  */
 public final class ContainerGlass {
-    /** Light frosted body: vanilla's container art and dark labels are made for a light grey panel. */
-    private static final int LIGHT_FILM = 0xF4F6FA;
-    public static final GlassStyle WINDOW = frosted(0.42F, GlassUi.CARD_RADIUS);
-    public static final GlassStyle TAB_SELECTED = WINDOW.withCornerRadius(6.0F);
-    public static final GlassStyle TAB_UNSELECTED = frosted(0.22F, 6.0F);
-    private static final GlassStyle HOTBAR = frosted(0.24F, 6.0F);
-    private static final int HOTBAR_SELECTION = 0x8CFFFFFF;
+    public static final GlassStyle WINDOW = GlassUi.CARD;
+    public static final GlassStyle TAB_SELECTED = GlassUi.SURFACE.withCornerRadius(6.0F);
+    /** Unselected tabs sit back: a thinner body than the shared surface, below the spec's 0.42 floor. */
+    public static final GlassStyle TAB_UNSELECTED = GlassStyle.film(GlassStyle.FILM_COLOR, (0.24F - 0.42F) / 0.7F).withCornerRadius(6.0F);
+    private static final GlassStyle HOTBAR = GlassUi.SURFACE.withCornerRadius(6.0F);
+    private static final int HOTBAR_SELECTION = 0xB3FFFFFF;
     /** Background-sized blits lose their 3 px bevelled frame; the glass panel has its own edge. */
     private static final float FRAME = 4.0F;
     private static final int MIN_FRAMED_SIZE = 64;
@@ -31,11 +30,6 @@ public final class ContainerGlass {
     private static int[] pendingPanel;
 
     private ContainerGlass() {
-    }
-
-    /** Light film with an explicit body opacity, below the spec's 0.42 floor so the frosted world shows through. */
-    private static GlassStyle frosted(float body, float radius) {
-        return GlassStyle.film(LIGHT_FILM, (body - 0.42F) / 0.7F).withCornerRadius(radius);
     }
 
     public static boolean isEnabled() {

@@ -176,11 +176,11 @@ public abstract class BaseWidget implements Renderable, GuiEventListener, Narrat
     }
 
     protected void drawString(GuiGraphics guiGraphics, String text, int x, int y, int color) {
-        guiGraphics.drawString(this.font, text, x, y, color);
+        guiGraphics.drawString(this.font, text, x, y, color, false);
     }
 
     protected void drawString(GuiGraphics guiGraphics, Component text, int x, int y, int color) {
-        guiGraphics.drawString(this.font, text, x, y, color);
+        guiGraphics.drawString(this.font, text, x, y, color, false);
     }
 
     protected void drawCenteredString(GuiGraphics guiGraphics, Component text, int x, int y, int color) {

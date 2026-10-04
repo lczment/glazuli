@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.compat.sodium.gui.frame.option;
 
+import com.lczme.liquidglass.render.GlassUi;
 import com.lczme.liquidglass.compat.sodium.config.ReeseSodiumOptionsConfig;
 import com.lczme.liquidglass.compat.sodium.gui.control.ControlGuide;
 import com.lczme.liquidglass.compat.sodium.gui.layout.LayoutBounds;
@@ -49,7 +50,7 @@ final class EnumOptionRow<E extends Enum<E>> extends AbstractOptionRow {
         int x = this.rightAlignedControlX(valueWidth);
         int y = this.centeredTextY();
 
-        this.drawString(guiGraphics, value, x, y, 0xFFFFFFFF);
+        this.drawString(guiGraphics, value, x, y, GlassUi.TEXT);
 
         if (this.option.isEnabled()) {
             this.requestPointerCursorIfHovered(guiGraphics);

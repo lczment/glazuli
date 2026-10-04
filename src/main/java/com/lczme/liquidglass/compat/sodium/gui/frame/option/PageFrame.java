@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.compat.sodium.gui.frame.option;
 
+import com.lczme.liquidglass.render.GlassUi;
 import com.lczme.liquidglass.compat.sodium.config.ReeseSodiumOptionsConfig;
 import com.lczme.liquidglass.compat.sodium.gui.frame.AbstractFrame;
 import com.lczme.liquidglass.compat.sodium.gui.layout.LayoutBounds;
@@ -200,7 +201,7 @@ public class PageFrame extends AbstractFrame {
     private int labelColor() {
         return ReeseSodiumOptionsConfig.config().isColorThemes() && ReeseSodiumOptionsConfig.config().isThemedHeadersAndLabels()
                 ? GuiThemes.fromSodium(this.modOptions.theme()).themeLighter
-                : 0xFFFFFFFF;
+                : GlassUi.TEXT;
     }
 
     public static class Builder {

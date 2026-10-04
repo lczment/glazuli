@@ -9,8 +9,7 @@ package com.lczme.liquidglass.render;
  * button look instead ({@link #button}): frosted backdrop, edge lensing, a specular rim lit from the top left and a soft
  * shadow, brightening on hover.
  * <p>
- * Platform note (spec §13): the §3.1-C colour tokens belong to the light Web landing page. Minecraft draws white text on
- * dark scenes, so films here use a dark body colour.
+ * Films use one light frosted body colour everywhere; text on them is dark.
  *
  * @param material     glass (refracting control) or film (large translucent surface)
  * @param cornerRadius corner radius, clamped to half the shorter side ({@link #CAPSULE} for pills)
@@ -50,7 +49,7 @@ public record GlassStyle(
     public static final float CAPSULE = 9999.0F;
     public static final float RADIUS = 12.0F;
     public static final int NEUTRAL_ACCENT = 0xFFFFFF;
-    public static final int FILM_COLOR = 0x14161C;
+    public static final int FILM_COLOR = 0xF4F6FA;
 
     /** Fully transparent refracting glass. */
     public static final GlassStyle CLEAR = glass(0.0F, NEUTRAL_ACCENT);

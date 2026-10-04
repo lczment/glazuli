@@ -25,7 +25,7 @@ public class TabHeaderWidget extends BaseWidget {
     private static final float SCROLL_SPEED_PX_PER_SEC = 10f;
     private static final int TEXT_PADDING_RIGHT = 2;
     private static final long DWELL_MS = 1000;
-    private static final int TEXT_COLOR = 0xFFFFFFFF;
+    private static final int TEXT_COLOR = GlassUi.TEXT;
     private static final int SECONDARY_TEXT_COLOR = GlassUi.SECONDARY_TEXT;
     private static final int TEXT_X = 7;
     private static final int ICON_SPACING = 4;

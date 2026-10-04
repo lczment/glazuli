@@ -150,7 +150,7 @@ final class OptionTooltipController {
             GlassUi.panel(guiGraphics, boxX, boxY, boxWidth, boxHeight, GlassUi.POPOVER);
 
             for (int i = 0; i < tooltip.size(); i++) {
-                guiGraphics.drawString(Minecraft.getInstance().font, tooltip.get(i), boxX + TEXT_PADDING, boxY + TEXT_PADDING + (i * LINE_HEIGHT), 0xFFFFFFFF, true);
+                guiGraphics.drawString(Minecraft.getInstance().font, tooltip.get(i), boxX + TEXT_PADDING, boxY + TEXT_PADDING + (i * LINE_HEIGHT), GlassUi.TEXT, false);
             }
         } finally {
             guiGraphics.flush();
@@ -162,7 +162,7 @@ final class OptionTooltipController {
         List<FormattedCharSequence> tooltip = new ArrayList<>();
 
         if (ReeseSodiumOptionsConfig.config().isTooltipOptionIds() && option instanceof OptionExtended optionExtended) {
-            tooltip.add(Language.getInstance().getVisualOrder(Component.literal(optionExtended.liquidglass$getId().toString()).withStyle(ChatFormatting.GRAY)));
+            tooltip.add(Language.getInstance().getVisualOrder(Component.literal(optionExtended.liquidglass$getId().toString()).withStyle(ChatFormatting.DARK_GRAY)));
             tooltip.add(Language.getInstance().getVisualOrder(Component.literal("")));
         }
 
@@ -170,7 +170,7 @@ final class OptionTooltipController {
 
         OptionImpact impact = option.getImpact();
         if (impact != null) {
-            tooltip.add(Language.getInstance().getVisualOrder(Component.translatable("sodium.options.performance_impact_string", impact.getName()).withStyle(ChatFormatting.GRAY)));
+            tooltip.add(Language.getInstance().getVisualOrder(Component.translatable("sodium.options.performance_impact_string", impact.getName()).withStyle(ChatFormatting.DARK_GRAY)));
         }
 
         return tooltip;
