@@ -130,7 +130,7 @@ public final class TitleMenu {
 
     /** Called at the start of {@code TitleScreen#render}, before widgets are drawn. */
     public void beforeRender() {
-        boolean introReady = !continuesIntro || IntroState.isDone() || IntroState.outroProgress() >= 0.35F;
+        boolean introReady = !continuesIntro || IntroState.isDone() || IntroState.outroProgress() >= 0.6F;
         if (!entrance.isStarted() && introReady && CaveBackground.titleEntranceReady()) {
             entrance.start();
         }

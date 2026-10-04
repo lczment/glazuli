@@ -35,8 +35,25 @@ public final class CaveGenerator {
         carve(world, layout, shape);
         paint(world, layout, paint, random);
         decorate(world, layout, random);
+        lightIntroPath(world, layout);
         light(world);
         return world;
+    }
+
+    /** The startup flight is revealed through the logo, so its tunnel needs dependable light, not just random torches. */
+    private static void lightIntroPath(CaveWorld world, CaveLayout layout) {
+        int side = 2;
+        for (int z = (int) CaveLayout.TUNNEL_START_Z + 4; z < CaveLayout.CHAMBER_Z - CaveLayout.CHAMBER_RZ; z += 9) {
+            side = -side;
+            int x = Math.round(CaveLayout.centerX(z)) + side;
+            int y = Math.round(CaveLayout.centerY(z));
+            while (y < CaveWorld.SIZE_Y - 1 && world.get(x, y + 1, z).isAir()) {
+                y++;
+            }
+            if (world.get(x, y, z).isAir() && !world.get(x, y + 1, z).isAir()) {
+                world.set(x, y, z, Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true));
+            }
+        }
     }
 
     private static double chamberDistance(CaveLayout layout, int x, int y, int z) {

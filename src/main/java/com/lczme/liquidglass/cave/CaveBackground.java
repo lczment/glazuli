@@ -117,9 +117,27 @@ public final class CaveBackground {
         }
     }
 
+    /** Called by the startup overlay once loading is done, so the cave is meshed before the outro reveals it. */
+    public static void prepare() {
+        if (!isActive()) {
+            return;
+        }
+        try {
+            pollBuild(Minecraft.getInstance(), AnimClock.now());
+        } catch (RuntimeException e) {
+            failed = true;
+            LiquidGlass.LOGGER.error("Cave background failed, falling back to the vanilla panorama", e);
+        }
+    }
+
+    /** True once the cave can be shown (or it won't be shown at all). */
+    public static boolean isReady() {
+        return !isActive() || mesh != null;
+    }
+
     private static void pollBuild(Minecraft minecraft, double now) {
-        // During a reload the models are being swapped; wait until it's over (the startup outro runs after loading).
-        boolean reloading = minecraft.getOverlay() != null && !IntroState.isOutroPlaying();
+        // During a reload the models are being swapped; wait until it's over (the startup overlay lingers after loading).
+        boolean reloading = minecraft.getOverlay() != null && !(IntroState.isPlaying() && IntroState.isLoadingDone());
         if (building == null && dirty && world != null && !reloading) {
             dirty = false;
             building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());

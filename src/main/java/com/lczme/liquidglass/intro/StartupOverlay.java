@@ -3,18 +3,31 @@ package com.lczme.liquidglass.intro;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.anim.Easing;
 import com.lczme.liquidglass.anim.Timeline;
+import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.dev.DevHooks;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.Optional;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import net.minecraft.util.Mth;
 import net.neoforged.fml.loading.progress.ProgressMeter;
 import net.neoforged.neoforge.client.ClientHooks;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 /**
  * LabyMod-style startup: the familiar Mojang Studios loading screen (brand colour, logo, vanilla progress bar) takes
@@ -32,18 +45,32 @@ public final class StartupOverlay extends GlassLoadingOverlay {
     // Fast loads (small modpacks, dev) would otherwise skip straight to the transition.
     private static final float MIN_LOADING_SECONDS = 1.5F;
     private static final float MAX_FILL_SECONDS = 0.6F;
+    /** The letters open onto the cave, so give its mesh a moment; never hold the startup longer than this. */
+    private static final float MAX_BACKDROP_WAIT_SECONDS = 2.0F;
 
     @Nullable
     private final EarlyWindowHandoff early;
     @Nullable
     private final ProgressMeter meter;
 
+    /** Combined logo is 240 x 60 texture units (two stacked 120 x 60 halves side by side). */
+    private static final float LOGO_UNITS_W = 240.0F;
+    private static final float LOGO_UNITS_H = 60.0F;
+    // Middle of a solid letter stroke closest to the logo's centre: the camera flies into it, so the cut-out letter,
+    // not the red between letters, fills the screen.
+    private static final float PIVOT_U = 117.5F;
+    private static final float PIVOT_V = 26.5F;
+    private static final float MAX_ZOOM = 80.0F;
+
+    // Outro: the letters turn into windows onto the cave, then the camera flies through the middle of the logo.
     private final Timeline outro = new Timeline();
     private final Timeline.Track outroBar = outro.track(1.0F).to(0.0F, 0.25F, 0.0F, Easing.OUT_CUBIC);
-    private final Timeline.Track outroBackground = outro.track(1.0F).to(0.1F, 0.9F, 0.0F, Easing.IN_OUT_CUBIC);
-    private final Timeline.Track outroLogo = outro.track(1.0F).to(0.75F, 0.7F, 0.0F, Easing.IN_OUT_CUBIC);
-    private final Timeline.Track outroLogoScale = outro.track(1.0F).to(0.1F, 1.35F, 1.06F, Easing.OUT_CUBIC);
+    private final Timeline.Track outroCut = outro.track(0.0F).to(0.05F, 0.45F, 1.0F, Easing.IN_OUT_CUBIC);
+    private final Timeline.Track outroZoom = outro.track(0.0F).to(0.45F, 1.15F, 1.0F, Easing.IN_OUT_CUBIC);
+    private final Timeline.Track outroBackground = outro.track(1.0F).to(1.2F, 0.4F, 0.0F, Easing.IN_CUBIC);
 
+    @Nullable
+    private TextureTarget mask;
     private double fillStart = Double.NaN;
     private boolean ended;
 
@@ -75,7 +102,13 @@ public final class StartupOverlay extends GlassLoadingOverlay {
                 return;
             }
         }
-        if (isFinishCalled() && !outro.isStarted() && (progress >= 1.0F || AnimClock.now() - fillStart >= MAX_FILL_SECONDS)) {
+        if (isFinishCalled() && !outro.isStarted()) {
+            CaveBackground.prepare();
+        }
+        double sinceFill = AnimClock.now() - fillStart;
+        boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
+        boolean backdropReady = CaveBackground.isReady() || sinceFill >= MAX_BACKDROP_WAIT_SECONDS;
+        if (isFinishCalled() && !outro.isStarted() && filled && backdropReady) {
             outro.start();
             IntroState.setPhase(IntroState.Phase.OUTRO);
         }
@@ -106,11 +139,14 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         Matrix4f pose = guiGraphics.pose().last().pose();
 
         IntroDraw.begin();
-        float background = outroActive ? outroBackground.value() : 1.0F;
-        if (background > 0.0F) {
-            IntroDraw.fill(pose, 0.0F, 0.0F, w, h, IntroDraw.withAlpha(brandColor(), background));
+        if (outroActive) {
+            drawFlythrough(pose, w, h);
+        } else {
+            IntroDraw.fill(pose, 0.0F, 0.0F, w, h, brandColor());
+            IntroDraw.blendAdditive();
+            drawMojangLogo(pose, w, h, 1.0F);
+            IntroDraw.blendNormal();
         }
-        drawMojangLogo(pose, w, h, outroActive ? outroLogo.value() : 1.0F, outroActive ? outroLogoScale.value() : 1.0F);
         drawProgressBar(pose, w, h, progress, outroActive ? outroBar.value() : 1.0F);
         IntroDraw.end();
 
@@ -129,22 +165,86 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         return minecraft.options.darkMojangStudiosBackground().get() ? BRAND_DARK : BRAND_RED;
     }
 
-    /** Same placement and additive blend as vanilla's {@code LoadingOverlay}; the texture stacks the two word halves. */
-    private void drawMojangLogo(Matrix4f pose, float w, float h, float alpha, float scale) {
+    /**
+     * The brand background is rendered into {@link #mask} with the logo erased from it, so the letters show the cave
+     * behind; the result is composited over the screen while the camera zooms into the logo.
+     */
+    private void drawFlythrough(Matrix4f pose, float w, float h) {
+        float cut = outroCut.value();
+        float background = outroBackground.value();
+        Matrix4f zoomed = zoomPose(pose, w, h, outroZoom.value());
+        if (background > 0.0F) {
+            RenderTarget main = minecraft.getMainRenderTarget();
+            if (mask == null || mask.width != main.width || mask.height != main.height) {
+                if (mask != null) {
+                    mask.destroyBuffers();
+                }
+                mask = new TextureTarget(main.width, main.height, false, Minecraft.ON_OSX);
+                mask.setFilterMode(GL11.GL_LINEAR);
+            }
+            int color = brandColor();
+            mask.setClearColor(FastColor.ARGB32.red(color) / 255.0F, FastColor.ARGB32.green(color) / 255.0F,
+                    FastColor.ARGB32.blue(color) / 255.0F, 1.0F);
+            mask.clear(Minecraft.ON_OSX);
+            mask.bindWrite(true);
+            RenderSystem.blendFuncSeparate(
+                    GlStateManager.SourceFactor.ZERO, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                    GlStateManager.SourceFactor.ZERO, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+            drawMojangLogo(zoomed, w, h, cut);
+            main.bindWrite(true);
+
+            IntroDraw.blendPremultiplied();
+            drawMask(pose, w, h, background);
+        }
+        IntroDraw.blendAdditive();
+        drawMojangLogo(zoomed, w, h, 1.0F - cut);
+        IntroDraw.blendNormal();
+    }
+
+    /** Perspective fly-in: the pivot stroke drifts to the screen centre while the distance to the logo shrinks. */
+    private static Matrix4f zoomPose(Matrix4f pose, float w, float h, float t) {
+        if (t <= 0.0F) {
+            return pose;
+        }
+        float scale = 1.0F / (1.0F - t * (1.0F - 1.0F / MAX_ZOOM));
+        float logoH = logoDrawHeight(w, h);
+        float px = (int) (w * 0.5F) - logoH * 2.0F + PIVOT_U / LOGO_UNITS_W * logoH * 4.0F;
+        float py = (int) (h * 0.5F) - logoH * 0.5F + PIVOT_V / LOGO_UNITS_H * logoH;
+        return new Matrix4f(pose)
+                .translate(Mth.lerp(t, px, w * 0.5F), Mth.lerp(t, py, h * 0.5F), 0.0F)
+                .scale(scale, scale, 1.0F)
+                .translate(-px, -py, 0.0F);
+    }
+
+    private void drawMask(Matrix4f pose, float w, float h, float alpha) {
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, mask.getColorTextureId());
+        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        b.addVertex(pose, 0.0F, 0.0F, 0.0F).setUv(0.0F, 1.0F).setColor(alpha, alpha, alpha, alpha);
+        b.addVertex(pose, 0.0F, h, 0.0F).setUv(0.0F, 0.0F).setColor(alpha, alpha, alpha, alpha);
+        b.addVertex(pose, w, h, 0.0F).setUv(1.0F, 0.0F).setColor(alpha, alpha, alpha, alpha);
+        b.addVertex(pose, w, 0.0F, 0.0F).setUv(1.0F, 1.0F).setColor(alpha, alpha, alpha, alpha);
+        BufferUploader.drawWithShader(b.buildOrThrow());
+    }
+
+    private static float logoDrawHeight(float w, float h) {
+        return (float) (Math.min(w * 0.75, h) * 0.25);
+    }
+
+    /** Same placement as vanilla's {@code LoadingOverlay}; the texture stacks the two word halves. Caller sets the blend. */
+    private void drawMojangLogo(Matrix4f pose, float w, float h, float alpha) {
         if (alpha <= 0.0F) {
             return;
         }
         int textureId = minecraft.getTextureManager().getTexture(MOJANG_LOGO).getId();
         float cx = (int) (w * 0.5F);
         float cy = (int) (h * 0.5F);
-        float logoH = (float) (Math.min(w * 0.75, h) * 0.25) * scale;
+        float logoH = logoDrawHeight(w, h);
         float halfW = logoH * 2.0F;
-        IntroDraw.blendAdditive();
         IntroDraw.textureRegion(pose, textureId, cx - halfW, cy - logoH * 0.5F, halfW, logoH,
                 -0.0625F / 120.0F, 0.0F, 119.9375F / 120.0F, 0.5F, alpha);
         IntroDraw.textureRegion(pose, textureId, cx, cy - logoH * 0.5F, halfW, logoH,
                 0.0625F / 120.0F, 0.5F, 120.0625F / 120.0F, 1.0F, alpha);
-        IntroDraw.blendNormal();
     }
 
     /** Vanilla's outlined white bar under the logo. */
@@ -169,6 +269,10 @@ public final class StartupOverlay extends GlassLoadingOverlay {
 
     private void end() {
         ended = true;
+        if (mask != null) {
+            mask.destroyBuffers();
+            mask = null;
+        }
         IntroState.setPhase(IntroState.Phase.FINISHED);
         if (meter != null) {
             meter.complete();

@@ -37,6 +37,7 @@ public final class DevHooks {
             new BootShot("liquidglass_autoshot_boot_handoff.png", IntroState.Phase.LOADING, 0.3),
             new BootShot("liquidglass_autoshot_boot_loading.png", IntroState.Phase.LOADING, 1.6),
             new BootShot("liquidglass_autoshot_boot_outro.png", IntroState.Phase.OUTRO, 0.45),
+            new BootShot("liquidglass_autoshot_boot_zoom.png", IntroState.Phase.OUTRO, 0.95),
     };
     private static final boolean[] bootTaken = new boolean[BOOT_SHOTS.length];
 
