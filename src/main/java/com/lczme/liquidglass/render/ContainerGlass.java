@@ -20,8 +20,6 @@ public final class ContainerGlass {
     /** Light frosted body: vanilla's container art and dark labels are made for a light grey panel. */
     private static final int LIGHT_FILM = 0xF4F6FA;
     public static final GlassStyle WINDOW = frosted(0.42F, GlassUi.CARD_RADIUS);
-    /** Replaces vanilla's near-black dimming behind container screens with a faint light haze. */
-    private static final int BACKDROP = 0x24FFFFFF;
     public static final GlassStyle TAB_SELECTED = WINDOW.withCornerRadius(6.0F);
     public static final GlassStyle TAB_UNSELECTED = frosted(0.22F, 6.0F);
     private static final GlassStyle HOTBAR = frosted(0.24F, 6.0F);
@@ -42,10 +40,6 @@ public final class ContainerGlass {
 
     public static boolean isEnabled() {
         return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_INVENTORY.get();
-    }
-
-    public static void drawBackdrop(GuiGraphics guiGraphics, int width, int height) {
-        guiGraphics.fill(0, 0, width, height, BACKDROP);
     }
 
     /**
