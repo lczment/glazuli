@@ -15,6 +15,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
+    public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -51,6 +52,9 @@ public final class LiquidGlassConfig {
         GLASS_BUTTONS = builder
                 .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
                 .define("glassButtons", true);
+        CAVE_BACKGROUND = builder
+                .comment("Replace the menu panorama with a 3D cave: a flight in at startup, a viewpoint per menu, a dive when joining.")
+                .define("caveBackground", true);
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);

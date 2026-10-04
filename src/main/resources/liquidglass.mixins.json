@@ -11,6 +11,8 @@
     "LoadingOverlayAccessor",
     "MinecraftMixin",
     "NeoForgeLoadingOverlayAccessor",
+    "PanoramaRendererMixin",
+    "ScreenMixin",
     "TitleScreenMixin"
   ],
   "injectors": {

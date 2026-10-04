@@ -4,6 +4,7 @@ import com.lczme.liquidglass.anim.Easing;
 import com.lczme.liquidglass.anim.Timeline;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroLogo;
+import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.render.GlassButtons;
 import java.util.ArrayList;
@@ -121,7 +122,8 @@ public final class TitleMenu {
 
     /** Called at the start of {@code TitleScreen#render}, before widgets are drawn. */
     public void beforeRender() {
-        if (!entrance.isStarted() && (!continuesIntro || IntroState.isDone() || IntroState.outroProgress() >= 0.35F)) {
+        boolean introReady = !continuesIntro || IntroState.isDone() || IntroState.outroProgress() >= 0.35F;
+        if (!entrance.isStarted() && introReady && CaveBackground.titleEntranceReady()) {
             entrance.start();
         }
         if (!settled) {

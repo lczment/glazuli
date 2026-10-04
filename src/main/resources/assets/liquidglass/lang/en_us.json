@@ -14,6 +14,7 @@
   "liquidglass.configuration.customTitleScreen": "Glass Title Screen",
   "liquidglass.configuration.glassButtons": "Glass Buttons",
   "liquidglass.configuration.screenFade": "Screen Cross-fade",
+  "liquidglass.configuration.caveBackground": "Dynamic Cave Background",
   "liquidglass.loading.reloading": "Reloading resources",
   "liquidglass.demo.open": "Glass Demo",
   "liquidglass.demo.title": "Liquid Glass Demo",

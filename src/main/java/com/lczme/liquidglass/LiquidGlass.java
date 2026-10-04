@@ -1,5 +1,6 @@
 package com.lczme.liquidglass;
 
+import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.render.BlurPipeline;
@@ -12,6 +13,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
@@ -27,6 +30,8 @@ public final class LiquidGlass {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
 
         modBus.addListener(LiquidGlassShaders::onRegisterShaders);
+        modBus.addListener((FMLClientSetupEvent event) -> CaveBackground.startGenerating());
+        modBus.addListener((RegisterClientReloadListenersEvent event) -> event.registerReloadListener(CaveBackground.reloadListener()));
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
