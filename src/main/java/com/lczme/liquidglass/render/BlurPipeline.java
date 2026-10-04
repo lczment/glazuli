@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
@@ -46,6 +47,11 @@ public final class BlurPipeline {
 
     public static void onRenderFramePre(RenderFrameEvent.Pre event) {
         frame++;
+    }
+
+    /** A screen draws over the HUD (dimmed or blurred), so its panels must not reuse a capture taken by HUD glass. */
+    public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
+        capturedFrame = -1;
     }
 
     /** Captures the backdrop unless it was already captured this frame. */

@@ -1,6 +1,7 @@
 package com.lczme.liquidglass.font;
 
 import com.lczme.liquidglass.config.LiquidGlassConfig;
+import com.lczme.liquidglass.config.LiquidGlassConfig.FontWeight;
 import com.lczme.liquidglass.mixin.MinecraftAccessor;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.Util;
@@ -17,12 +18,17 @@ public final class FontScale {
     private static volatile int loadedScale;
     private static boolean reloading;
     private static boolean lastEnabled = true;
+    private static FontWeight lastWeight = FontWeight.BOLD;
 
     private FontScale() {
     }
 
     public static boolean isEnabled() {
         return !LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.CUSTOM_FONT.get();
+    }
+
+    static FontWeight weight() {
+        return LiquidGlassConfig.SPEC.isLoaded() ? LiquidGlassConfig.FONT_WEIGHT.get() : FontWeight.BOLD;
     }
 
     static int oversampleForLoad() {
@@ -44,8 +50,9 @@ public final class FontScale {
     }
 
     public static void onConfigReloading(ModConfigEvent.Reloading event) {
-        if (event.getConfig().getSpec() == LiquidGlassConfig.SPEC && isEnabled() != lastEnabled) {
+        if (event.getConfig().getSpec() == LiquidGlassConfig.SPEC && (isEnabled() != lastEnabled || weight() != lastWeight)) {
             lastEnabled = isEnabled();
+            lastWeight = weight();
             Minecraft.getInstance().execute(FontScale::reloadFonts);
         }
     }

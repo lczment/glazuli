@@ -1,6 +1,7 @@
 package com.lczme.liquidglass.font;
 
 import com.lczme.liquidglass.LiquidGlass;
+import com.lczme.liquidglass.config.LiquidGlassConfig.FontWeight;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -22,7 +24,6 @@ import net.neoforged.fml.loading.FMLPaths;
  * Collections ({@code .ttc}) are reduced to a single face, since Minecraft always loads face 0.
  */
 record UserFont(Path path, int face) {
-    private static final String PREFERRED_FACE = "PingFangSC-Regular";
     @Nullable
     private static volatile UserFont lastLogged;
 
@@ -31,15 +32,15 @@ record UserFont(Path path, int face) {
     }
 
     @Nullable
-    static UserFont find() {
+    static UserFont find(FontWeight weight) {
         try {
             Files.createDirectories(dropInDirectory());
         } catch (IOException ignored) {
         }
-        Path file = firstFont(dropInDirectory(), false);
+        Path file = firstFont(dropInDirectory(), null);
         if (file == null) {
             for (Path dir : systemFontDirectories()) {
-                file = firstFont(dir, true);
+                file = firstFont(dir, weight);
                 if (file != null) {
                     break;
                 }
@@ -49,7 +50,7 @@ record UserFont(Path path, int face) {
             return null;
         }
         try {
-            UserFont font = new UserFont(file, chooseFace(file));
+            UserFont font = new UserFont(file, chooseFace(file, weight));
             if (!font.equals(lastLogged)) {
                 lastLogged = font;
                 LiquidGlass.LOGGER.info("Using font {} (face {}) ahead of HarmonyOS Sans", file, font.face());
@@ -90,14 +91,19 @@ record UserFont(Path path, int face) {
         return dirs;
     }
 
-    /** With {@code pingFangOnly}, prefers the Simplified Chinese regular file among PingFang's per-weight files. */
+    /**
+     * Any font file when {@code pingFangWeight} is null (the drop-in folder); otherwise only PingFang, preferring the
+     * Simplified Chinese file of that weight among PingFang's per-weight files.
+     */
     @Nullable
-    private static Path firstFont(Path dir, boolean pingFangOnly) {
+    private static Path firstFont(Path dir, @Nullable FontWeight pingFangWeight) {
         if (!Files.isDirectory(dir)) {
             return null;
         }
+        boolean pingFangOnly = pingFangWeight != null;
         try (Stream<Path> files = Files.find(dir, pingFangOnly ? 4 : 1, (path, attrs) -> attrs.isRegularFile() && isFontFile(path, pingFangOnly))) {
-            return files.min(Comparator.comparingInt(UserFont::pingFangRank).thenComparing(Path::toString)).orElse(null);
+            Comparator<Path> order = pingFangOnly ? Comparator.comparingInt(path -> pingFangRank(path, pingFangWeight)) : (a, b) -> 0;
+            return files.min(order.thenComparing(Path::toString)).orElse(null);
         } catch (IOException | RuntimeException e) {
             return null;
         }
@@ -109,13 +115,13 @@ record UserFont(Path path, int face) {
         return font && (!pingFangOnly || name.contains("pingfang") || name.contains("苹方"));
     }
 
-    private static int pingFangRank(Path path) {
+    private static int pingFangRank(Path path, FontWeight weight) {
         String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
         int rank = 0;
-        if (!name.contains("sc")) {
+        if (!name.endsWith(".ttc") && Arrays.stream(weight.fileWords()).noneMatch(name::contains)) {
             rank += 2;
         }
-        if (!name.contains("regular") && !name.endsWith(".ttc")) {
+        if (!name.contains("sc")) {
             rank += 1;
         }
         return rank;
@@ -125,7 +131,7 @@ record UserFont(Path path, int face) {
         return data.length >= 12 && data[0] == 't' && data[1] == 't' && data[2] == 'c' && data[3] == 'f';
     }
 
-    private static int chooseFace(Path file) throws IOException {
+    private static int chooseFace(Path file, FontWeight weight) throws IOException {
         if (!file.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".ttc")) {
             return 0;
         }
@@ -134,7 +140,7 @@ record UserFont(Path path, int face) {
         int fallback = 0;
         for (int i = 0; i < count; i++) {
             String name = postScriptName(buf, buf.getInt(12 + 4 * i));
-            if (PREFERRED_FACE.equals(name)) {
+            if (weight.pingFangFace().equals(name)) {
                 return i;
             }
             if (fallback == 0 && name != null && name.endsWith("-Regular")) {

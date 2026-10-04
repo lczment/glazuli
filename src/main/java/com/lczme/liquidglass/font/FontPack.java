@@ -3,6 +3,7 @@ package com.lczme.liquidglass.font;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lczme.liquidglass.LiquidGlass;
+import com.lczme.liquidglass.config.LiquidGlassConfig.FontWeight;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -33,18 +34,30 @@ public final class FontPack implements PackResources {
     private static final ResourceLocation DEFAULT_FONT = ResourceLocation.withDefaultNamespace("font/default.json");
     private static final ResourceLocation USER_FONT_FILE = LiquidGlass.id("font/user_font.ttf");
     private static final String USER_FONT = LiquidGlass.MODID + ":user_font.ttf";
-    private static final String BUNDLED_FONT = LiquidGlass.MODID + ":harmonyos_sans_sc_regular.ttf";
+    private static final String BUNDLED_FONT_PREFIX = LiquidGlass.MODID + ":harmonyos_sans_sc_";
     /** Em size in GUI pixels; CJK glyphs then fill the 9 px line like the vanilla unifont glyphs do. */
     private static final float SIZE = 10.0F;
     private static final float SHIFT_Y = 0.5F;
 
     private final PackLocationInfo location;
     @Nullable
-    private final UserFont userFont;
+    private FontWeight resolvedWeight;
+    @Nullable
+    private UserFont userFont;
 
     private FontPack(PackLocationInfo location) {
         this.location = location;
-        this.userFont = UserFont.find();
+    }
+
+    /** Re-resolved when the weight changes, since a weight change only rebuilds the fonts, not this pack. */
+    @Nullable
+    private synchronized UserFont userFont() {
+        FontWeight weight = FontScale.weight();
+        if (weight != this.resolvedWeight) {
+            this.resolvedWeight = weight;
+            this.userFont = UserFont.find(weight);
+        }
+        return this.userFont;
     }
 
     public static void onAddPackFinders(AddPackFindersEvent event) {
@@ -74,10 +87,10 @@ public final class FontPack implements PackResources {
     private byte[] fontDefinition() {
         int oversample = FontScale.oversampleForLoad();
         JsonArray providers = new JsonArray();
-        if (this.userFont != null) {
+        if (this.userFont() != null) {
             providers.add(ttf(USER_FONT, oversample));
         }
-        providers.add(ttf(BUNDLED_FONT, oversample));
+        providers.add(ttf(BUNDLED_FONT_PREFIX + FontScale.weight().bundled() + ".ttf", oversample));
         JsonObject root = new JsonObject();
         root.add("providers", providers);
         return root.toString().getBytes(StandardCharsets.UTF_8);
@@ -111,8 +124,9 @@ public final class FontPack implements PackResources {
         if (location.equals(DEFAULT_FONT)) {
             return () -> new ByteArrayInputStream(this.fontDefinition());
         }
-        if (location.equals(USER_FONT_FILE) && this.userFont != null) {
-            return this.userFont::open;
+        UserFont userFont = location.equals(USER_FONT_FILE) ? this.userFont() : null;
+        if (userFont != null) {
+            return userFont::open;
         }
         return null;
     }

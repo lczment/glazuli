@@ -22,6 +22,8 @@ public final class LiquidGlassShaders {
     private static ShaderInstance glassPanel;
     @Nullable
     private static ShaderInstance screenFade;
+    @Nullable
+    private static ShaderInstance containerGlass;
 
     private LiquidGlassShaders() {
     }
@@ -36,6 +38,13 @@ public final class LiquidGlassShaders {
         register(event, "glass_panel", DefaultVertexFormat.POSITION_TEX, s -> glassPanel = s);
         screenFade = null;
         register(event, "screen_fade", DefaultVertexFormat.BLIT_SCREEN, s -> screenFade = s);
+        containerGlass = null;
+        register(event, "container_glass", DefaultVertexFormat.POSITION_TEX_COLOR, s -> containerGlass = s);
+    }
+
+    @Nullable
+    public static ShaderInstance containerGlass() {
+        return containerGlass;
     }
 
     @Nullable

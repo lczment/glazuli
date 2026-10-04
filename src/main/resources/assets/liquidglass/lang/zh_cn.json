@@ -16,6 +16,8 @@
   "liquidglass.configuration.caveBackground": "动态洞穴背景",
   "liquidglass.configuration.font": "字体",
   "liquidglass.configuration.customFont": "鸿蒙黑体 / 苹方字体",
+  "liquidglass.configuration.fontWeight": "字重",
+  "liquidglass.configuration.glassInventory": "玻璃风格物品栏与快捷栏",
   "liquidglass.configuration.compat": "模组适配",
   "liquidglass.configuration.glassSodiumScreen": "玻璃风格钠视频设置",
   "liquidglass.configuration.glassJei": "玻璃风格 JEI",

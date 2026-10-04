@@ -15,6 +15,8 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
     public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
+    public static final ModConfigSpec.EnumValue<FontWeight> FONT_WEIGHT;
+    public static final ModConfigSpec.BooleanValue GLASS_INVENTORY;
     public static final ModConfigSpec.BooleanValue GLASS_SODIUM_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_JEI;
 
@@ -52,6 +54,9 @@ public final class LiquidGlassConfig {
         CAVE_BACKGROUND = builder
                 .comment("Replace the menu panorama with a 3D cave: a flight in at startup, a viewpoint per menu, a dive when joining.")
                 .define("caveBackground", true);
+        GLASS_INVENTORY = builder
+                .comment("Draw inventories, containers (chests, furnaces, modded ones using the vanilla palette) and the hotbar as liquid glass.")
+                .define("glassInventory", true);
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);
@@ -63,6 +68,9 @@ public final class LiquidGlassConfig {
                         "PingFang is used instead when installed on the system, and any .ttf/.otf/.ttc placed in",
                         "config/liquidglass/fonts takes precedence over both.")
                 .define("customFont", true);
+        FONT_WEIGHT = builder
+                .comment("Weight of the custom font. BOLD uses PingFang Semibold/Bold or HarmonyOS Sans Bold.")
+                .defineEnum("fontWeight", FontWeight.BOLD);
         builder.pop();
 
         builder.push("compat");
@@ -78,6 +86,37 @@ public final class LiquidGlassConfig {
     }
 
     private LiquidGlassConfig() {
+    }
+
+    public enum FontWeight {
+        REGULAR("regular", "PingFangSC-Regular", "regular"),
+        MEDIUM("medium", "PingFangSC-Medium", "medium"),
+        BOLD("bold", "PingFangSC-Semibold", "bold", "semibold");
+
+        private final String bundled;
+        private final String pingFangFace;
+        private final String[] fileWords;
+
+        FontWeight(String bundled, String pingFangFace, String... fileWords) {
+            this.bundled = bundled;
+            this.pingFangFace = pingFangFace;
+            this.fileWords = fileWords;
+        }
+
+        /** Suffix of the bundled {@code harmonyos_sans_sc_*.ttf}. */
+        public String bundled() {
+            return bundled;
+        }
+
+        /** PostScript name of the face to pick from PingFang.ttc. */
+        public String pingFangFace() {
+            return pingFangFace;
+        }
+
+        /** Words identifying this weight in per-weight PingFang file names. */
+        public String[] fileWords() {
+            return fileWords;
+        }
     }
 
     public enum IntroMode {

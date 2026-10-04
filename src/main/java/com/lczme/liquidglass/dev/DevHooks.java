@@ -12,7 +12,13 @@ import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.client.gui.screens.inventory.FurnaceScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.FurnaceMenu;
 import net.minecraft.client.gui.screens.options.LanguageSelectScreen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.world.Difficulty;
@@ -104,6 +110,21 @@ public final class DevHooks {
                 GLFW.glfwSetCursorPos(mc.getWindow().getWindow(), mc.getWindow().getScreenWidth() * 0.756, mc.getWindow().getScreenHeight() * 0.155);
             }),
             new Shot("liquidglass_autoshot_jei_recipes.png", SETTLED, DevHooks::showJeiCraftingRecipes),
+            // Client-side menus are enough to see how container screens render.
+            new Shot("liquidglass_autoshot_chest.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    Inventory inventory = mc.player.getInventory();
+                    mc.setScreen(new ContainerScreen(ChestMenu.threeRows(0, inventory), inventory, Component.translatable("container.chest")));
+                }
+            }),
+            new Shot("liquidglass_autoshot_furnace.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    Inventory inventory = mc.player.getInventory();
+                    mc.setScreen(new FurnaceScreen(new FurnaceMenu(0, inventory), inventory, Component.translatable("container.furnace")));
+                }
+            }),
     };
 
     /** JEI is not on the compile classpath; reflection keeps this dev-only shot free of a hard dependency. */

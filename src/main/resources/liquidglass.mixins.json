@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "AbstractButtonMixin",
+    "AbstractContainerScreenMixin",
     "AbstractSliderButtonMixin",
     "AbstractWidgetMixin",
     "GuiGraphicsMixin",

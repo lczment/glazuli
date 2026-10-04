@@ -38,6 +38,7 @@ public final class LiquidGlass {
         modBus.addListener((FMLClientSetupEvent event) -> CaveBackground.startGenerating());
         modBus.addListener((RegisterClientReloadListenersEvent event) -> event.registerReloadListener(CaveBackground.reloadListener()));
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onRenderFramePre);
+        NeoForge.EVENT_BUS.addListener(BlurPipeline::onScreenRenderPre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         Compat.register(NeoForge.EVENT_BUS);
