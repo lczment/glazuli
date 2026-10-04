@@ -111,7 +111,9 @@ public final class CaveBackground {
         camera.update(minecraft.screen, now, introMayStart);
 
         guiGraphics.flush();
-        drawScene(minecraft, mesh, camera);
+        if (!ShaderCave.render(minecraft, world.join(), camera)) {
+            drawScene(minecraft, mesh, camera);
+        }
 
         float fade = 1.0F - Mth.clamp((float) ((now - readyTime) / FADE_IN_SECONDS), 0.0F, 1.0F);
         if (fade > 0.0F) {
