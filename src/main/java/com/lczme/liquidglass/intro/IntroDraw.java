@@ -142,6 +142,22 @@ final class IntroDraw {
         BufferUploader.drawWithShader(b.buildOrThrow());
     }
 
+    /** White-tinted quad over a sub-rectangle of a straight-alpha texture; the caller picks the blend mode. */
+    static void textureRegion(Matrix4f pose, int textureId, float x, float y, float w, float h,
+                              float u0, float v0, float u1, float v1, float alpha) {
+        if (alpha <= 0.0F) {
+            return;
+        }
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, textureId);
+        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        b.addVertex(pose, x, y, 0.0F).setUv(u0, v0).setColor(1.0F, 1.0F, 1.0F, alpha);
+        b.addVertex(pose, x, y + h, 0.0F).setUv(u0, v1).setColor(1.0F, 1.0F, 1.0F, alpha);
+        b.addVertex(pose, x + w, y + h, 0.0F).setUv(u1, v1).setColor(1.0F, 1.0F, 1.0F, alpha);
+        b.addVertex(pose, x + w, y, 0.0F).setUv(u1, v0).setColor(1.0F, 1.0F, 1.0F, alpha);
+        BufferUploader.drawWithShader(b.buildOrThrow());
+    }
+
     /**
      * Textured quad. {@code argb} is a non-premultiplied tint; it is premultiplied here to match the texture,
      * so use {@link #blendPremultiplied()}.

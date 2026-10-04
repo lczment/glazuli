@@ -2,7 +2,6 @@ package com.lczme.liquidglass.intro;
 
 import com.lczme.liquidglass.LiquidGlass;
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
@@ -33,8 +32,8 @@ final class EarlyWindowHandoff {
         return background;
     }
 
-    /** Draws the early frame opaquely over the whole screen. */
-    void draw(Matrix4f pose, float guiWidth, float guiHeight) {
+    /** Draws the early frame over the whole screen, faded to {@code alpha}. */
+    void draw(Matrix4f pose, float guiWidth, float guiHeight, float alpha) {
         if (closed) {
             return;
         }
@@ -50,9 +49,10 @@ final class EarlyWindowHandoff {
         float bottom = Mth.clamp(fbHeight * 0.5F + scale * ctx.height(), 0.0F, fbHeight) / gs;
 
         IntroDraw.begin();
-        RenderSystem.disableBlend();
-        IntroDraw.fill(pose, 0.0F, 0.0F, guiWidth, guiHeight, background);
-        IntroDraw.texture(pose, window.getFramebufferTextureId(), left, top, right - left, bottom - top, 0xFFFFFFFF);
+        IntroDraw.fill(pose, 0.0F, 0.0F, guiWidth, guiHeight, IntroDraw.withAlpha(background, alpha));
+        IntroDraw.blendPremultiplied();
+        IntroDraw.texture(pose, window.getFramebufferTextureId(), left, top, right - left, bottom - top,
+                IntroDraw.withAlpha(0xFFFFFFFF, alpha));
         IntroDraw.end();
     }
 

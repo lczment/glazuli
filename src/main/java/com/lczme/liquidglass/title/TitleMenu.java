@@ -3,7 +3,6 @@ package com.lczme.liquidglass.title;
 import com.lczme.liquidglass.anim.Easing;
 import com.lczme.liquidglass.anim.Timeline;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
-import com.lczme.liquidglass.intro.IntroLogo;
 import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.render.GlassButtons;
@@ -33,6 +32,8 @@ public final class TitleMenu {
     // Spec §6: page state changes use --ease over ~0.35-0.40 s.
     private static final float EASE_SECONDS = 0.38F;
     private static final float STAGGER = 0.04F;
+    /** Bottom of vanilla's logo + "Java Edition" badge ({@code LogoRenderer}, drawn at y = 30). */
+    private static final float VANILLA_LOGO_BOTTOM = 82.0F;
 
     private final Timeline entrance = new Timeline();
     private final Timeline.Track logoAlpha = entrance.track(0.0F).to(0.0F, EASE_SECONDS, 1.0F, Easing.SPEC_EASE);
@@ -43,9 +44,6 @@ public final class TitleMenu {
 
     public TitleMenu() {
         continuesIntro = IntroState.isPlaying();
-        if (continuesIntro) {
-            IntroState.requestLogoHandoff();
-        }
     }
 
     public static boolean isEnabled() {
@@ -81,7 +79,7 @@ public final class TitleMenu {
         }
         int height = screen.height;
         int columnH = rows * ROW - GAP + (main.isEmpty() || rows == main.size() ? 0 : GAP);
-        float logoBottom = IntroState.menuLogoCenterY(height) + IntroState.menuLogoHeight(height) * 0.5F;
+        float logoBottom = VANILLA_LOGO_BOTTOM;
         // Keep clear of the two branding lines vanilla/NeoForge draw in the bottom corners.
         int x = (screen.width - BUTTON_WIDTH) / 2;
         int y = Math.round(Math.max(4.0F, Math.min(logoBottom + 26.0F, height - 34.0F - columnH)));
@@ -143,17 +141,17 @@ public final class TitleMenu {
         guiGraphics.fillGradient(0, 0, width, height, 0x300B0D12, 0x900B0D12);
     }
 
-    /** Replaces the vanilla "Minecraft" logo. */
-    public void drawLogo(GuiGraphics guiGraphics, int width, int height) {
-        if (IntroState.isPlaying()) {
-            // The intro overlay still draws the logo on top of this screen.
-            return;
-        }
-        float alpha = continuesIntro ? 1.0F : logoAlpha.value();
-        float logoHeight = IntroState.menuLogoHeight(height);
-        IntroLogo.prepare(logoHeight);
-        guiGraphics.flush();
-        IntroLogo.draw(guiGraphics.pose().last().pose(), width * 0.5F, IntroState.menuLogoCenterY(height), logoHeight, alpha, 2.0F);
+    /**
+     * Opacity for everything vanilla draws itself (Minecraft logo, splash, branding, unrecognized widgets); applied
+     * through vanilla's own title fade so all of it appears together with our entrance.
+     */
+    public float chromeAlpha() {
+        return settled ? 1.0F : logoAlpha.value();
+    }
+
+    /** Called after vanilla's fade has set every widget's alpha: puts our staggered entrance back on top. */
+    public void afterVanillaFade() {
+        applyEntrance(settled ? 1.0F : 0.0F);
     }
 
     private void place(AbstractWidget widget, int x, int y) {

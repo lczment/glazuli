@@ -10,8 +10,6 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_REFRACTION;
     public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
-    public static final ModConfigSpec.BooleanValue DARK_EARLY_WINDOW;
-
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
@@ -39,10 +37,6 @@ public final class LiquidGlassConfig {
         STYLE_RELOAD_OVERLAY = builder
                 .comment("Also use the glass loading overlay for later resource reloads (F3+T, resource pack changes).")
                 .define("styleReloadOverlay", true);
-        DARK_EARLY_WINDOW = builder
-                .comment("After the intro played, enable vanilla's dark loading screen option (darkMojangStudiosBackground) so the",
-                        "NeoForge early loading window starts dark on the next launch and blends into the intro instead of flashing red.")
-                .define("darkEarlyWindow", true);
         builder.pop();
 
         builder.push("menu");

@@ -95,11 +95,6 @@ public final class IntroOverlays {
                 LiquidGlass.LOGGER.warn("Could not persist that the intro was shown", e);
             }
         }
-        // The FML early window only knows red or black (options.txt / FML_EARLY_WINDOW_DARK); black blends into the intro.
-        if (LiquidGlassConfig.DARK_EARLY_WINDOW.get() && !minecraft.options.darkMojangStudiosBackground().get()) {
-            minecraft.options.darkMojangStudiosBackground().set(true);
-            minecraft.options.save();
-        }
     }
 
     private static Path markerPath() {
