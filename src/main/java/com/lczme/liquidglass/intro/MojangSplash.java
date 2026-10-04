@@ -84,6 +84,8 @@ final class MojangSplash {
                 }
                 mask = new TextureTarget(main.width, main.height, false, Minecraft.ON_OSX);
                 mask.setFilterMode(GL11.GL_LINEAR);
+                // RenderTarget.resize re-enables depth testing; GUI text has already written depth this frame.
+                RenderSystem.disableDepthTest();
             }
             mask.setClearColor(FastColor.ARGB32.red(backgroundColor) / 255.0F, FastColor.ARGB32.green(backgroundColor) / 255.0F,
                     FastColor.ARGB32.blue(backgroundColor) / 255.0F, 1.0F);

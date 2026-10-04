@@ -59,10 +59,10 @@ public final class DevHooks {
                     new LanguageSelectScreen(menu, Minecraft.getInstance().options, Minecraft.getInstance().getLanguageManager()))),
             // Like LanguageSelectScreen#onDone: start the reload, then return to the parent. The fade-in must show the
             // language screen, not the parent.
-            new Shot("liquidglass_autoshot_reload_fadein.png", RELOAD_TIMEOUT, () -> {
+            new Shot("liquidglass_autoshot_reload_fadein.png", RELOAD_TIMEOUT, () -> Minecraft.getInstance().tell(() -> {
                 Minecraft.getInstance().reloadResourcePacks();
                 Minecraft.getInstance().setScreen(menu);
-            }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.elapsed() >= 0.08F, true),
+            }), () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.elapsed() >= 0.08F, true),
             new Shot("liquidglass_autoshot_reload.png", RELOAD_TIMEOUT, () -> {
             }, () -> Minecraft.getInstance().getOverlay() instanceof ReloadOverlay reload && reload.elapsed() >= 0.8F, false),
             new Shot("liquidglass_autoshot_reload_thaw.png", RELOAD_TIMEOUT, () -> {
@@ -87,7 +87,8 @@ public final class DevHooks {
             gameBus.addListener(DevHooks::onScreenInit);
         }
         if (AUTOSHOT) {
-            gameBus.addListener(DevHooks::onRenderFramePost);        }
+            gameBus.addListener(DevHooks::onRenderFramePost);
+        }
     }
 
     private static void onScreenInit(ScreenEvent.Init.Post event) {
