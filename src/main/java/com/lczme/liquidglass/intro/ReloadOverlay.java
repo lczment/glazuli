@@ -7,6 +7,7 @@ import com.lczme.liquidglass.cave.CaveBackground;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
 import java.util.Optional;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -43,6 +44,13 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
     ReloadOverlay(Minecraft minecraft, ReloadInstance reload, Consumer<Optional<Throwable>> onFinish, boolean fadeIn) {
         super(minecraft, reload, onFinish, fadeIn);
         this.splash = new MojangSplash(minecraft);
+        // Reloads usually start between frames, while the main target still holds the last presented frame. Callers
+        // often switch screens right after starting the reload (the language screen returns to its parent), so
+        // freezing on our first frame would flash the next screen; freeze what the player was actually looking at.
+        if (RenderSystem.isOnRenderThread()) {
+            frozenTaken = true;
+            frozen = snapshot();
+        }
     }
 
     /** Seconds since the exit animation started, or a negative value before that. */
@@ -117,13 +125,19 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
             ClientHooks.drawScreen(minecraft.screen, guiGraphics, mouseX, mouseY, partialTick);
         }
         guiGraphics.flush();
+        frozen = snapshot();
+    }
+
+    @Nullable
+    private TextureTarget snapshot() {
         try {
             RenderTarget main = minecraft.getMainRenderTarget();
-            frozen = new TextureTarget(main.width, main.height, false, Minecraft.ON_OSX);
-            copy(main, frozen, main);
+            TextureTarget target = new TextureTarget(main.width, main.height, false, Minecraft.ON_OSX);
+            copy(main, target, main);
+            return target;
         } catch (RuntimeException e) {
             LiquidGlass.LOGGER.warn("Could not freeze the screen for the reload overlay", e);
-            frozen = null;
+            return null;
         }
     }
 
