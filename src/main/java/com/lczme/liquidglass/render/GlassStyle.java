@@ -1,5 +1,8 @@
 package com.lczme.liquidglass.render;
 
+import net.minecraft.util.FastColor;
+import net.minecraft.util.Mth;
+
 /**
  * Immutable look of a glass panel. All lengths are in GUI units (before GUI scale and PoseStack scale).
  *
@@ -31,6 +34,21 @@ public record GlassStyle(
     public static final GlassStyle BUTTON = new GlassStyle(10.0F, 0x1AFFFFFF, 4.0F, 8.0F, 0.5F, 0.9F, 1.25F, 0.25F, 1.0F, true);
     public static final GlassStyle BUTTON_HOVER = new GlassStyle(10.0F, 0x38FFFFFF, 4.5F, 8.0F, 0.85F, 1.0F, 1.35F, 0.3F, 1.0F, true);
     public static final GlassStyle LENS = new GlassStyle(1000.0F, 0x08FFFFFF, 10.0F, 18.0F, 0.6F, 1.6F, 1.1F, 0.3F, 1.0F, false);
+
+    /** Blends every numeric property; {@code blur} switches at the halfway point. {@code t} may overshoot for springs. */
+    public static GlassStyle lerp(GlassStyle a, GlassStyle b, float t) {
+        return new GlassStyle(
+                Mth.lerp(t, a.cornerRadius, b.cornerRadius),
+                FastColor.ARGB32.lerp(Mth.clamp(t, 0.0F, 1.0F), a.tint, b.tint),
+                Mth.lerp(t, a.refraction, b.refraction),
+                Mth.lerp(t, a.bevel, b.bevel),
+                Math.max(0.0F, Mth.lerp(t, a.rim, b.rim)),
+                Math.max(0.0F, Mth.lerp(t, a.chromatic, b.chromatic)),
+                Math.max(0.0F, Mth.lerp(t, a.saturation, b.saturation)),
+                Math.max(0.0F, Mth.lerp(t, a.shadow, b.shadow)),
+                Mth.lerp(t, a.opacity, b.opacity),
+                t < 0.5F ? a.blur : b.blur);
+    }
 
     public GlassStyle withCornerRadius(float cornerRadius) {
         return new GlassStyle(cornerRadius, tint, refraction, bevel, rim, chromatic, saturation, shadow, opacity, blur);
