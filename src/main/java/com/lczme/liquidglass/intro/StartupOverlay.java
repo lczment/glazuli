@@ -33,7 +33,8 @@ public final class StartupOverlay extends GlassLoadingOverlay {
     private static final float LOGO_DELAY = 0.15F;
     /** Start without the logo texture if it takes this long (it then pops in when ready). */
     private static final float LOGO_WAIT_LIMIT = 1.2F;
-    private static final float MIN_LOGO_SECONDS = 0.9F;
+    // Fast loads (small modpacks, dev) would otherwise flash the intro by before it can be seen.
+    private static final float MIN_LOGO_SECONDS = 2.0F;
     private static final float MAX_FILL_SECONDS = 0.6F;
     private static final float SHEEN_START = 1.0F;
     private static final float SHEEN_PERIOD = 3.4F;
