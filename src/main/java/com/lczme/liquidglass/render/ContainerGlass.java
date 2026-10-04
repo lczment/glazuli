@@ -14,23 +14,19 @@ import org.joml.Matrix4f;
 
 /**
  * Glass inventories: a glass panel behind every container screen, its background texture redrawn with the vanilla
- * panel grey made transparent (see {@code container_glass.fsh}), dark labels turned light, and the hotbar and creative
- * tabs drawn as glass.
+ * panel grey made transparent (see {@code container_glass.fsh}), and the hotbar and creative tabs drawn as glass.
  */
 public final class ContainerGlass {
-    public static final GlassStyle WINDOW = GlassStyle.film(GlassStyle.FILM_COLOR, 0.3F).withCornerRadius(GlassUi.CARD_RADIUS);
-    private static final GlassStyle TAB_SELECTED = WINDOW.withCornerRadius(6.0F);
-    private static final GlassStyle TAB_UNSELECTED = GlassStyle.film(GlassStyle.FILM_COLOR, 0.14F).withCornerRadius(6.0F);
+    /** Light frosted body: vanilla's container art and dark labels are made for a light grey panel. */
+    private static final int LIGHT_FILM = 0xF4F6FA;
+    public static final GlassStyle WINDOW = GlassStyle.film(LIGHT_FILM, 0.3F).withCornerRadius(GlassUi.CARD_RADIUS);
+    public static final GlassStyle TAB_SELECTED = WINDOW.withCornerRadius(6.0F);
+    public static final GlassStyle TAB_UNSELECTED = GlassStyle.film(LIGHT_FILM, 0.14F).withCornerRadius(6.0F);
     private static final GlassStyle HOTBAR = GlassStyle.film(GlassStyle.FILM_COLOR, 0.22F).withCornerRadius(6.0F);
     private static final int HOTBAR_SELECTION = 0x48FFFFFF;
-    /** Vanilla's dark label colour (0x404040), unreadable on dark glass. */
-    private static final int VANILLA_LABEL = 0x404040;
-    private static final int LABEL = 0xFFECECF0;
     /** Background-sized blits lose their 3 px bevelled frame; the glass panel has its own edge. */
     private static final float FRAME = 4.0F;
     private static final int MIN_FRAMED_SIZE = 64;
-
-    private static boolean drawingLabels;
 
     private ContainerGlass() {
     }
@@ -43,14 +39,6 @@ public final class ContainerGlass {
         if (isEnabled()) {
             GlassRenderer.drawPanel(guiGraphics, x, y, width, height, WINDOW);
         }
-    }
-
-    public static void setDrawingLabels(boolean labels) {
-        drawingLabels = labels;
-    }
-
-    public static int labelColor(int color) {
-        return drawingLabels && isEnabled() && (color & 0xFFFFFF) == VANILLA_LABEL ? LABEL : color;
     }
 
     private static boolean isGlassTexture(ResourceLocation texture) {

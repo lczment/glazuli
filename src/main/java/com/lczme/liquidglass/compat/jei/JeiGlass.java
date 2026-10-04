@@ -1,6 +1,7 @@
 package com.lczme.liquidglass.compat.jei;
 
 import com.lczme.liquidglass.config.LiquidGlassConfig;
+import com.lczme.liquidglass.render.ContainerGlass;
 import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.GlassRenderer;
 import com.lczme.liquidglass.render.GlassStyle;
@@ -14,9 +15,9 @@ import net.minecraft.resources.ResourceLocation;
  * art.
  */
 public final class JeiGlass {
-    private static final GlassStyle WINDOW = GlassStyle.film(GlassStyle.FILM_COLOR, 0.3F).withCornerRadius(GlassUi.CARD_RADIUS);
-    private static final GlassStyle SIDE_TAB = GlassStyle.film(GlassStyle.FILM_COLOR, 0.3F).withCornerRadius(6.0F);
-    private static final GlassStyle TAB_UNSELECTED = GlassStyle.film(GlassStyle.FILM_COLOR, 0.14F).withCornerRadius(6.0F);
+    private static final GlassStyle WINDOW = ContainerGlass.WINDOW;
+    private static final GlassStyle SIDE_TAB = ContainerGlass.TAB_SELECTED;
+    private static final GlassStyle TAB_UNSELECTED = ContainerGlass.TAB_UNSELECTED;
     private static final GlassStyle PRESSED = GlassButtons.BUTTON_NEUTRAL;
     /** Recessed well, so items read against the glass the way they do in a vanilla slot. */
     private static final int SLOT = 0x38000000;

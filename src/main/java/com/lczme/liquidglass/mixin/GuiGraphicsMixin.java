@@ -9,12 +9,11 @@ import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Catches the vanilla button/slider sprites wherever they are drawn (sliders, modded widgets), not just in
- * AbstractButton, plus container textures, HUD/creative-tab sprites and container labels for {@link ContainerGlass}.
+ * AbstractButton, plus container textures, HUD/creative-tab sprites for {@link ContainerGlass}.
  */
 @Mixin(GuiGraphics.class)
 public abstract class GuiGraphicsMixin {
@@ -40,15 +39,5 @@ public abstract class GuiGraphicsMixin {
         if (ContainerGlass.blit((GuiGraphics) (Object) this, texture, x1, x2, y1, y2, z, u0, u1, v0, v1)) {
             ci.cancel();
         }
-    }
-
-    @ModifyVariable(method = "drawString(Lnet/minecraft/client/gui/Font;Ljava/lang/String;FFIZ)I", at = @At("HEAD"), argsOnly = true)
-    private int liquidglass$lightLabel(int color) {
-        return ContainerGlass.labelColor(color);
-    }
-
-    @ModifyVariable(method = "drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;FFIZ)I", at = @At("HEAD"), argsOnly = true)
-    private int liquidglass$lightLabelSequence(int color) {
-        return ContainerGlass.labelColor(color);
     }
 }

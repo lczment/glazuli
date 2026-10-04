@@ -33,7 +33,7 @@ void main() {
         }
         color = l > PANEL
                 ? vec4(1.0, 1.0, 1.0, (l - PANEL) / (1.0 - PANEL) * 0.22 * color.a)
-                : vec4(0.0, 0.0, 0.0, (PANEL - l) / PANEL * 0.5 * color.a);
+                : vec4(0.0, 0.0, 0.0, min((PANEL - l) / PANEL * 0.5, 0.26) * color.a);
     }
     fragColor = color * ColorModulator;
 }
