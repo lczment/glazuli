@@ -4,11 +4,13 @@
   "package": "com.lczme.liquidglass.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "AbstractButtonMixin",
     "KeyboardHandlerMixin",
     "LoadingOverlayAccessor",
     "MinecraftMixin",
     "MouseHandlerMixin",
-    "NeoForgeLoadingOverlayAccessor"
+    "NeoForgeLoadingOverlayAccessor",
+    "TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

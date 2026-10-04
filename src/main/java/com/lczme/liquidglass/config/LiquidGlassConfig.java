@@ -14,6 +14,9 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
     public static final ModConfigSpec.BooleanValue DARK_EARLY_WINDOW;
 
+    public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
+    public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -43,6 +46,15 @@ public final class LiquidGlassConfig {
                 .comment("After the intro played, enable vanilla's dark loading screen option (darkMojangStudiosBackground) so the",
                         "NeoForge early loading window starts dark on the next launch and blends into the intro instead of flashing red.")
                 .define("darkEarlyWindow", true);
+        builder.pop();
+
+        builder.push("menu");
+        CUSTOM_TITLE_SCREEN = builder
+                .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.")
+                .define("customTitleScreen", true);
+        GLASS_BUTTONS = builder
+                .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
+                .define("glassButtons", true);
         builder.pop();
 
         SPEC = builder.build();

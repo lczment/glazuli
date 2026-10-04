@@ -34,6 +34,9 @@ public final class IntroState {
     public record LogoPose(float centerX, float centerY, float width, float height, float alpha) {
     }
 
+    static final float MENU_LOGO_Y = 0.24F;
+    static final float MENU_LOGO_SCALE = 0.82F;
+
     private static Phase phase = Phase.PENDING;
     private static double phaseStart = AnimClock.now();
     private static float outroDuration = 1.0F;
@@ -48,6 +51,16 @@ public final class IntroState {
 
     public static Phase phase() {
         return phase;
+    }
+
+    /** Vertical logo center where the outro leaves the logo, in GUI units. */
+    public static float menuLogoCenterY(float screenHeight) {
+        return screenHeight * MENU_LOGO_Y;
+    }
+
+    /** Logo box height where the outro leaves the logo, in GUI units. */
+    public static float menuLogoHeight(float screenHeight) {
+        return StartupOverlay.logoHeight(screenHeight) * MENU_LOGO_SCALE;
     }
 
     public static boolean isPlaying() {

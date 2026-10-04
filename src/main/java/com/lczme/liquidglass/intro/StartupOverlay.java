@@ -166,8 +166,8 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         float sheen = 2.0F;
         if (outroActive) {
             float m = outroLogoMove.value();
-            cy = Mth.lerp(m, cy, h * 0.24F);
-            scale *= Mth.lerp(m, 1.0F, 0.82F);
+            cy = Mth.lerp(m, cy, IntroState.menuLogoCenterY(h));
+            scale *= Mth.lerp(m, 1.0F, IntroState.MENU_LOGO_SCALE);
             if (!IntroState.isLogoHandoffRequested()) {
                 alpha *= outroLogoAlpha.value();
             }
