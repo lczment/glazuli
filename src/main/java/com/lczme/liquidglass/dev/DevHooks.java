@@ -213,6 +213,8 @@ public final class DevHooks {
             String currentName = current instanceof java.util.Optional<?> o ? String.valueOf(o.orElse(null)) : String.valueOf(current);
             String next = packs.get((packs.indexOf(currentName) + 1) % packs.size());
             config.getClass().getMethod("setShaderPackName", String.class).invoke(config, next);
+            // Iris#reload re-reads the config file, so the choice has to be on disk first.
+            config.getClass().getMethod("save").invoke(config);
             iris.getMethod("reload").invoke(null);
             LiquidGlass.LOGGER.info("[autoshot] switched shader pack {} -> {}", currentName, next);
         } catch (ReflectiveOperationException | java.io.IOException | RuntimeException e) {

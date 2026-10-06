@@ -24,8 +24,6 @@ public final class StartupOverlay extends GlassLoadingOverlay {
     // Fast loads (small modpacks, dev) would otherwise skip straight to the transition.
     private static final float MIN_LOADING_SECONDS = 1.5F;
     private static final float MAX_FILL_SECONDS = 0.6F;
-    /** The letters open onto the cave, so give its mesh a moment; never hold the startup longer than this. */
-    private static final float MAX_BACKDROP_WAIT_SECONDS = 2.0F;
 
     @Nullable
     private final EarlyWindowHandoff early;
@@ -70,7 +68,7 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         }
         double sinceFill = AnimClock.now() - fillStart;
         boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
-        boolean backdropReady = CaveBackground.isReady() || sinceFill >= MAX_BACKDROP_WAIT_SECONDS;
+        boolean backdropReady = CaveBackground.isReady() || sinceFill >= CaveBackground.readyWaitLimitSeconds();
         if (isFinishCalled() && !splash.outro.isStarted() && filled && backdropReady) {
             splash.outro.start();
             IntroState.setPhase(IntroState.Phase.OUTRO);

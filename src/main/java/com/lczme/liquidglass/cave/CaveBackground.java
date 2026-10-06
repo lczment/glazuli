@@ -131,16 +131,31 @@ public final class CaveBackground {
             return;
         }
         try {
-            pollBuild(Minecraft.getInstance(), AnimClock.now());
+            Minecraft minecraft = Minecraft.getInstance();
+            double now = AnimClock.now();
+            pollBuild(minecraft, now);
+            // Rendered under the opaque splash: the shader pack compiles and the chunks mesh before the reveal.
+            if (mesh != null && world != null && world.isDone()) {
+                if (camera == null) {
+                    camera = new CaveCamera(world.join().layout());
+                }
+                camera.update(minecraft.screen, now, false);
+                ShaderCave.render(minecraft, world.join(), camera);
+            }
         } catch (RuntimeException e) {
             failed = true;
             LiquidGlass.LOGGER.error("Cave background failed, falling back to the vanilla panorama", e);
         }
     }
 
-    /** True once the cave can be shown (or it won't be shown at all). */
+    /** True once the cave can be shown without stalling (or it won't be shown at all). */
     public static boolean isReady() {
-        return !isActive() || mesh != null;
+        return !isActive() || mesh != null && ShaderCave.isWarm(Minecraft.getInstance());
+    }
+
+    /** How long the startup may hold the splash for {@link #isReady()}; compiling a shader pack takes a while. */
+    public static float readyWaitLimitSeconds() {
+        return isActive() && ShaderCave.wanted() ? 30.0F : 2.0F;
     }
 
     /** Like {@link #isReady()}, but also requires the mesh to match the current resources (after a reload). */

@@ -87,19 +87,35 @@ final class ShaderCave {
     private static final float EYE_HEIGHT = 1.62F;
     private static final BlockState FILL = Blocks.STONE.defaultBlockState();
 
+    /** Frames rendered before the cave counts as warmed up (shader programs compiled, history buffers filled). */
+    private static final int WARM_FRAMES = 8;
+    private static final long TICK_MILLIS = 50L;
+
     @Nullable
     private static CompletableFuture<RegistryAccess.Frozen> registries;
+    @Nullable
+    private static ClientLevel pendingLevel;
+    @Nullable
+    private static ClientPacketListener pendingListener;
+    @Nullable
+    private static CompletableFuture<List<ClientboundLevelChunkWithLightPacket>> chunkData;
     @Nullable
     private static ClientLevel level;
     @Nullable
     private static LocalPlayer player;
     private static boolean failed;
     private static boolean drawnThisFrame;
-    private static boolean loggedRepeat;
+    private static boolean loggedWarm;
+    private static int warmFrames;
+    private static long lastLightTick;
     @Nullable
-    private static Object irisApi;
+    private static Object lastPipeline;
     @Nullable
-    private static Method shaderPackInUse;
+    private static Method currentPack;
+    @Nullable
+    private static Object pipelineManager;
+    @Nullable
+    private static Method pipelineNullable;
 
     private ShaderCave() {
     }
@@ -115,13 +131,13 @@ final class ShaderCave {
         if (!ModList.get().isLoaded("iris")) {
             return false;
         }
+        // "Pack loaded", not IrisApi#isShaderPackInUse: that needs a pipeline, which on the title screen only our own
+        // world render creates, so after a pack switch it would stay false.
         try {
-            if (shaderPackInUse == null) {
-                Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
-                irisApi = api.getMethod("getInstance").invoke(null);
-                shaderPackInUse = api.getMethod("isShaderPackInUse");
+            if (currentPack == null) {
+                currentPack = Class.forName("net.irisshaders.iris.Iris").getMethod("getCurrentPack");
             }
-            return (Boolean) shaderPackInUse.invoke(irisApi);
+            return ((java.util.Optional<?>) currentPack.invoke(null)).isPresent();
         } catch (ReflectiveOperationException | RuntimeException e) {
             fail("Iris API unavailable", e);
             return false;
@@ -141,10 +157,6 @@ final class ShaderCave {
                 return false;
             }
             if (drawnThisFrame) {
-                if (!loggedRepeat) {
-                    loggedRepeat = true;
-                    LiquidGlass.LOGGER.info("Shader cave asked to render twice in one frame; reusing the first image");
-                }
                 return true;
             }
             drawnThisFrame = true;
@@ -154,6 +166,22 @@ final class ShaderCave {
             fail("Shader cave failed, falling back to the plain cave", e);
             return false;
         }
+    }
+
+    /**
+     * True once the level is built, the shader pack's programs are compiled and every chunk is meshed, so showing the
+     * cave won't stall a frame (or there is nothing to warm up).
+     */
+    static boolean isWarm(Minecraft minecraft) {
+        if (!wanted()) {
+            return true;
+        }
+        boolean warm = level != null && warmFrames >= WARM_FRAMES && minecraft.levelRenderer.hasRenderedAllSections();
+        if (warm && !loggedWarm) {
+            loggedWarm = true;
+            LiquidGlass.LOGGER.info("Shader cave warmed up after {} frames", warmFrames);
+        }
+        return warm;
     }
 
     /**
@@ -189,21 +217,46 @@ final class ShaderCave {
         if (!registries.isDone()) {
             return false;
         }
-        RegistryAccess.Frozen access = registries.join();
+        if (pendingLevel == null) {
+            RegistryAccess.Frozen access = registries.join();
+            Connection connection = new Connection(PacketFlow.CLIENTBOUND);
+            CommonListenerCookie cookie = new CommonListenerCookie(minecraft.getGameProfile(),
+                    new WorldSessionTelemetryManager(TelemetryEventSender.DISABLED, false, Duration.ZERO, null),
+                    access, FeatureFlags.DEFAULT_FLAGS, "liquidglass", null, null, Map.of(), null, false, Map.of(), ServerLinks.EMPTY);
+            ClientPacketListener listener = new ClientPacketListener(minecraft, connection, cookie);
+            ClientLevel.ClientLevelData data = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
+            ClientLevel cave = new ClientLevel(listener, data, Level.OVERWORLD,
+                    access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
+                    VIEW_DISTANCE, VIEW_DISTANCE, minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
+            ((ClientPacketListenerAccessor) listener).liquidglass$setLevel(cave);
+            cave.setDayTime(6000L);
+            pendingLevel = cave;
+            pendingListener = listener;
+            chunkData = CompletableFuture.supplyAsync(() -> chunkPackets(cave, world), Util.backgroundExecutor());
+            return false;
+        }
+        if (!chunkData.isDone()) {
+            return false;
+        }
         long start = Util.getMillis();
+        ClientLevel cave = pendingLevel;
+        ClientPacketListener listener = pendingListener;
+        cave.getChunkSource().updateViewCenter(CHUNKS_X / 2, CHUNKS_Z / 2);
+        minecraft.levelRenderer.setLevel(cave);
+        for (ClientboundLevelChunkWithLightPacket packet : chunkData.join()) {
+            listener.handleLevelChunkWithLight(packet);
+        }
+        LocalPlayer stand = new LocalPlayer(minecraft, cave, listener, new StatsCounter(), new ClientRecipeBook(), false, false);
+        level = cave;
+        player = stand;
+        chunkData = null;
+        LiquidGlass.LOGGER.info("Shader cave level delivered in {} ms", Util.getMillis() - start);
+        return true;
+    }
 
-        Connection connection = new Connection(PacketFlow.CLIENTBOUND);
-        CommonListenerCookie cookie = new CommonListenerCookie(minecraft.getGameProfile(),
-                new WorldSessionTelemetryManager(TelemetryEventSender.DISABLED, false, Duration.ZERO, null),
-                access, FeatureFlags.DEFAULT_FLAGS, "liquidglass", null, null, Map.of(), null, false, Map.of(), ServerLinks.EMPTY);
-        ClientPacketListener listener = new ClientPacketListener(minecraft, connection, cookie);
-        ClientLevel.ClientLevelData data = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
-        ClientLevel cave = new ClientLevel(listener, data, Level.OVERWORLD,
-                access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
-                VIEW_DISTANCE, VIEW_DISTANCE, minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
-        ((ClientPacketListenerAccessor) listener).liquidglass$setLevel(cave);
-        cave.setDayTime(6000L);
-
+    /** Fills, lights and serializes the chunks; touches nothing but the new chunks, so it runs off-thread. */
+    private static List<ClientboundLevelChunkWithLightPacket> chunkPackets(ClientLevel cave, CaveWorld world) {
+        long start = Util.getMillis();
         LevelChunk[] chunks = new LevelChunk[SPAN_X * SPAN_Z];
         for (int cx = -RING; cx < CHUNKS_X + RING; cx++) {
             for (int cz = -RING; cz < CHUNKS_Z + RING; cz++) {
@@ -211,17 +264,26 @@ final class ShaderCave {
             }
         }
         LevelLightEngine light = light(cave, chunks);
-        cave.getChunkSource().updateViewCenter(CHUNKS_X / 2, CHUNKS_Z / 2);
-        minecraft.levelRenderer.setLevel(cave);
+        List<ClientboundLevelChunkWithLightPacket> packets = new java.util.ArrayList<>(chunks.length);
         for (LevelChunk chunk : chunks) {
-            listener.handleLevelChunkWithLight(new ClientboundLevelChunkWithLightPacket(chunk, light, null, null));
+            packets.add(new ClientboundLevelChunkWithLightPacket(chunk, light, null, null));
         }
+        LiquidGlass.LOGGER.info("Shader cave chunks prepared in {} ms", Util.getMillis() - start);
+        return packets;
+    }
 
-        LocalPlayer stand = new LocalPlayer(minecraft, cave, listener, new StatsCounter(), new ClientRecipeBook(), false, false);
-        level = cave;
-        player = stand;
-        LiquidGlass.LOGGER.info("Shader cave level built in {} ms", Util.getMillis() - start);
-        return true;
+    /** Iris' current world pipeline; a new object after every pack switch or option change. */
+    @Nullable
+    private static Object irisPipeline() {
+        try {
+            if (pipelineNullable == null) {
+                pipelineManager = Class.forName("net.irisshaders.iris.Iris").getMethod("getPipelineManager").invoke(null);
+                pipelineNullable = pipelineManager.getClass().getMethod("getPipelineNullable");
+            }
+            return pipelineNullable.invoke(pipelineManager);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
     }
 
     private static int index(int cx, int cz) {
@@ -339,9 +401,24 @@ final class ShaderCave {
             fov.liquidglass$setOldFov(1.0F);
             gameRenderer.setRenderHand(false);
             gameRenderer.setRenderBlockOutline(false);
-            gameRenderer.lightTexture().tick();
+            long now = Util.getMillis();
+            if (now - lastLightTick >= TICK_MILLIS) {
+                lastLightTick = now;
+                gameRenderer.lightTexture().tick();
+            }
             resetGlState();
             gameRenderer.renderLevel(minecraft.getTimer());
+            // Chunk meshes carry the pack's vertex format and block ids; Iris only rebuilds them when it creates a
+            // pipeline while a level is showing, which on the title screen it never sees.
+            Object pipeline = irisPipeline();
+            if (pipeline != lastPipeline) {
+                if (lastPipeline != null) {
+                    minecraft.levelRenderer.allChanged();
+                    warmFrames = 0;
+                }
+                lastPipeline = pipeline;
+            }
+            warmFrames++;
         } finally {
             minecraft.level = previousLevel;
             minecraft.player = previousPlayer;
