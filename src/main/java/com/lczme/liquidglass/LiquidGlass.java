@@ -1,6 +1,7 @@
 package com.lczme.liquidglass;
 
 import com.lczme.liquidglass.cave.CaveBackground;
+import com.lczme.liquidglass.cave.MenuScenes;
 import com.lczme.liquidglass.compat.Compat;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.dev.DevHooks;
@@ -57,6 +58,7 @@ public final class LiquidGlass {
             BlurFade.onFrameStart();
             CaveBackground.onFrameStart();
         });
+        NeoForge.EVENT_BUS.addListener(MenuScenes::registerCommands);
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
     }

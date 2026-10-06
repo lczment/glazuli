@@ -1,5 +1,7 @@
 package com.lczme.liquidglass.mixin;
 
+import com.lczme.liquidglass.cave.CaveBackground;
+import com.lczme.liquidglass.cave.ScenePickerScreen;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.render.BlurFade;
 import com.lczme.liquidglass.title.TitleMenu;
@@ -56,12 +58,19 @@ public abstract class TitleScreenMixin extends Screen {
     private void liquidglass$addStyleButton() {
         Component label = Component.translatable(LiquidGlassConfig.isClassic() ? "liquidglass.title.glass" : "liquidglass.title.classic");
         int width = this.font.width(label) + 16;
+        int x = this.width - width - LIQUIDGLASS$STYLE_BUTTON_MARGIN;
         this.addRenderableWidget(Button.builder(label, button -> {
             LiquidGlassConfig.CLASSIC_UI.set(!LiquidGlassConfig.CLASSIC_UI.get());
             LiquidGlassConfig.CLASSIC_UI.save();
             // Not while the widget list is being iterated (the click may fire from a render pass).
             this.minecraft.tell(this::rebuildWidgets);
-        }).bounds(this.width - width - LIQUIDGLASS$STYLE_BUTTON_MARGIN, LIQUIDGLASS$STYLE_BUTTON_MARGIN, width, 20).build());
+        }).bounds(x, LIQUIDGLASS$STYLE_BUTTON_MARGIN, width, 20).build());
+        if (CaveBackground.isActive()) {
+            Component scenes = Component.translatable("liquidglass.title.scenes");
+            int scenesWidth = this.font.width(scenes) + 16;
+            this.addRenderableWidget(Button.builder(scenes, button -> this.minecraft.setScreen(new ScenePickerScreen(this)))
+                    .bounds(x - scenesWidth - LIQUIDGLASS$STYLE_BUTTON_MARGIN, LIQUIDGLASS$STYLE_BUTTON_MARGIN, scenesWidth, 20).build());
+        }
     }
 
     /**

@@ -75,21 +75,43 @@ import org.lwjgl.opengl.GL30;
  * only point at it while it is being drawn, so nothing else ever ticks or sees it.
  */
 final class ShaderCave {
-    /** The cave voxels sit at the world origin; stone fills the rest of these chunks and caps the top against sky light. */
-    private static final int MIN_Y = -16;
-    private static final int MAX_Y = CaveWorld.SIZE_Y + 8;
-    private static final int CHUNKS_X = (CaveWorld.SIZE_X + 15) >> 4;
-    private static final int CHUNKS_Z = (CaveWorld.SIZE_Z + 15) >> 4;
     /**
-     * Solid chunks around the cave: the inner ring hides the void past the cave's edge, the outer one gives the inner
-     * ring the loaded neighbours Sodium needs before it meshes a chunk.
+     * The scene's voxels sit at the world origin; {@link CaveWorld#get} fills the rest of these chunks (a closed cave's
+     * stone also caps the top against sky light).
+     */
+    private static final int MIN_Y = -16;
+    /**
+     * Chunks around the scene: the inner ring hides the void past its edge, the outer one gives the inner ring the
+     * loaded neighbours Sodium needs before it meshes a chunk.
      */
     private static final int RING = 2;
-    private static final int SPAN_X = CHUNKS_X + 2 * RING;
-    private static final int SPAN_Z = CHUNKS_Z + 2 * RING;
-    private static final int VIEW_DISTANCE = Math.max(SPAN_X, SPAN_Z) / 2 + 2;
     private static final float EYE_HEIGHT = 1.62F;
-    private static final BlockState FILL = Blocks.STONE.defaultBlockState();
+
+    private record Span(int chunksX, int chunksZ, int maxY) {
+        static Span of(CaveWorld world) {
+            return new Span((world.sizeX + 15) >> 4, (world.sizeZ + 15) >> 4, world.sizeY + 8);
+        }
+
+        int spanX() {
+            return chunksX + 2 * RING;
+        }
+
+        int spanZ() {
+            return chunksZ + 2 * RING;
+        }
+
+        int viewDistance() {
+            return Math.max(spanX(), spanZ()) / 2 + 2;
+        }
+
+        int index(int cx, int cz) {
+            return (cx + RING) * spanZ() + cz + RING;
+        }
+
+        boolean contains(int cx, int cz) {
+            return cx >= -RING && cz >= -RING && cx < chunksX + RING && cz < chunksZ + RING;
+        }
+    }
 
     /** Frames rendered before the cave counts as warmed up (shader programs compiled, history buffers filled). */
     private static final int WARM_FRAMES = 8;
@@ -109,6 +131,9 @@ final class ShaderCave {
     private static ClientLevel level;
     @Nullable
     private static LocalPlayer player;
+    /** The scene {@link #level} (or the pending one) shows; another scene rebuilds the level. */
+    @Nullable
+    private static CaveWorld builtFor;
     private static boolean failed;
     private static boolean drawnThisFrame;
     private static boolean loggedWarm;
@@ -159,6 +184,10 @@ final class ShaderCave {
             return false;
         }
         try {
+            if (builtFor != world) {
+                reset();
+                builtFor = world;
+            }
             if (level == null && !build(minecraft, world)) {
                 return false;
             }
@@ -178,11 +207,11 @@ final class ShaderCave {
      * True once the level is built, the shader pack's programs are compiled and every chunk is meshed, so showing the
      * cave won't stall a frame (or there is nothing to warm up).
      */
-    static boolean isWarm(Minecraft minecraft) {
+    static boolean isWarm(Minecraft minecraft, CaveWorld world) {
         if (!wanted()) {
             return true;
         }
-        boolean warm = level != null && warmFrames >= WARM_FRAMES && minecraft.levelRenderer.hasRenderedAllSections();
+        boolean warm = level != null && builtFor == world && warmFrames >= WARM_FRAMES && minecraft.levelRenderer.hasRenderedAllSections();
         if (warm && !loggedWarm) {
             loggedWarm = true;
             LiquidGlass.LOGGER.info("Shader cave warmed up after {} frames", warmFrames);
@@ -196,6 +225,18 @@ final class ShaderCave {
      */
     static void newFrame() {
         drawnThisFrame = false;
+    }
+
+    /** Drops the level of the previous scene; the world renderer switches to the next one once it is delivered. */
+    private static void reset() {
+        level = null;
+        player = null;
+        gameMode = null;
+        pendingLevel = null;
+        pendingListener = null;
+        chunkData = null;
+        warmFrames = 0;
+        loggedWarm = false;
     }
 
     private static void fail(String message, Throwable e) {
@@ -223,6 +264,7 @@ final class ShaderCave {
         if (!registries.isDone()) {
             return false;
         }
+        Span span = Span.of(world);
         if (pendingLevel == null) {
             RegistryAccess.Frozen access = registries.join();
             Connection connection = new Connection(PacketFlow.CLIENTBOUND);
@@ -233,12 +275,12 @@ final class ShaderCave {
             ClientLevel.ClientLevelData data = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
             ClientLevel cave = new ClientLevel(listener, data, Level.OVERWORLD,
                     access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
-                    VIEW_DISTANCE, VIEW_DISTANCE, minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
+                    span.viewDistance(), span.viewDistance(), minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
             ((ClientPacketListenerAccessor) listener).liquidglass$setLevel(cave);
-            cave.setDayTime(6000L);
+            cave.setDayTime(world.look().dayTime());
             pendingLevel = cave;
             pendingListener = listener;
-            chunkData = CompletableFuture.supplyAsync(() -> chunkPackets(cave, world), Util.backgroundExecutor());
+            chunkData = CompletableFuture.supplyAsync(() -> chunkPackets(cave, world, span), Util.backgroundExecutor());
             return false;
         }
         if (!chunkData.isDone()) {
@@ -247,7 +289,7 @@ final class ShaderCave {
         long start = Util.getMillis();
         ClientLevel cave = pendingLevel;
         ClientPacketListener listener = pendingListener;
-        cave.getChunkSource().updateViewCenter(CHUNKS_X / 2, CHUNKS_Z / 2);
+        cave.getChunkSource().updateViewCenter(span.chunksX() / 2, span.chunksZ() / 2);
         minecraft.levelRenderer.setLevel(cave);
         for (ClientboundLevelChunkWithLightPacket packet : chunkData.join()) {
             listener.handleLevelChunkWithLight(packet);
@@ -262,15 +304,15 @@ final class ShaderCave {
     }
 
     /** Fills, lights and serializes the chunks; touches nothing but the new chunks, so it runs off-thread. */
-    private static List<ClientboundLevelChunkWithLightPacket> chunkPackets(ClientLevel cave, CaveWorld world) {
+    private static List<ClientboundLevelChunkWithLightPacket> chunkPackets(ClientLevel cave, CaveWorld world, Span span) {
         long start = Util.getMillis();
-        LevelChunk[] chunks = new LevelChunk[SPAN_X * SPAN_Z];
-        for (int cx = -RING; cx < CHUNKS_X + RING; cx++) {
-            for (int cz = -RING; cz < CHUNKS_Z + RING; cz++) {
-                chunks[index(cx, cz)] = fill(cave, world, new ChunkPos(cx, cz));
+        LevelChunk[] chunks = new LevelChunk[span.spanX() * span.spanZ()];
+        for (int cx = -RING; cx < span.chunksX() + RING; cx++) {
+            for (int cz = -RING; cz < span.chunksZ() + RING; cz++) {
+                chunks[span.index(cx, cz)] = fill(cave, world, new ChunkPos(cx, cz), span.maxY());
             }
         }
-        LevelLightEngine light = light(cave, chunks);
+        LevelLightEngine light = light(cave, chunks, span);
         List<ClientboundLevelChunkWithLightPacket> packets = new java.util.ArrayList<>(chunks.length);
         for (LevelChunk chunk : chunks) {
             packets.add(new ClientboundLevelChunkWithLightPacket(chunk, light, null, null));
@@ -293,18 +335,14 @@ final class ShaderCave {
         }
     }
 
-    private static int index(int cx, int cz) {
-        return (cx + RING) * SPAN_Z + cz + RING;
-    }
-
-    private static LevelChunk fill(ClientLevel cave, CaveWorld world, ChunkPos pos) {
+    private static LevelChunk fill(ClientLevel cave, CaveWorld world, ChunkPos pos, int maxY) {
         LevelChunk chunk = new LevelChunk(cave, pos);
         for (int lx = 0; lx < 16; lx++) {
             for (int lz = 0; lz < 16; lz++) {
                 int x = pos.getMinBlockX() + lx;
                 int z = pos.getMinBlockZ() + lz;
-                for (int y = MIN_Y; y < MAX_Y; y++) {
-                    BlockState state = CaveWorld.inBounds(x, y, z) ? world.get(x, y, z) : FILL;
+                for (int y = MIN_Y; y < maxY; y++) {
+                    BlockState state = world.get(x, y, z);
                     if (state == null || state.isAir()) {
                         continue;
                     }
@@ -322,12 +360,12 @@ final class ShaderCave {
     }
 
     /** Lights the chunks the way the server does for new chunks, so the packets carry complete light data. */
-    private static LevelLightEngine light(ClientLevel cave, LevelChunk[] chunks) {
+    private static LevelLightEngine light(ClientLevel cave, LevelChunk[] chunks, Span span) {
         LevelLightEngine engine = new LevelLightEngine(new LightChunkGetter() {
             @Nullable
             @Override
             public LightChunk getChunkForLighting(int x, int z) {
-                return x >= -RING && z >= -RING && x < CHUNKS_X + RING && z < CHUNKS_Z + RING ? chunks[index(x, z)] : null;
+                return span.contains(x, z) ? chunks[span.index(x, z)] : null;
             }
 
             @Override

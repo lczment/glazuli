@@ -1,9 +1,5 @@
 package com.lczme.liquidglass.cave;
 
-import static com.lczme.liquidglass.cave.CaveWorld.SIZE_X;
-import static com.lczme.liquidglass.cave.CaveWorld.SIZE_Y;
-import static com.lczme.liquidglass.cave.CaveWorld.SIZE_Z;
-
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -89,9 +85,9 @@ public final class CaveMesh implements AutoCloseable {
         PoseStack pose = new PoseStack();
         RandomSource random = RandomSource.create();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (int z = 0; z < SIZE_Z; z++) {
-            for (int y = 0; y < SIZE_Y; y++) {
-                for (int x = 0; x < SIZE_X; x++) {
+        for (int z = 0; z < world.sizeZ; z++) {
+            for (int y = 0; y < world.sizeY; y++) {
+                for (int x = 0; x < world.sizeX; x++) {
                     BlockState state = world.get(x, y, z);
                     if (state.isAir() || isBuried(world, x, y, z, state)) {
                         continue;

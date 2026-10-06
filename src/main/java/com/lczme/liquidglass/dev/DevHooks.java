@@ -2,6 +2,9 @@ package com.lczme.liquidglass.dev;
 
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
+import com.lczme.liquidglass.cave.CaveBackground;
+import com.lczme.liquidglass.cave.MenuScenes;
+import com.lczme.liquidglass.cave.ScenePickerScreen;
 import com.lczme.liquidglass.compat.sodium.SodiumScreens;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroState;
@@ -65,6 +68,7 @@ public final class DevHooks {
     private static final double SAVE_SECONDS = 0.5;
     private static final double RELOAD_TIMEOUT = 10.0;
     private static final double WORLD_TIMEOUT = 120.0;
+    private static final double SCENE_TIMEOUT = 30.0;
     private static final String WORLD = "liquidglass-autoshot";
 
     // The game event bus only starts once loading has finished, so the startup overlay reports its frames directly.
@@ -121,6 +125,22 @@ public final class DevHooks {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(menu);
             }),
+            new Shot("liquidglass_autoshot_scene_picker.png", SCENE_TIMEOUT, () -> {
+                Minecraft.getInstance().setScreen(new ScenePickerScreen(menu));
+                CaveBackground.select("lush", false);
+            }, () -> CaveBackground.isShowing("lush"), true),
+            sceneShot("deep_dark", ""),
+            sceneShot("ice", ""),
+            sceneShot("nether", ""),
+            sceneShot("ocean", ""),
+            new Shot("liquidglass_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> MenuScenes.list().stream()
+                    .filter(entry -> entry.id().startsWith("custom:")).findFirst()
+                    .ifPresent(entry -> CaveBackground.select(entry.id(), false)),
+                    () -> !CaveBackground.scene().startsWith("custom:") || CaveBackground.isShowing(CaveBackground.scene()), true),
+            new Shot("liquidglass_autoshot_scene_back.png", SCENE_TIMEOUT, () -> {
+                CaveBackground.select("cave", false);
+                Minecraft.getInstance().setScreen(menu);
+            }, () -> CaveBackground.isShowing("cave"), true),
             new Shot("liquidglass_autoshot_title_classic.png", SETTLED, () -> {
                 LiquidGlassConfig.CLASSIC_UI.set(true);
                 Minecraft.getInstance().setScreen(new TitleScreen());
@@ -149,9 +169,22 @@ public final class DevHooks {
                 switchIrisPack();
             }),
             new Shot("liquidglass_autoshot_menu_shaders_off.png", 4.0, DevHooks::disableIrisShaders),
+            sceneShot("lush", "_plain"),
+            sceneShot("deep_dark", "_plain"),
+            sceneShot("ice", "_plain"),
+            sceneShot("nether", "_plain"),
+            sceneShot("ocean", "_plain"),
+            sceneShot("custom:autoshot", "_plain"),
+            sceneShot("cave", "_plain"),
             // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
             new Shot("liquidglass_autoshot_world.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(DevHooks::enterWorld),
                     () -> Minecraft.getInstance().player != null && Minecraft.getInstance().screen == null, true),
+            new Shot("liquidglass_autoshot_scene_capture.png", 3.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.player.connection.sendCommand("menuscene save autoshot");
+                }
+            }),
             new Shot("liquidglass_autoshot_inventory.png", SETTLED, () -> {
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
@@ -501,6 +534,11 @@ public final class DevHooks {
      * {@code ready}, if set, triggers the grab early; {@code settleSeconds} is then only a timeout.
      * {@code waitForOverlay}: only start once no loading overlay is showing.
      */
+    private static Shot sceneShot(String id, String suffix) {
+        return new Shot("liquidglass_autoshot_scene_" + id.replace(':', '_') + suffix + ".png", SCENE_TIMEOUT, () -> CaveBackground.select(id, false),
+                () -> CaveBackground.isShowing(id), true);
+    }
+
     private record Shot(String fileName, double settleSeconds, Runnable setup, @Nullable BooleanSupplier ready, boolean waitForOverlay) {
         Shot(String fileName, double settleSeconds, Runnable setup) {
             this(fileName, settleSeconds, setup, null, true);

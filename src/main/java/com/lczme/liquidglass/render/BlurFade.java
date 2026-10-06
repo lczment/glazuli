@@ -9,7 +9,7 @@ import com.lczme.liquidglass.config.LiquidGlassConfig;
  * that keeps the cave sharp), instead of switching between sharp and blurred in one frame.
  */
 public final class BlurFade {
-    private static final double SECONDS = 0.25;
+    private static final double SECONDS = 0.6;
 
     private static float level;
     private static double lastTime = Double.NaN;
@@ -38,7 +38,7 @@ public final class BlurFade {
         if (!fadeOutPass) {
             requested = true;
         }
-        return configured * Easing.OUT_CUBIC.apply(level);
+        return configured * Easing.IN_OUT_CUBIC.apply(level);
     }
 
     /** True while the blur of a screen that just closed is still fading out. */

@@ -1,7 +1,6 @@
 package com.lczme.liquidglass.cave;
 
 import com.lczme.liquidglass.anim.Easing;
-import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.client.gui.screens.ConnectScreen;
@@ -53,10 +52,11 @@ final class CaveCamera {
         }
     }
 
-    private final CaveLayout layout;
+    private final CameraRig rig;
+    private final float baseFogEnd;
     final Vector3f eye = new Vector3f();
     final Vector3f target = new Vector3f();
-    float fogEnd = FOG_END;
+    float fogEnd;
 
     private final Vector3f fromEye = new Vector3f();
     private final Vector3f fromTarget = new Vector3f();
@@ -71,8 +71,16 @@ final class CaveCamera {
     private float introProgress;
     private List<Vector3f> path = List.of();
 
-    CaveCamera(CaveLayout layout) {
-        this.layout = layout;
+    /** {@code introFlown}: a scene switched to later starts at its spot instead of replaying the startup flight. */
+    CaveCamera(CameraRig rig, float fogEnd, boolean introFlown) {
+        this.rig = rig;
+        this.baseFogEnd = fogEnd;
+        this.fogEnd = fogEnd;
+        this.introFlown = introFlown;
+    }
+
+    boolean introFlown() {
+        return introFlown;
     }
 
     /** True while the first-launch flight hasn't (nearly) arrived; the title menu waits for it. */
@@ -96,7 +104,7 @@ final class CaveCamera {
         if (mode != Mode.INTRO) {
             mode = Mode.INTRO;
             introStarted = false;
-            path = introPath();
+            path = rig.introPath();
         }
         if (!introStarted && mayStart) {
             introStarted = true;
@@ -113,7 +121,7 @@ final class CaveCamera {
             lookAhead.set(titleLook);
         }
         target.set(lookAhead).lerp(titleLook, w);
-        fogEnd = FOG_END;
+        fogEnd = baseFogEnd;
         if (u >= 1.0F) {
             introFlown = true;
             updateSpot(Spot.TITLE, now, false);
@@ -124,13 +132,13 @@ final class CaveCamera {
         if (mode != Mode.DIVE) {
             mode = Mode.DIVE;
             modeStart = now;
-            path = divePath(eye);
+            path = rig.divePath(eye);
         }
         float t = (float) (now - modeStart);
         float e = (1.0F - (float) Math.exp(-t / DIVE_TIME_CONSTANT)) * smoothstep(0.0F, 0.9F, t);
         catmullRom(path, e * 0.92F, eye);
         catmullRom(path, e * 0.92F + 0.08F, target);
-        fogEnd = Mth.lerp(e * e, FOG_END, 12.0F);
+        fogEnd = Mth.lerp(e * e, baseFogEnd, 12.0F);
     }
 
     private void updateSpot(Spot next, double now, boolean gap) {
@@ -147,44 +155,24 @@ final class CaveCamera {
         Vector3f spotLook = spotLook(next, now, new Vector3f());
         eye.set(fromEye).lerp(spotEye, k);
         target.set(fromTarget).lerp(spotLook, k);
-        fogEnd = FOG_END;
+        fogEnd = baseFogEnd;
     }
 
     /** Spot position with a slow idle drift, so the menu background never looks frozen. */
     private Vector3f spotEye(Spot s, double now, Vector3f out) {
         float t = (float) now;
-        return out.set(layout.chamber(s.eyeX, s.eyeY, s.eyeZ))
+        return out.set(rig.spotEye(s))
                 .add(0.35F * Mth.sin(t * 0.23F), 0.2F * Mth.sin(t * 0.31F + 1.0F), 0.35F * Mth.cos(t * 0.19F));
     }
 
     private Vector3f spotLook(Spot s, double now, Vector3f out) {
         float t = (float) now;
-        return out.set(layout.chamber(s.lookX, s.lookY, s.lookZ))
+        return out.set(rig.spotLook(s))
                 .add(0.5F * Mth.sin(t * 0.17F + 2.0F), 0.25F * Mth.sin(t * 0.27F), 0.5F * Mth.cos(t * 0.21F + 1.0F));
     }
 
-    private List<Vector3f> introPath() {
-        List<Vector3f> points = new ArrayList<>();
-        for (float z = CaveLayout.TUNNEL_START_Z; z < CaveLayout.CHAMBER_Z - CaveLayout.CHAMBER_RZ; z += 12.0F) {
-            points.add(layout.tunnelPoint(z));
-        }
-        Spot s = Spot.TITLE;
-        points.add(layout.chamber(s.eyeX, s.eyeY, s.eyeZ));
-        return points;
-    }
-
-    private List<Vector3f> divePath(Vector3f start) {
-        List<Vector3f> points = new ArrayList<>();
-        points.add(new Vector3f(start));
-        points.add(layout.chamber(0.0F, 2.5F, 0.0F));
-        for (float z = CaveLayout.CHAMBER_Z + CaveLayout.CHAMBER_RZ + 2.0F; z <= CaveLayout.TUNNEL_END_Z; z += 12.0F) {
-            points.add(layout.tunnelPoint(z));
-        }
-        return points;
-    }
-
     private static Spot spotFor(@Nullable Screen screen) {
-        if (screen == null || screen instanceof TitleScreen) {
+        if (screen == null || screen instanceof TitleScreen || screen instanceof ScenePickerScreen) {
             return Spot.TITLE;
         }
         String name = screen.getClass().getName();

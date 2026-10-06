@@ -31,26 +31,40 @@ import org.lwjgl.opengl.GL11;
  * (block models may change), and the camera follows the open screen (see {@link CaveCamera}).
  */
 public final class CaveBackground {
-    private static final long SEED = 0x4C47_4361_7665L;
     private static final float FOV = (float) Math.toRadians(75.0);
     private static final float FADE_IN_SECONDS = 0.6F;
+    /** Fade to dark before swapping in another scene. */
+    private static final float SWITCH_OUT_SECONDS = 0.35F;
+    /** A new scene is shown after this long even if the shader world hasn't warmed up. */
+    private static final double WARM_WAIT_LIMIT = 10.0;
     /** The title menu stops waiting for the flight if the mesh isn't ready by then. */
     private static final double ENTRANCE_WAIT_LIMIT = 4.0;
     private static final int DARK = 0x050608;
     @Nullable
     private static CompletableFuture<CaveWorld> world;
     @Nullable
+    private static CompletableFuture<CaveWorld> nextWorld;
+    @Nullable
+    private static String sceneId;
+    @Nullable
     private static CompletableFuture<CaveMesh.Built> building;
+    @Nullable
+    private static CompletableFuture<CaveWorld> buildingWorld;
     @Nullable
     private static CaveMesh mesh;
     @Nullable
     private static CaveCamera camera;
     @Nullable
     private static DynamicTexture lightmap;
+    @Nullable
+    private static CaveWorld lightmapFor;
     private static boolean dirty = true;
     private static boolean meshShaded;
     private static boolean failed;
+    private static boolean introDone;
+    private static double meshTime = Double.NaN;
     private static double readyTime = Double.NaN;
+    private static double switchStart = Double.NaN;
     private static double waitingSince = Double.NaN;
 
     private CaveBackground() {
@@ -59,8 +73,70 @@ public final class CaveBackground {
     /** Starts generating the voxels in the background; models aren't needed for that. */
     public static void startGenerating() {
         if (world == null) {
-            world = CompletableFuture.supplyAsync(() -> CaveGenerator.generate(SEED), Util.backgroundExecutor());
+            sceneId = MenuScenes.configured();
+            world = load(sceneId);
         }
+    }
+
+    private static CompletableFuture<CaveWorld> load(String id) {
+        return CompletableFuture.supplyAsync(() -> MenuScenes.load(id), Util.backgroundExecutor());
+    }
+
+    public static String scene() {
+        return sceneId != null ? sceneId : MenuScenes.configured();
+    }
+
+    /** True once scene {@code id} is fully faded in (for the dev screenshots). */
+    public static boolean isShowing(String id) {
+        return id.equals(sceneId) && nextWorld == null && !Double.isNaN(readyTime) && AnimClock.now() - readyTime > FADE_IN_SECONDS + 1.0;
+    }
+
+    /**
+     * Shows another scene and remembers it: the current one fades to dark, the next one fades in once it is generated,
+     * meshed and (with shaders) warmed up. {@code reload} re-reads a scene that is already shown (it was re-captured).
+     */
+    public static void select(String id, boolean reload) {
+        if (LiquidGlassConfig.SPEC.isLoaded()) {
+            LiquidGlassConfig.MENU_SCENE.set(id);
+            LiquidGlassConfig.MENU_SCENE.save();
+        }
+        if (id.equals(sceneId) && !reload || world == null) {
+            return;
+        }
+        sceneId = id;
+        CompletableFuture<CaveWorld> next = load(id);
+        if (mesh != null && isActive()) {
+            nextWorld = next;
+            if (Double.isNaN(switchStart)) {
+                switchStart = AnimClock.now();
+            }
+        } else {
+            swap(next);
+        }
+    }
+
+    private static void swap(CompletableFuture<CaveWorld> next) {
+        world = next;
+        nextWorld = null;
+        switchStart = Double.NaN;
+        if (camera != null) {
+            introDone |= camera.introFlown();
+        }
+        camera = null;
+        if (mesh != null) {
+            mesh.close();
+            mesh = null;
+        }
+        dirty = true;
+        meshTime = Double.NaN;
+        readyTime = Double.NaN;
+    }
+
+    private static CaveCamera camera(CaveWorld scene) {
+        if (camera == null) {
+            camera = new CaveCamera(scene.rig(), scene.look().fogEnd(), introDone);
+        }
+        return camera;
     }
 
     public static ResourceManagerReloadListener reloadListener() {
@@ -103,23 +179,28 @@ public final class CaveBackground {
     private static void renderUnsafe(GuiGraphics guiGraphics, int width, int height) {
         Minecraft minecraft = Minecraft.getInstance();
         double now = AnimClock.now();
+        if (nextWorld != null && now - switchStart >= SWITCH_OUT_SECONDS && nextWorld.isDone()) {
+            swap(nextWorld);
+        }
         pollBuild(minecraft, now);
-        if (mesh == null || world == null) {
+        if (mesh == null || world == null || !world.isDone()) {
             guiGraphics.fill(0, 0, width, height, 0xFF000000 | DARK);
             return;
         }
-        if (camera == null) {
-            camera = new CaveCamera(world.join().layout());
-        }
+        CaveWorld scene = world.join();
+        CaveCamera cam = camera(scene);
         boolean introMayStart = (!IntroState.isPlaying() || IntroState.isOutroPlaying()) && now - readyTime > 0.15;
-        camera.update(minecraft.screen, now, introMayStart);
+        cam.update(minecraft.screen, now, introMayStart);
 
         guiGraphics.flush();
-        if (!ShaderCave.render(minecraft, world.join(), camera)) {
-            drawScene(minecraft, mesh, camera);
+        if (!ShaderCave.render(minecraft, scene, cam)) {
+            drawScene(minecraft, mesh, cam, scene);
         }
 
-        float fade = 1.0F - Mth.clamp((float) ((now - readyTime) / FADE_IN_SECONDS), 0.0F, 1.0F);
+        float fade = Double.isNaN(readyTime) ? 1.0F : 1.0F - Mth.clamp((float) ((now - readyTime) / FADE_IN_SECONDS), 0.0F, 1.0F);
+        if (!Double.isNaN(switchStart)) {
+            fade = Math.max(fade, Mth.clamp((float) ((now - switchStart) / SWITCH_OUT_SECONDS), 0.0F, 1.0F));
+        }
         if (fade > 0.0F) {
             guiGraphics.fill(0, 0, width, height, ((int) (fade * 255.0F) << 24) | DARK);
         }
@@ -136,11 +217,10 @@ public final class CaveBackground {
             pollBuild(minecraft, now);
             // Rendered under the opaque splash: the shader pack compiles and the chunks mesh before the reveal.
             if (mesh != null && world != null && world.isDone()) {
-                if (camera == null) {
-                    camera = new CaveCamera(world.join().layout());
-                }
-                camera.update(minecraft.screen, now, false);
-                ShaderCave.render(minecraft, world.join(), camera);
+                CaveWorld scene = world.join();
+                CaveCamera cam = camera(scene);
+                cam.update(minecraft.screen, now, false);
+                ShaderCave.render(minecraft, scene, cam);
             }
         } catch (RuntimeException e) {
             failed = true;
@@ -150,7 +230,7 @@ public final class CaveBackground {
 
     /** True once the cave can be shown without stalling (or it won't be shown at all). */
     public static boolean isReady() {
-        return !isActive() || mesh != null && ShaderCave.isWarm(Minecraft.getInstance());
+        return !isActive() || mesh != null && world.isDone() && ShaderCave.isWarm(Minecraft.getInstance(), world.join());
     }
 
     /** How long the startup may hold the splash for {@link #isReady()}; compiling a shader pack takes a while. */
@@ -174,23 +254,36 @@ public final class CaveBackground {
         }
         if (building == null && dirty && world != null && !reloading) {
             dirty = false;
-            meshShaded = ShaderCave.wanted();            building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());
+            meshShaded = ShaderCave.wanted();
+            buildingWorld = world;
+            building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());
         }
         if (building != null && building.isDone()) {
             CompletableFuture<CaveMesh.Built> done = building;
             building = null;
             CaveMesh.Built built = done.join();
+            if (buildingWorld != world) {
+                // Meshed for a scene switched away from meanwhile.
+                built.close();
+                return;
+            }
             if (mesh != null) {
                 mesh.close();
             }
             mesh = built.upload();
-            if (Double.isNaN(readyTime)) {
-                readyTime = now;
+            if (Double.isNaN(meshTime)) {
+                meshTime = now;
             }
+        }
+        // Revealed once the shader world (if any) is meshed too, so it doesn't pop in over the plain mesh.
+        if (mesh != null && Double.isNaN(readyTime) && world.isDone()
+                && (ShaderCave.isWarm(minecraft, world.join()) || now - meshTime > WARM_WAIT_LIMIT)) {
+            readyTime = now;
         }
     }
 
-    private static void drawScene(Minecraft minecraft, CaveMesh mesh, CaveCamera camera) {
+    private static void drawScene(Minecraft minecraft, CaveMesh mesh, CaveCamera camera, CaveWorld scene) {
+        SceneLook look = scene.look();
         Window window = minecraft.getWindow();
         float aspect = (float) window.getWidth() / Math.max(1, window.getHeight());
         Matrix4f projection = new Matrix4f().setPerspective(FOV, aspect, 0.05F, 256.0F);
@@ -202,19 +295,19 @@ public final class CaveBackground {
         float fogEnd = RenderSystem.getShaderFogEnd();
         float[] fogColor = RenderSystem.getShaderFogColor().clone();
         FogShape fogShape = RenderSystem.getShaderFogShape();
-        RenderSystem.setShaderFogStart(12.0F);
+        RenderSystem.setShaderFogStart(Math.min(look.fogStart(), camera.fogEnd * 0.5F));
         RenderSystem.setShaderFogEnd(camera.fogEnd);
-        RenderSystem.setShaderFogColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F);
+        RenderSystem.setShaderFogColor(look.red(), look.green(), look.blue());
         RenderSystem.setShaderFogShape(FogShape.SPHERE);
         // The mesh doesn't cover every pixel (openings, beyond the fog end); without a colour clear those show the
         // previous screen. glClear honours the write masks: with depth writes left off (Iris leaves them so after
         // the shader cave stops), the shader world's last depth would hide parts of the mesh.
         RenderSystem.depthMask(true);
         RenderSystem.colorMask(true, true, true, true);
-        RenderSystem.clearColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F, 1.0F);
+        RenderSystem.clearColor(look.red(), look.green(), look.blue(), 1.0F);
         RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
-        int lightmapId = lightmap().getId();
+        int lightmapId = lightmap(scene).getId();
         for (RenderType layer : CaveMesh.LAYERS) {
             // Fabulous graphics routes translucency to a level target that doesn't exist without a world.
             if (layer == RenderType.translucent() && Minecraft.useShaderTransparency()) {
@@ -252,28 +345,16 @@ public final class CaveBackground {
         RenderSystem.disableDepthTest();
     }
 
-    /** Warm torch-lit light map (no sky light underground) with a faint cool ambient so unlit rock isn't pure black. */
-    private static DynamicTexture lightmap() {
+    private static DynamicTexture lightmap(CaveWorld scene) {
         if (lightmap == null) {
             lightmap = new DynamicTexture(16, 16, false);
-            NativeImage pixels = lightmap.getPixels();
-            for (int block = 0; block < 16; block++) {
-                float f = block / 15.0F;
-                float lum = (float) Math.pow(f, 1.35) * 1.15F;
-                int r = toByte(0.13F + 1.00F * lum);
-                int g = toByte(0.15F + 0.82F * lum);
-                int b = toByte(0.20F + 0.60F * lum);
-                for (int sky = 0; sky < 16; sky++) {
-                    pixels.setPixelRGBA(block, sky, 0xFF000000 | b << 16 | g << 8 | r);
-                }
-            }
+        }
+        if (lightmapFor != scene) {
+            lightmapFor = scene;
+            scene.look().paintLightmap(lightmap.getPixels());
             lightmap.upload();
             lightmap.setFilter(true, false);
         }
         return lightmap;
-    }
-
-    private static int toByte(float value) {
-        return Mth.clamp((int) (value * 255.0F), 0, 255);
     }
 }

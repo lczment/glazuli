@@ -1,5 +1,7 @@
 package com.lczme.liquidglass.cave;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 
@@ -7,7 +9,7 @@ import org.joml.Vector3f;
  * Geometry shared by the generator and the camera: a winding tunnel along +Z that opens into a chamber and continues
  * past it. The camera flies the tunnel into the chamber at startup and down the far tunnel when joining a world.
  */
-public final class CaveLayout {
+public final class CaveLayout implements CameraRig {
     public static final float CHAMBER_Z = 112.0F;
     public static final float CHAMBER_RX = 17.0F;
     public static final float CHAMBER_RY = 10.0F;
@@ -40,5 +42,36 @@ public final class CaveLayout {
     /** Chamber-relative point: x/z offsets from the chamber centre, y above the floor. */
     public Vector3f chamber(float dx, float dyAboveFloor, float dz) {
         return new Vector3f(chamberX + dx, floorY + dyAboveFloor, CHAMBER_Z + dz);
+    }
+
+    @Override
+    public Vector3f spotEye(CaveCamera.Spot s) {
+        return chamber(s.eyeX, s.eyeY, s.eyeZ);
+    }
+
+    @Override
+    public Vector3f spotLook(CaveCamera.Spot s) {
+        return chamber(s.lookX, s.lookY, s.lookZ);
+    }
+
+    @Override
+    public List<Vector3f> introPath() {
+        List<Vector3f> points = new ArrayList<>();
+        for (float z = TUNNEL_START_Z; z < CHAMBER_Z - CHAMBER_RZ; z += 12.0F) {
+            points.add(tunnelPoint(z));
+        }
+        points.add(spotEye(CaveCamera.Spot.TITLE));
+        return points;
+    }
+
+    @Override
+    public List<Vector3f> divePath(Vector3f start) {
+        List<Vector3f> points = new ArrayList<>();
+        points.add(new Vector3f(start));
+        points.add(chamber(0.0F, 2.5F, 0.0F));
+        for (float z = CHAMBER_Z + CHAMBER_RZ + 2.0F; z <= TUNNEL_END_Z; z += 12.0F) {
+            points.add(tunnelPoint(z));
+        }
+        return points;
     }
 }

@@ -15,6 +15,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
+    public static final ModConfigSpec.ConfigValue<String> MENU_SCENE;
     public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
     public static final ModConfigSpec.EnumValue<FontWeight> FONT_WEIGHT;
     public static final ModConfigSpec.BooleanValue GLASS_INVENTORY;
@@ -59,6 +60,10 @@ public final class LiquidGlassConfig {
         CAVE_BACKGROUND = builder
                 .comment("Replace the menu panorama with a 3D cave: a flight in at startup, a viewpoint per menu, a dive when joining.")
                 .define("caveBackground", true);
+        MENU_SCENE = builder
+                .comment("The 3D menu scene: cave, lush, deep_dark, ice, nether, ocean, or custom:<name> for a scene saved in a world",
+                        "with /menuscene save <name> (stored in config/liquidglass/scenes). Also chosen with the title screen's Scenes button.")
+                .define("scene", "cave");
         GLASS_INVENTORY = builder
                 .comment("Draw inventories, containers (chests, furnaces, modded ones using the vanilla palette) and the hotbar as liquid glass.")
                 .define("glassInventory", true);

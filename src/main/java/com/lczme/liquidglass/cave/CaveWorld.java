@@ -4,6 +4,7 @@ import javax.annotation.Nullable;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.EmptyBlockGetter;
@@ -15,33 +16,55 @@ import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.FluidState;
 
 /**
- * A small fixed voxel world for the menu background, readable by vanilla's block and fluid renderers. Light is
- * precomputed (block light only, there is no sky), so no light engine is needed.
+ * A small voxel world for the menu background, readable by vanilla's block and fluid renderers. Light is precomputed,
+ * so no light engine is needed. Generated scenes are closed caves (stone all around); captured ones are open
+ * ({@link #open}): their edge columns extend outwards, with sky above and stone below.
  */
 public final class CaveWorld implements BlockAndTintGetter {
+    /** Size of the generated scenes. */
     public static final int SIZE_X = 72;
     public static final int SIZE_Y = 40;
     public static final int SIZE_Z = 200;
-    private static final BlockState OUTSIDE = Blocks.STONE.defaultBlockState();
+    private static final BlockState STONE = Blocks.STONE.defaultBlockState();
+    private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 
-    final BlockState[] blocks = new BlockState[SIZE_X * SIZE_Y * SIZE_Z];
-    final byte[] light = new byte[SIZE_X * SIZE_Y * SIZE_Z];
-    final CaveLayout layout;
+    final int sizeX;
+    final int sizeY;
+    final int sizeZ;
+    final BlockState[] blocks;
+    final byte[] light;
+    @Nullable
+    final byte[] sky;
+    final boolean open;
+    final CameraRig rig;
+    final SceneLook look;
 
-    CaveWorld(CaveLayout layout) {
-        this.layout = layout;
+    CaveWorld(int sizeX, int sizeY, int sizeZ, @Nullable byte[] sky, boolean open, CameraRig rig, SceneLook look) {
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.sizeZ = sizeZ;
+        this.blocks = new BlockState[sizeX * sizeY * sizeZ];
+        this.light = new byte[blocks.length];
+        this.sky = sky;
+        this.open = open;
+        this.rig = rig;
+        this.look = look;
     }
 
-    public CaveLayout layout() {
-        return layout;
+    CameraRig rig() {
+        return rig;
     }
 
-    static boolean inBounds(int x, int y, int z) {
-        return x >= 0 && y >= 0 && z >= 0 && x < SIZE_X && y < SIZE_Y && z < SIZE_Z;
+    SceneLook look() {
+        return look;
     }
 
-    static int index(int x, int y, int z) {
-        return (z * SIZE_Y + y) * SIZE_X + x;
+    boolean contains(int x, int y, int z) {
+        return x >= 0 && y >= 0 && z >= 0 && x < sizeX && y < sizeY && z < sizeZ;
+    }
+
+    int index(int x, int y, int z) {
+        return (z * sizeY + y) * sizeX + x;
     }
 
     /** Full opaque cube: hides its neighbours' faces and blocks light. */
@@ -50,11 +73,17 @@ public final class CaveWorld implements BlockAndTintGetter {
     }
 
     BlockState get(int x, int y, int z) {
-        return inBounds(x, y, z) ? blocks[index(x, y, z)] : OUTSIDE;
+        if (contains(x, y, z)) {
+            return blocks[index(x, y, z)];
+        }
+        if (!open || y < 0) {
+            return STONE;
+        }
+        return y >= sizeY ? AIR : blocks[index(Mth.clamp(x, 0, sizeX - 1), y, Mth.clamp(z, 0, sizeZ - 1))];
     }
 
     void set(int x, int y, int z, BlockState state) {
-        if (inBounds(x, y, z)) {
+        if (contains(x, y, z)) {
             blocks[index(x, y, z)] = state;
         }
     }
@@ -97,33 +126,42 @@ public final class CaveWorld implements BlockAndTintGetter {
 
     @Override
     public int getBrightness(LightLayer layer, BlockPos pos) {
-        if (layer == LightLayer.SKY || !inBounds(pos.getX(), pos.getY(), pos.getZ())) {
-            return 0;
+        int x = pos.getX();
+        int y = pos.getY();
+        int z = pos.getZ();
+        if (layer == LightLayer.SKY) {
+            if (sky == null || y < 0) {
+                return 0;
+            }
+            return y >= sizeY ? 15 : sky[index(Mth.clamp(x, 0, sizeX - 1), y, Mth.clamp(z, 0, sizeZ - 1))];
         }
-        return light[index(pos.getX(), pos.getY(), pos.getZ())];
+        if (open && y >= 0 && y < sizeY) {
+            return light[index(Mth.clamp(x, 0, sizeX - 1), y, Mth.clamp(z, 0, sizeZ - 1))];
+        }
+        return contains(x, y, z) ? light[index(x, y, z)] : 0;
     }
 
     @Override
     public int getRawBrightness(BlockPos pos, int amount) {
-        return getBrightness(LightLayer.BLOCK, pos);
+        return Math.max(getBrightness(LightLayer.BLOCK, pos), getBrightness(LightLayer.SKY, pos) - amount);
     }
 
     @Override
     public boolean canSeeSky(BlockPos pos) {
-        return false;
+        return getBrightness(LightLayer.SKY, pos) >= 15;
     }
 
     @Override
     public int getBlockTint(BlockPos pos, ColorResolver resolver) {
         if (resolver == BiomeColors.WATER_COLOR_RESOLVER) {
-            return 0x3F76E4;
+            return look.water();
         }
-        return resolver == BiomeColors.FOLIAGE_COLOR_RESOLVER ? 0x59AE30 : 0x79C05A;
+        return resolver == BiomeColors.FOLIAGE_COLOR_RESOLVER ? look.foliage() : look.grass();
     }
 
     @Override
     public int getHeight() {
-        return SIZE_Y;
+        return sizeY;
     }
 
     @Override
