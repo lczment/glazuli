@@ -16,8 +16,6 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import com.lczme.liquidglass.render.LiquidGlassShaders;
-import com.lczme.liquidglass.render.PackOverrides;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -39,8 +37,6 @@ public final class CaveBackground {
     /** The title menu stops waiting for the flight if the mesh isn't ready by then. */
     private static final double ENTRANCE_WAIT_LIMIT = 4.0;
     private static final int DARK = 0x050608;
-    private static final ResourceLocation PACK_PANORAMA = ResourceLocation.withDefaultNamespace("textures/gui/title/background/panorama_0.png");
-
     @Nullable
     private static CompletableFuture<CaveWorld> world;
     @Nullable
@@ -70,10 +66,9 @@ public final class CaveBackground {
         return (ResourceManager manager) -> dirty = true;
     }
 
-    /** A resource pack's own panorama is shown instead of the cave. */
     public static boolean isActive() {
         return !failed && LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.CAVE_BACKGROUND.get()
-                && Minecraft.getInstance().level == null && !PackOverrides.texture(PACK_PANORAMA);
+                && Minecraft.getInstance().level == null;
     }
 
     /** Whether the title menu may play its entrance, i.e. the startup flight has (nearly) arrived. */
