@@ -68,7 +68,31 @@ public final class ContainerGlass {
     public static boolean blit(GuiGraphics guiGraphics, ResourceLocation texture, int x1, int x2, int y1, int y2, int z,
                                float u0, float u1, float v0, float v1) {
         ShaderInstance shader = LiquidGlassShaders.containerGlass();
-        if (shader == null || !isEnabled() || !isGlassTexture(texture)) {
+        if (shader == null || !isEnabled()) {
+            return false;
+        }
+        int width = x2 - x1;
+        int height = y2 - y1;
+        if (CreatePanels.isPanelTexture(texture)) {
+            // Create's screens are separate panels, not one window.
+            pendingPanel = null;
+            float[] body = width >= MIN_FRAMED_SIZE && height >= CreatePanels.MIN_HEIGHT && !PackOverrides.texture(texture)
+                    ? CreatePanels.body(texture, u0, u1, v0, v1) : null;
+            if (body == null) {
+                return false;
+            }
+            float bx = body[0] * width;
+            float by = body[1] * height;
+            GlassRenderer.drawPanel(guiGraphics, x1 + bx, y1 + by, (body[2] - body[0]) * width, (body[3] - body[1]) * height,
+                    CreatePanels.PANEL);
+            guiGraphics.flush();
+            shader.safeGetUniform("BodyRect").set(bx, by, body[2] * width, body[3] * height);
+            shader.safeGetUniform("EdgeCut").set(CreatePanels.FRAME);
+            shader.safeGetUniform("ArtAlpha").set(CreatePanels.ART_ALPHA);
+            drawTexture(guiGraphics, shader, texture, x1, x2, y1, y2, z, u0, u1, v0, v1);
+            return true;
+        }
+        if (!isGlassTexture(texture)) {
             return false;
         }
         int[] panel = pendingPanel;
@@ -79,16 +103,22 @@ public final class ContainerGlass {
         if (panel != null) {
             GlassRenderer.drawPanel(guiGraphics, panel[0], panel[1], panel[2], panel[3], WINDOW);
         }
-        int width = x2 - x1;
-        int height = y2 - y1;
         boolean framed = width >= MIN_FRAMED_SIZE && height >= MIN_FRAMED_SIZE;
         if (framed && texture.getPath().equals("textures/gui/recipe_book.png")) {
             GlassRenderer.drawPanel(guiGraphics, x1, y1, width, height, WINDOW);
         }
         guiGraphics.flush();
 
-        shader.safeGetUniform("RectSize").set((float) width, (float) height);
+        shader.safeGetUniform("BodyRect").set(0.0F, 0.0F, (float) width, (float) height);
         shader.safeGetUniform("EdgeCut").set(framed ? FRAME : 0.0F);
+        shader.safeGetUniform("ArtAlpha").set(1.0F);
+        drawTexture(guiGraphics, shader, texture, x1, x2, y1, y2, z, u0, u1, v0, v1);
+        return true;
+    }
+
+    private static void drawTexture(GuiGraphics guiGraphics, ShaderInstance shader, ResourceLocation texture, int x1, int x2,
+                                    int y1, int y2, int z, float u0, float u1, float v0, float v1) {
+        shader.safeGetUniform("RectSize").set((float) (x2 - x1), (float) (y2 - y1));
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texture);
         RenderSystem.enableBlend();
@@ -101,7 +131,6 @@ public final class ContainerGlass {
         builder.addVertex(pose, x2, y1, z).setUv(u1, v0).setColor(1.0F, 0.0F, 0.0F, 1.0F);
         BufferUploader.drawWithShader(builder.buildOrThrow());
         RenderSystem.disableBlend();
-        return true;
     }
 
     /** Glass replacements for HUD and creative-tab sprites; returns false to let vanilla draw the sprite. */

@@ -7,6 +7,7 @@ import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.font.FontPack;
 import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.render.BlurPipeline;
+import com.lczme.liquidglass.render.CreatePanels;
 import com.lczme.liquidglass.render.DarkText;
 import com.lczme.liquidglass.render.PackOverrides;
 import com.lczme.liquidglass.render.QuitFade;
@@ -43,6 +44,7 @@ public final class LiquidGlass {
         modBus.addListener((RegisterClientReloadListenersEvent event) -> {
             event.registerReloadListener(CaveBackground.reloadListener());
             event.registerReloadListener(PackOverrides.reloadListener());
+            event.registerReloadListener(CreatePanels.reloadListener());
         });
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onScreenRenderPre);

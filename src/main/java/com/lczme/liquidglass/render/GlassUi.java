@@ -18,6 +18,9 @@ public final class GlassUi {
             0.5F, 2.2F, 0.7F, 0.0F, 1.0F, true, 1.0F, 0.0F);
     public static final GlassStyle KNOB = GlassStyle.button(GlassStyle.CAPSULE, 0.92F).withShadow(0.2F);
     public static final GlassStyle TRACK = GlassStyle.button(GlassStyle.CAPSULE, 0.2F).withShadow(0.0F);
+    private static final GlassStyle SLIDER_TRACK = GlassStyle.film(0xFFFFFF, -0.3F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
+    private static final GlassStyle SLIDER_FILL = GlassStyle.film(0xFFFFFF, 0.7F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
+    private static final GlassStyle SLIDER_KNOB = GlassStyle.film(0xFFFFFF, 0.7F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.35F);
 
     public static final int ROW = 0x0CFFFFFF;
     public static final int ROW_HOVER = 0x1EFFFFFF;
@@ -75,6 +78,23 @@ public final class GlassUi {
             return;
         }
         panel(g, x, y, size, size, KNOB.withHover(hover).withOpacity(opacity));
+    }
+
+    /** iOS slider centred on {@code centerY}: thin track, white fill up to {@code position} 0..1, solid white knob. */
+    public static void slider(GuiGraphics g, float x, float centerY, float width, float position, boolean active, float opacity) {
+        float thickness = 3.0F;
+        float knob = active ? 11.0F : 10.0F;
+        float fillEnd = x + width * Mth.clamp(position, 0.0F, 1.0F);
+        float trackY = centerY - thickness * 0.5F;
+        if (!GlassRenderer.isGlassAvailable()) {
+            GlassRenderer.fillRounded(g, x, trackY, width, thickness, thickness * 0.5F, withAlpha(FLAT_SWITCH_OFF, opacity));
+            GlassRenderer.fillRounded(g, x, trackY, fillEnd - x, thickness, thickness * 0.5F, withAlpha(0xFFFFFFFF, opacity));
+            GlassRenderer.fillRounded(g, fillEnd - knob * 0.5F, centerY - knob * 0.5F, knob, knob, knob * 0.5F, withAlpha(0xFFFFFFFF, opacity));
+            return;
+        }
+        panel(g, x, trackY, width, thickness, SLIDER_TRACK.withOpacity(opacity));
+        panel(g, x, trackY, fillEnd - x, thickness, SLIDER_FILL.withOpacity(opacity));
+        panel(g, fillEnd - knob * 0.5F, centerY - knob * 0.5F, knob, knob, SLIDER_KNOB.withOpacity(opacity));
     }
 
     /** Slim capsule groove for sliders. */

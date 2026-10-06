@@ -4,6 +4,11 @@ uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform vec2 RectSize;
 uniform float EdgeCut;
+// The panel body inside the blit (x0, y0, x1, y1, same units as RectSize); anything outside it is dropped and EdgeCut
+// is measured from its edges. Covers the whole blit for vanilla art.
+uniform vec4 BodyRect;
+// Opacity of coloured art, so large coloured areas can let the glass through.
+uniform float ArtAlpha;
 
 in vec2 texCoord0;
 in vec2 localPos;
@@ -21,12 +26,14 @@ void main() {
         discard;
     }
     vec2 p = localPos * RectSize;
-    if (EdgeCut > 0.0 && (p.x < EdgeCut || p.y < EdgeCut || p.x > RectSize.x - EdgeCut || p.y > RectSize.y - EdgeCut)) {
+    if (p.x < BodyRect.x + EdgeCut || p.y < BodyRect.y + EdgeCut || p.x > BodyRect.z - EdgeCut || p.y > BodyRect.w - EdgeCut) {
         discard;
     }
     float hi = max(color.r, max(color.g, color.b));
     float lo = min(color.r, min(color.g, color.b));
-    if (hi - lo < 0.06) {
+    if (hi - lo >= 0.06) {
+        color.a *= ArtAlpha;
+    } else {
         float l = (color.r + color.g + color.b) / 3.0;
         if (abs(l - PANEL) < 0.02) {
             discard;

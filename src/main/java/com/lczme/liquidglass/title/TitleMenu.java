@@ -6,6 +6,7 @@ import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.render.GlassButtons;
+import com.lczme.liquidglass.render.PackOverrides;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -41,6 +42,7 @@ public final class TitleMenu {
     // edition badge, splash and menu follow.
     /** Letter boundaries of the vanilla logo in its 256-unit width (seams between the stone letters M I N E C R A F T). */
     private static final int[] LETTER_EDGES = {0, 42, 57, 89, 117, 145, 174, 203, 232, 256};
+    private static final int[] WHOLE_LOGO = {0, 256};
     private static final float LETTER_DROP = 36.0F;
     private static final float LETTER_STAGGER = 0.07F;
     private static final float LETTER_SECONDS = 0.55F;
@@ -188,14 +190,18 @@ public final class TitleMenu {
             return false;
         }
         int x0 = width / 2 - 128;
+        // A resource pack's logo has its own letters, so it drops in as one piece.
+        boolean packLogo = PackOverrides.texture(LogoRenderer.MINECRAFT_LOGO);
+        int[] edges = packLogo ? WHOLE_LOGO : LETTER_EDGES;
         RenderSystem.enableBlend();
-        for (int i = 0; i < letterDrop.length; i++) {
+        for (int piece = 0; piece < edges.length - 1; piece++) {
+            int i = packLogo ? letterDrop.length / 2 : piece;
             float alpha = letterAlpha[i].value();
             if (alpha <= 0.0F) {
                 continue;
             }
-            int u0 = LETTER_EDGES[i];
-            int u1 = LETTER_EDGES[i + 1];
+            int u0 = edges[piece];
+            int u1 = edges[piece + 1];
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(0.0F, -(1.0F - letterDrop[i].value()) * LETTER_DROP, 0.0F);
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);

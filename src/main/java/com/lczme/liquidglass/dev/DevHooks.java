@@ -111,6 +111,7 @@ public final class DevHooks {
                     Minecraft.getInstance().setScreen(SodiumScreens.videoSettings(Minecraft.getInstance().screen));
                 }
             }),
+            new Shot("liquidglass_autoshot_sodium_slider.png", SETTLED, () -> hover(220.0, 81.0)),
             new Shot("liquidglass_autoshot_create_world.png", 3.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
             new Shot("liquidglass_autoshot_iris.png", SETTLED, () -> openReflective("iris", "net.irisshaders.iris.gui.screen.ShaderPackScreen")),
             new Shot("liquidglass_autoshot_iris_options.png", SETTLED, DevHooks::openIrisOptions),

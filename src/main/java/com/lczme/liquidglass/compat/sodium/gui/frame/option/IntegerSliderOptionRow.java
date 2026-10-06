@@ -22,7 +22,6 @@ import java.util.List;
 final class IntegerSliderOptionRow extends AbstractOptionRow {
     private static final int SLIDER_WIDTH = 90;
     private static final int TRACK_HEIGHT = 10;
-    private static final int TRACK_THICKNESS = 4;
     private static final int VALUE_GAP = 6;
 
     private final IntegerOption option;
@@ -83,13 +82,8 @@ final class IntegerSliderOptionRow extends AbstractOptionRow {
                 this.thumbPosition = this.thumbPositionForValue(this.option.getValidatedValue());
             }
 
-            float thumbCenter = sliderX + (float) (this.thumbPosition * SLIDER_WIDTH);
-            int trackY = sliderY + (TRACK_HEIGHT - TRACK_THICKNESS) / 2;
             boolean active = this.sliderHeld || this.isRowFocused() && this.editMode && BaseWidget.isKeyboardFocusVisible();
-
-            GlassUi.track(guiGraphics, sliderX, trackY, SLIDER_WIDTH, TRACK_THICKNESS);
-            GlassUi.roundedFill(guiGraphics, sliderX, trackY, (int) thumbCenter, trackY + TRACK_THICKNESS, 1, this.theme.theme);
-            GlassUi.knob(guiGraphics, thumbCenter - TRACK_HEIGHT / 2.0F, sliderY, TRACK_HEIGHT, active ? 1.0F : 0.0F, 1.0F);
+            GlassUi.slider(guiGraphics, sliderX, sliderY + TRACK_HEIGHT / 2.0F, SLIDER_WIDTH, (float) this.thumbPosition, active, 1.0F);
 
             this.drawString(guiGraphics, value, sliderX - valueWidth - VALUE_GAP, sliderY + (TRACK_HEIGHT / 2) - 4, 0xFFFFFFFF);
         } else {
