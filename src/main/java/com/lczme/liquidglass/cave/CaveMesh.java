@@ -125,20 +125,22 @@ public final class CaveMesh implements AutoCloseable {
         }
         builders.forEach((layer, builder) -> {
             MeshData mesh = builder.build();
-            if (mesh != null) {
-                built.meshes.put(layer, mesh);
+            if (mesh != null) {                built.meshes.put(layer, mesh);
             }
         });
         return built;
     }
 
-    /** Opaque cube fully enclosed by opaque cubes: no face can be visible, skip the (costly) tessellation. */
+    /**
+     * Opaque cube fully enclosed by opaque cubes: no face can be visible, skip the (costly) tessellation. Full cubes
+     * only: {@code canOcclude} is also true for carpets, and a block next to one would lose its visible face.
+     */
     private static boolean isBuried(CaveWorld world, int x, int y, int z, BlockState state) {
-        if (!state.canOcclude()) {
+        if (!CaveWorld.isOpaqueCube(state)) {
             return false;
         }
         for (Direction direction : Direction.values()) {
-            if (!world.get(x + direction.getStepX(), y + direction.getStepY(), z + direction.getStepZ()).canOcclude()) {
+            if (!CaveWorld.isOpaqueCube(world.get(x + direction.getStepX(), y + direction.getStepY(), z + direction.getStepZ()))) {
                 return false;
             }
         }

@@ -23,8 +23,14 @@ public final class FontScale {
     private FontScale() {
     }
 
+    /** Whether the UI font is loaded; it stays loaded in classic mode so switching back is instant. */
+    public static boolean isLoaded() {
+        return !LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.CUSTOM_FONT.get();
+    }
+
+    /** Whether text uses the UI font instead of the pixel font. */
     public static boolean isEnabled() {
-        return !LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.CUSTOM_FONT.get() && !LiquidGlassConfig.isClassic();
+        return isLoaded() && !LiquidGlassConfig.isClassic();
     }
 
     static FontWeight weight() {
@@ -44,7 +50,7 @@ public final class FontScale {
 
     /** Called after the window or GUI scale changed. */
     public static void onResize() {
-        if (isEnabled() && loadedScale != 0 && currentScale() != loadedScale) {
+        if (isLoaded() && loadedScale != 0 && currentScale() != loadedScale) {
             reloadFonts();
         }
     }
@@ -56,9 +62,9 @@ public final class FontScale {
     }
 
     /** Rebuilds the fonts if the font settings changed since they were last loaded. */
-    public static void refresh() {
-        if (isEnabled() != lastEnabled || weight() != lastWeight) {
-            lastEnabled = isEnabled();
+    private static void refresh() {
+        if (isLoaded() != lastEnabled || weight() != lastWeight) {
+            lastEnabled = isLoaded();
             lastWeight = weight();
             Minecraft.getInstance().execute(FontScale::reloadFonts);
         }

@@ -4,7 +4,6 @@ import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.compat.sodium.SodiumScreens;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
-import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.intro.ReloadOverlay;
 import java.util.List;
@@ -124,7 +123,6 @@ public final class DevHooks {
             }),
             new Shot("liquidglass_autoshot_title_classic.png", SETTLED, () -> {
                 LiquidGlassConfig.CLASSIC_UI.set(true);
-                FontScale.refresh();
                 Minecraft.getInstance().setScreen(new TitleScreen());
             }),
             new Shot("liquidglass_autoshot_classic_options.png", SETTLED, () -> Minecraft.getInstance().setScreen(
@@ -136,7 +134,6 @@ public final class DevHooks {
             }),
             new Shot("liquidglass_autoshot_create_menu.png", SETTLED, () -> {
                 LiquidGlassConfig.CLASSIC_UI.set(false);
-                FontScale.refresh();
                 openReflective("create", "com.simibubi.create.infrastructure.gui.CreateMainMenuScreen");
             }),
             new Shot("liquidglass_autoshot_create_config.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
@@ -151,6 +148,7 @@ public final class DevHooks {
                 Minecraft.getInstance().setScreen(menu);
                 switchIrisPack();
             }),
+            new Shot("liquidglass_autoshot_menu_shaders_off.png", 4.0, DevHooks::disableIrisShaders),
             // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
             new Shot("liquidglass_autoshot_world.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(DevHooks::enterWorld),
                     () -> Minecraft.getInstance().player != null && Minecraft.getInstance().screen == null, true),
@@ -341,6 +339,22 @@ public final class DevHooks {
             screen.init(mc, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
         } catch (ReflectiveOperationException e) {
             LiquidGlass.LOGGER.warn("[autoshot] could not open Iris options", e);
+        }
+    }
+
+    /** Turns shaders off at runtime and reloads Iris, like the shader pack screen's toggle and Apply. */
+    private static void disableIrisShaders() {
+        if (!ModList.get().isLoaded("iris")) {
+            return;
+        }
+        try {
+            Class<?> iris = Class.forName("net.irisshaders.iris.Iris");
+            Object config = iris.getMethod("getIrisConfig").invoke(null);
+            config.getClass().getMethod("setShadersEnabled", boolean.class).invoke(config, false);
+            config.getClass().getMethod("save").invoke(config);
+            iris.getMethod("reload").invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not disable shaders", e);
         }
     }
 

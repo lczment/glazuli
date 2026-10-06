@@ -1,7 +1,7 @@
 package com.lczme.liquidglass.mixin;
 
 import com.lczme.liquidglass.config.LiquidGlassConfig;
-import com.lczme.liquidglass.font.FontScale;
+import com.lczme.liquidglass.render.BlurFade;
 import com.lczme.liquidglass.title.TitleMenu;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -59,7 +59,6 @@ public abstract class TitleScreenMixin extends Screen {
         this.addRenderableWidget(Button.builder(label, button -> {
             LiquidGlassConfig.CLASSIC_UI.set(!LiquidGlassConfig.CLASSIC_UI.get());
             LiquidGlassConfig.CLASSIC_UI.save();
-            FontScale.refresh();
             // Not while the widget list is being iterated (the click may fire from a render pass).
             this.minecraft.tell(this::rebuildWidgets);
         }).bounds(this.width - width - LIQUIDGLASS$STYLE_BUTTON_MARGIN, LIQUIDGLASS$STYLE_BUTTON_MARGIN, width, 20).build());
@@ -101,6 +100,10 @@ public abstract class TitleScreenMixin extends Screen {
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/client/gui/screens/TitleScreen;renderPanorama(Lnet/minecraft/client/gui/GuiGraphics;F)V"))
     private void liquidglass$drawBackdrop(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        if (BlurFade.isFadingOut()) {
+            guiGraphics.flush();
+            BlurFade.fadeOut(() -> this.renderBlurredBackground(partialTick));
+        }
         if (liquidglass$menu != null) {
             liquidglass$menu.drawBackdrop(guiGraphics, this.width, this.height);
         }

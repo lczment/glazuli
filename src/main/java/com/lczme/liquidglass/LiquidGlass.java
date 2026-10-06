@@ -6,6 +6,7 @@ import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.font.FontPack;
 import com.lczme.liquidglass.font.FontScale;
+import com.lczme.liquidglass.render.BlurFade;
 import com.lczme.liquidglass.render.BlurPipeline;
 import com.lczme.liquidglass.render.CreatePanels;
 import com.lczme.liquidglass.render.DarkText;
@@ -53,6 +54,7 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> {
             DarkText.reset();
+            BlurFade.onFrameStart();
             CaveBackground.onFrameStart();
         });
         Compat.register(NeoForge.EVENT_BUS);

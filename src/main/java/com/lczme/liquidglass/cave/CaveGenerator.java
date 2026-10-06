@@ -247,7 +247,7 @@ public final class CaveGenerator {
                     continue;
                 }
                 int n = CaveWorld.index(nx, ny, nz);
-                if (world.light[n] < level - 1 && !world.blocks[n].canOcclude()) {
+                if (world.light[n] < level - 1 && !CaveWorld.isOpaqueCube(world.blocks[n])) {
                     world.light[n] = (byte) (level - 1);
                     queue.enqueue(n);
                 }

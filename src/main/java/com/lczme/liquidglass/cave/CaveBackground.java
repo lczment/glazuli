@@ -48,6 +48,7 @@ public final class CaveBackground {
     @Nullable
     private static DynamicTexture lightmap;
     private static boolean dirty = true;
+    private static boolean meshShaded;
     private static boolean failed;
     private static double readyTime = Double.NaN;
     private static double waitingSince = Double.NaN;
@@ -166,9 +167,14 @@ public final class CaveBackground {
         // During a reload the models are being swapped; wait until it's applied (our overlays linger after that).
         boolean reloading = minecraft.getOverlay() != null
                 && !(minecraft.getOverlay() instanceof GlassLoadingOverlay overlay && overlay.isFinishCalled());
+        // With a shader pack loaded, Iris extends the block vertex format and applies the pack's block settings to
+        // whatever is tessellated, so the mesh is rebuilt when shaders are turned on or off.
+        if (mesh != null && meshShaded != ShaderCave.wanted()) {
+            dirty = true;
+        }
         if (building == null && dirty && world != null && !reloading) {
             dirty = false;
-            building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());
+            meshShaded = ShaderCave.wanted();            building = world.thenApplyAsync(CaveMesh::build, Util.backgroundExecutor());
         }
         if (building != null && building.isDone()) {
             CompletableFuture<CaveMesh.Built> done = building;
@@ -201,7 +207,10 @@ public final class CaveBackground {
         RenderSystem.setShaderFogColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F);
         RenderSystem.setShaderFogShape(FogShape.SPHERE);
         // The mesh doesn't cover every pixel (openings, beyond the fog end); without a colour clear those show the
-        // previous screen.
+        // previous screen. glClear honours the write masks: with depth writes left off (Iris leaves them so after
+        // the shader cave stops), the shader world's last depth would hide parts of the mesh.
+        RenderSystem.depthMask(true);
+        RenderSystem.colorMask(true, true, true, true);
         RenderSystem.clearColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F, 1.0F);
         RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
@@ -210,8 +219,7 @@ public final class CaveBackground {
             // Fabulous graphics routes translucency to a level target that doesn't exist without a world.
             if (layer == RenderType.translucent() && Minecraft.useShaderTransparency()) {
                 continue;
-            }
-            VertexBuffer buffer = mesh.buffer(layer);
+            }            VertexBuffer buffer = mesh.buffer(layer);
             if (buffer == null) {
                 continue;
             }

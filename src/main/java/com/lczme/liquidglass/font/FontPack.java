@@ -25,13 +25,16 @@ import net.minecraft.server.packs.resources.IoSupplier;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 
 /**
- * Always-on hidden resource pack that points {@code minecraft:default} at HarmonyOS Sans, preceded by PingFang or a
- * user-supplied font when one is found (see {@link UserFont}). Generated rather than static so the config can turn it
- * off and so glyphs are rasterised at the current GUI scale.
+ * Always-on hidden resource pack defining {@code liquidglass:ui}: HarmonyOS Sans, preceded by PingFang or a
+ * user-supplied font when one is found (see {@link UserFont}), falling back to {@code minecraft:default}. Text in the
+ * default font is redirected to it while it's in use, so classic mode switches without reloading. Generated rather
+ * than static so the config can turn it off and so glyphs are rasterised at the current GUI scale.
  */
 public final class FontPack implements PackResources {
     private static final String ID = "liquidglass/fonts";
-    private static final ResourceLocation DEFAULT_FONT = ResourceLocation.withDefaultNamespace("font/default.json");
+    /** Font id that text in {@code minecraft:default} is redirected to while the UI font is in use. */
+    public static final ResourceLocation UI_FONT_ID = LiquidGlass.id("ui");
+    private static final ResourceLocation UI_FONT = LiquidGlass.id("font/ui.json");
     private static final ResourceLocation USER_FONT_FILE = LiquidGlass.id("font/user_font.ttf");
     private static final String USER_FONT = LiquidGlass.MODID + ":user_font.ttf";
     private static final String BUNDLED_FONT_PREFIX = LiquidGlass.MODID + ":harmonyos_sans_sc_";
@@ -91,6 +94,11 @@ public final class FontPack implements PackResources {
             providers.add(ttf(USER_FONT, oversample));
         }
         providers.add(ttf(BUNDLED_FONT_PREFIX + FontScale.weight().bundled() + ".ttf", oversample));
+        // Glyphs the TTFs lack (resource packs' icon glyphs, symbols) come from the regular default font.
+        JsonObject fallback = new JsonObject();
+        fallback.addProperty("type", "reference");
+        fallback.addProperty("id", ResourceLocation.withDefaultNamespace("default").toString());
+        providers.add(fallback);
         JsonObject root = new JsonObject();
         root.add("providers", providers);
         return root.toString().getBytes(StandardCharsets.UTF_8);
@@ -118,10 +126,10 @@ public final class FontPack implements PackResources {
     @Nullable
     @Override
     public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
-        if (type != PackType.CLIENT_RESOURCES || !FontScale.isEnabled()) {
+        if (type != PackType.CLIENT_RESOURCES || !FontScale.isLoaded()) {
             return null;
         }
-        if (location.equals(DEFAULT_FONT)) {
+        if (location.equals(UI_FONT)) {
             return () -> new ByteArrayInputStream(this.fontDefinition());
         }
         UserFont userFont = location.equals(USER_FONT_FILE) ? this.userFont() : null;
@@ -133,15 +141,15 @@ public final class FontPack implements PackResources {
 
     @Override
     public void listResources(PackType type, String namespace, String path, ResourceOutput output) {
-        if (type == PackType.CLIENT_RESOURCES && namespace.equals(DEFAULT_FONT.getNamespace()) && path.equals("font")
-                && FontScale.isEnabled()) {
-            output.accept(DEFAULT_FONT, () -> new ByteArrayInputStream(this.fontDefinition()));
+        if (type == PackType.CLIENT_RESOURCES && namespace.equals(LiquidGlass.MODID) && path.equals("font")
+                && FontScale.isLoaded()) {
+            output.accept(UI_FONT, () -> new ByteArrayInputStream(this.fontDefinition()));
         }
     }
 
     @Override
     public Set<String> getNamespaces(PackType type) {
-        return type == PackType.CLIENT_RESOURCES ? Set.of(DEFAULT_FONT.getNamespace(), LiquidGlass.MODID) : Set.of();
+        return type == PackType.CLIENT_RESOURCES ? Set.of(LiquidGlass.MODID) : Set.of();
     }
 
     @Nullable

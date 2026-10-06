@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.ColorResolver;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -41,6 +42,11 @@ public final class CaveWorld implements BlockAndTintGetter {
 
     static int index(int x, int y, int z) {
         return (z * SIZE_Y + y) * SIZE_X + x;
+    }
+
+    /** Full opaque cube: hides its neighbours' faces and blocks light. */
+    static boolean isOpaqueCube(BlockState state) {
+        return state.isSolidRender(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
     }
 
     BlockState get(int x, int y, int z) {
