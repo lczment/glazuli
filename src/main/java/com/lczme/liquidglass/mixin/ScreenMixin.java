@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.mixin;
 
+import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.render.GlassRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -31,6 +32,6 @@ public abstract class ScreenMixin {
 
     @Unique
     private boolean liquidglass$undimmed() {
-        return GlassRenderer.isGlassAvailable();
+        return GlassRenderer.isGlassAvailable() && !LiquidGlassConfig.isClassic();
     }
 }

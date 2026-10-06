@@ -4,6 +4,7 @@ import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.compat.sodium.SodiumScreens;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
+import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.intro.ReloadOverlay;
 import java.util.List;
@@ -122,11 +123,20 @@ public final class DevHooks {
                 Minecraft.getInstance().setScreen(menu);
             }),
             new Shot("liquidglass_autoshot_title_classic.png", SETTLED, () -> {
-                LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(false);
+                LiquidGlassConfig.CLASSIC_UI.set(true);
+                FontScale.refresh();
                 Minecraft.getInstance().setScreen(new TitleScreen());
             }),
+            new Shot("liquidglass_autoshot_classic_options.png", SETTLED, () -> Minecraft.getInstance().setScreen(
+                    new OptionsScreen(menu, Minecraft.getInstance().options))),
+            new Shot("liquidglass_autoshot_classic_sodium.png", SETTLED, () -> {
+                if (ModList.get().isLoaded("sodium")) {
+                    Minecraft.getInstance().setScreen(SodiumScreens.videoSettings(Minecraft.getInstance().screen));
+                }
+            }),
             new Shot("liquidglass_autoshot_create_menu.png", SETTLED, () -> {
-                LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(true);
+                LiquidGlassConfig.CLASSIC_UI.set(false);
+                FontScale.refresh();
                 openReflective("create", "com.simibubi.create.infrastructure.gui.CreateMainMenuScreen");
             }),
             new Shot("liquidglass_autoshot_create_config.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(

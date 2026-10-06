@@ -1,7 +1,7 @@
 package com.lczme.liquidglass.mixin;
 
 import com.lczme.liquidglass.config.LiquidGlassConfig;
-import com.lczme.liquidglass.render.GlassButtons;
+import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.title.TitleMenu;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -51,14 +51,15 @@ public abstract class TitleScreenMixin extends Screen {
         liquidglass$menu.layout((Screen) (Object) this);
     }
 
-    /** Switches between the glass title screen and the vanilla one (vanilla layout, logo and buttons, cave kept). */
+    /** Switches classic mode: every screen and the font back to vanilla, the cave kept. */
     @Unique
     private void liquidglass$addStyleButton() {
-        Component label = Component.translatable(TitleMenu.isEnabled() ? "liquidglass.title.classic" : "liquidglass.title.glass");
+        Component label = Component.translatable(LiquidGlassConfig.isClassic() ? "liquidglass.title.glass" : "liquidglass.title.classic");
         int width = this.font.width(label) + 16;
         this.addRenderableWidget(Button.builder(label, button -> {
-            LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(!LiquidGlassConfig.CUSTOM_TITLE_SCREEN.get());
-            LiquidGlassConfig.CUSTOM_TITLE_SCREEN.save();
+            LiquidGlassConfig.CLASSIC_UI.set(!LiquidGlassConfig.CLASSIC_UI.get());
+            LiquidGlassConfig.CLASSIC_UI.save();
+            FontScale.refresh();
             // Not while the widget list is being iterated (the click may fire from a render pass).
             this.minecraft.tell(this::rebuildWidgets);
         }).bounds(this.width - width - LIQUIDGLASS$STYLE_BUTTON_MARGIN, LIQUIDGLASS$STYLE_BUTTON_MARGIN, width, 20).build());
@@ -70,7 +71,6 @@ public abstract class TitleScreenMixin extends Screen {
      */
     @Inject(method = "render", at = @At("HEAD"))
     private void liquidglass$beforeRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        GlassButtons.setSuppressed(LiquidGlassConfig.SPEC.isLoaded() && !TitleMenu.isEnabled());
         if (liquidglass$menu == null) {
             return;
         }
@@ -80,11 +80,6 @@ public abstract class TitleScreenMixin extends Screen {
         if (fading) {
             fadeInStart = Util.getMillis() - (long) (1000.0F + 1000.0F * alpha);
         }
-    }
-
-    @Inject(method = "render", at = @At("RETURN"))
-    private void liquidglass$afterRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        GlassButtons.setSuppressed(false);
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
@@ -103,7 +98,6 @@ public abstract class TitleScreenMixin extends Screen {
         }
     }
 
-    /** Vanilla never blurs the title panorama; here it follows the accessibility "Menu Background Blur" like other menus. */
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/client/gui/screens/TitleScreen;renderPanorama(Lnet/minecraft/client/gui/GuiGraphics;F)V"))
     private void liquidglass$drawBackdrop(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {

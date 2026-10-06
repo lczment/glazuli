@@ -10,6 +10,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_REFRACTION;
     public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
+    public static final ModConfigSpec.BooleanValue CLASSIC_UI;
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
@@ -45,10 +46,12 @@ public final class LiquidGlassConfig {
         builder.pop();
 
         builder.push("menu");
-        CUSTOM_TITLE_SCREEN = builder
-                .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.",
-                        "When off, the title screen keeps vanilla's layout, logo and buttons (the cave background stays).",
+        CLASSIC_UI = builder
+                .comment("Classic mode: every screen, the font and the menu transitions go back to vanilla; only the cave background stays.",
                         "Also toggled by the button in the title screen's top-right corner.")
+                .define("classicUi", false);
+        CUSTOM_TITLE_SCREEN = builder
+                .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.")
                 .define("customTitleScreen", true);
         GLASS_BUTTONS = builder
                 .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
@@ -88,6 +91,10 @@ public final class LiquidGlassConfig {
     }
 
     private LiquidGlassConfig() {
+    }
+
+    public static boolean isClassic() {
+        return SPEC.isLoaded() && CLASSIC_UI.get();
     }
 
     public enum FontWeight {

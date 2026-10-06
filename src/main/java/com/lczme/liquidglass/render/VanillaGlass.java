@@ -32,8 +32,7 @@ public final class VanillaGlass {
     }
 
     public static boolean isEnabled() {
-        return !GlassButtons.isSuppressed() && LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_BUTTONS.get()
-                && GlassRenderer.isGlassAvailable();
+        return GlassButtons.isEnabled() && GlassRenderer.isGlassAvailable();
     }
 
     /** Replaces vanilla widget, toast and advancement-tab sprites; returns false to let vanilla draw. */

@@ -44,7 +44,7 @@ public final class ContainerGlass {
     }
 
     public static boolean isEnabled() {
-        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_INVENTORY.get();
+        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_INVENTORY.get() && !LiquidGlassConfig.isClassic();
     }
 
     /**

@@ -75,7 +75,7 @@ public final class TitleMenu {
     }
 
     public static boolean isEnabled() {
-        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.CUSTOM_TITLE_SCREEN.get();
+        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.CUSTOM_TITLE_SCREEN.get() && !LiquidGlassConfig.isClassic();
     }
 
     /** Called at the end of {@code TitleScreen#init}. */

@@ -51,7 +51,7 @@ public final class JeiGlass {
 
     /** Draws {@code sprite} as glass and returns true, or returns false to let JEI draw it. */
     public static boolean draw(GuiGraphics guiGraphics, ResourceLocation sprite, int x, int y, int width, int height) {
-        if (!LiquidGlassConfig.SPEC.isLoaded() || !LiquidGlassConfig.GLASS_JEI.get()) {
+        if (!LiquidGlassConfig.SPEC.isLoaded() || !LiquidGlassConfig.GLASS_JEI.get() || LiquidGlassConfig.isClassic()) {
             return false;
         }
         Look look = LOOKS.get(sprite);

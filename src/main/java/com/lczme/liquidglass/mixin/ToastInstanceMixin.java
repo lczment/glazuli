@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.mixin;
 
+import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -25,6 +26,10 @@ public abstract class ToastInstanceMixin {
             target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(FFF)V"))
     private void liquidglass$inset(PoseStack pose, float x, float y, float z, Operation<Void> original, int width,
                                    GuiGraphics guiGraphics) {
+        if (LiquidGlassConfig.isClassic()) {
+            original.call(pose, x, y, z);
+            return;
+        }
         float visibility = toast.width() > 0 ? (width - x) / toast.width() : 1.0F;
         original.call(pose, x - LIQUIDGLASS$MARGIN * visibility, y + LIQUIDGLASS$MARGIN, z);
     }

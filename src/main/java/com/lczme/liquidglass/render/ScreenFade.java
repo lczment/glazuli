@@ -65,7 +65,7 @@ public final class ScreenFade {
     }
 
     private static boolean isEnabled() {
-        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.SCREEN_FADE.get();
+        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.SCREEN_FADE.get() && !LiquidGlassConfig.isClassic();
     }
 
     private static void copyMainTarget(RenderTarget main) {

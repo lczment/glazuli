@@ -24,7 +24,7 @@ public final class SodiumScreens {
 
     public static void onScreenOpening(ScreenEvent.Opening event) {
         Screen next = event.getNewScreen();
-        if (!LiquidGlassConfig.GLASS_SODIUM_SCREEN.get()
+        if (!LiquidGlassConfig.GLASS_SODIUM_SCREEN.get() || LiquidGlassConfig.isClassic()
                 || !(next instanceof VideoSettingsScreen || next.getClass().getName().equals(RSO_SCREEN))) {
             return;
         }

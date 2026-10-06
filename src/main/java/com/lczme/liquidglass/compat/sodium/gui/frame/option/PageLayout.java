@@ -18,9 +18,11 @@ import java.util.Map;
 import java.util.Set;
 
 final class PageLayout {
-    static final int ROW_HEIGHT = 18;
+    static final int ROW_HEIGHT = 20;
 
-    private static final int GROUP_PADDING = 4;
+    /** Option rows are separate glass buttons, spaced like vanilla's option lists. */
+    private static final int ROW_GAP = 4;
+    private static final int GROUP_PADDING = 8;
 
     private final List<Row> rows;
     private final int contentHeight;
@@ -69,7 +71,7 @@ final class PageLayout {
             }
 
             rows.add(new OptionRow(group, entry.option(), y));
-            y += ROW_HEIGHT;
+            y += ROW_HEIGHT + ROW_GAP;
         }
 
         return new PageLayout(rows, y);
@@ -96,7 +98,7 @@ final class PageLayout {
             if (!collapsed) {
                 for (Option option : visibleGroup.options()) {
                     rows.add(new OptionRow(group, option, y));
-                    y += ROW_HEIGHT;
+                    y += ROW_HEIGHT + ROW_GAP;
                 }
             }
 

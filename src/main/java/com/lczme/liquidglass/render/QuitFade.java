@@ -53,6 +53,6 @@ public final class QuitFade {
     }
 
     private static boolean isEnabled() {
-        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.SCREEN_FADE.get();
+        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.SCREEN_FADE.get() && !LiquidGlassConfig.isClassic();
     }
 }

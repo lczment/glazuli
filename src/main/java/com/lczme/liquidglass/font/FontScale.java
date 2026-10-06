@@ -24,7 +24,7 @@ public final class FontScale {
     }
 
     public static boolean isEnabled() {
-        return !LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.CUSTOM_FONT.get();
+        return !LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.CUSTOM_FONT.get() && !LiquidGlassConfig.isClassic();
     }
 
     static FontWeight weight() {
@@ -50,7 +50,14 @@ public final class FontScale {
     }
 
     public static void onConfigReloading(ModConfigEvent.Reloading event) {
-        if (event.getConfig().getSpec() == LiquidGlassConfig.SPEC && (isEnabled() != lastEnabled || weight() != lastWeight)) {
+        if (event.getConfig().getSpec() == LiquidGlassConfig.SPEC) {
+            refresh();
+        }
+    }
+
+    /** Rebuilds the fonts if the font settings changed since they were last loaded. */
+    public static void refresh() {
+        if (isEnabled() != lastEnabled || weight() != lastWeight) {
             lastEnabled = isEnabled();
             lastWeight = weight();
             Minecraft.getInstance().execute(FontScale::reloadFonts);

@@ -9,7 +9,6 @@ import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.render.BlurPipeline;
 import com.lczme.liquidglass.render.CreatePanels;
 import com.lczme.liquidglass.render.DarkText;
-import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.PackOverrides;
 import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
@@ -54,7 +53,6 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> {
             DarkText.reset();
-            GlassButtons.setSuppressed(false);
             CaveBackground.onFrameStart();
         });
         Compat.register(NeoForge.EVENT_BUS);

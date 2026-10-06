@@ -21,8 +21,6 @@ import net.minecraft.resources.ResourceLocation;
  * click acts on release over the button, so the squash is actually visible before the screen changes.
  */
 public final class GlassButtons {
-    private static boolean suppressed;
-
     /** Spec §6 button press: target scale and spring (response 0.28 s, damping ratio 0.68). */
     public static final float PRESSED_SCALE = 0.92F;
     public static final float PRESS_RESPONSE = 0.28F;
@@ -88,16 +86,7 @@ public final class GlassButtons {
     }
 
     public static boolean isEnabled() {
-        return !suppressed && LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_BUTTONS.get();
-    }
-
-    /** Vanilla widgets while a screen is drawn in its vanilla style (the classic title screen). */
-    public static void setSuppressed(boolean suppressed) {
-        GlassButtons.suppressed = suppressed;
-    }
-
-    public static boolean isSuppressed() {
-        return suppressed;
+        return LiquidGlassConfig.SPEC.isLoaded() && LiquidGlassConfig.GLASS_BUTTONS.get() && !LiquidGlassConfig.isClassic();
     }
 
     /**
