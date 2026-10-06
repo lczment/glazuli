@@ -107,10 +107,6 @@ public abstract class TitleScreenMixin extends Screen {
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/client/gui/screens/TitleScreen;renderPanorama(Lnet/minecraft/client/gui/GuiGraphics;F)V"))
     private void liquidglass$drawBackdrop(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        if (this.minecraft.options.getMenuBackgroundBlurriness() > 0) {
-            guiGraphics.flush();
-            this.renderBlurredBackground(partialTick);
-        }
         if (liquidglass$menu != null) {
             liquidglass$menu.drawBackdrop(guiGraphics, this.width, this.height);
         }

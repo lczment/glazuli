@@ -5,9 +5,6 @@ import com.lczme.liquidglass.compat.sodium.gui.frame.AbstractFrame;
 import com.lczme.liquidglass.compat.sodium.gui.frame.option.OptionRow;
 import com.lczme.liquidglass.compat.sodium.gui.state.Holder;
 import com.lczme.liquidglass.compat.sodium.gui.state.OptionStateStore;
-import com.lczme.liquidglass.render.ContainerGlass;
-import com.lczme.liquidglass.render.DarkText;
-import com.lczme.liquidglass.render.GlassUi;
 import com.lczme.liquidglass.compat.sodium.gui.widget.BaseWidget;
 import net.caffeinemc.mods.sodium.client.config.structure.ModOptions;
 import net.minecraft.client.gui.GuiGraphics;
@@ -122,26 +119,17 @@ public class TabFrame extends AbstractFrame {
         LayoutBounds frameDim = this.getFrameDim();
         AbstractFrame selectedFrame = this.tabSelection.selectedFrame();
         BaseWidget scrollBar = this.tabRail.scrollBar();
-        int pageLeft = this.frameSection.x() - CARD_PADDING;
-        // Same light frosted cards as the inventories, so the text on them is dark.
-        GlassUi.panel(guiGraphics, frameDim.x(), frameDim.y(), pageLeft - CARD_GAP - frameDim.x(), frameDim.height(), ContainerGlass.WINDOW);
-        GlassUi.panel(guiGraphics, pageLeft, frameDim.y(), frameDim.getLimitX() - pageLeft, frameDim.height(), ContainerGlass.WINDOW);
-        DarkText.push();
-        try {
-            this.applyScissor(guiGraphics, frameDim.x(), frameDim.y(), frameDim.width(), frameDim.height(), () -> {
-                for (GuiEventListener child : this.children) {
-                    if (child != selectedFrame && child != scrollBar && child instanceof Renderable renderable) {
-                        renderable.render(guiGraphics, mouseX, mouseY, delta);
-                    }
+        this.applyScissor(guiGraphics, frameDim.x(), frameDim.y(), frameDim.width(), frameDim.height(), () -> {
+            for (GuiEventListener child : this.children) {
+                if (child != selectedFrame && child != scrollBar && child instanceof Renderable renderable) {
+                    renderable.render(guiGraphics, mouseX, mouseY, delta);
                 }
-            });
-            if (selectedFrame != null) {
-                selectedFrame.render(guiGraphics, mouseX, mouseY, delta);
             }
-            this.tabRail.extractScrollBar(guiGraphics, mouseX, mouseY, delta);
-        } finally {
-            DarkText.pop();
+        });
+        if (selectedFrame != null) {
+            selectedFrame.render(guiGraphics, mouseX, mouseY, delta);
         }
+        this.tabRail.extractScrollBar(guiGraphics, mouseX, mouseY, delta);
     }
 
     @Override

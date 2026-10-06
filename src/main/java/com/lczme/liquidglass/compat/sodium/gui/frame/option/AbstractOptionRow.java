@@ -8,7 +8,6 @@ import com.lczme.liquidglass.compat.sodium.gui.state.OptionStateStore;
 import com.lczme.liquidglass.compat.sodium.gui.state.OptionUiState;
 import com.lczme.liquidglass.render.GlassUi;
 import com.lczme.liquidglass.compat.sodium.gui.theme.GuiThemes;
-import net.minecraft.util.FastColor;
 import com.lczme.liquidglass.compat.sodium.gui.theme.GuiTheme;
 import com.lczme.liquidglass.compat.sodium.gui.widget.BaseWidget;
 import com.lczme.liquidglass.compat.sodium.gui.frame.option.action.OptionActionButtonController;
@@ -322,8 +321,7 @@ abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHan
 
         this.hovered = this.isMouseOverRow(mouseX, mouseY);
         float hover = this.hoverAmount(this.hovered || selectedSearchResult);
-        GlassUi.roundedFill(guiGraphics, this.getX(), this.getY(), rowLimitX, this.getLimitY(), 2,
-                FastColor.ARGB32.lerp(hover, GlassUi.ROW, GlassUi.ROW_HOVER));
+        GlassUi.button(guiGraphics, this.getX(), this.getY(), rowLimitX, this.getLimitY(), hover, true);
         this.renderSearchResultMarker(guiGraphics, optionUiState);
         this.drawString(guiGraphics, formattedLabel, this.getX() + CONTROL_RIGHT_PADDING, this.centeredTextY(), 0xFFFFFFFF);
 
