@@ -118,8 +118,13 @@ public final class VanillaGlass {
 
     /** {@code x, y, width, height}: the tooltip's text box, which vanilla's frame surrounds by 4 px. */
     public static void tooltip(GuiGraphics guiGraphics, int x, int y, int width, int height) {
+        tooltip(guiGraphics, x, y, width, height, false);
+    }
+
+    /** {@code depthTested}: for tooltips whose decorations were drawn first, in front at a higher z. */
+    public static void tooltip(GuiGraphics guiGraphics, int x, int y, int width, int height, boolean depthTested) {
         GlassRenderer.recaptureBackdrop(guiGraphics);
-        GlassRenderer.drawPanel(guiGraphics, x - 4, y - 4, width + 8, height + 8, POPOVER);
+        GlassRenderer.drawPanel(guiGraphics, x - 4, y - 4, width + 8, height + 8, POPOVER, depthTested);
     }
 
     /** A chat line background (vanilla: black at the configured opacity), as seamless glass rows. */

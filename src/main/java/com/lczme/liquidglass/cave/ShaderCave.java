@@ -5,6 +5,8 @@ import com.lczme.liquidglass.mixin.CameraAccessor;
 import com.lczme.liquidglass.mixin.ClientPacketListenerAccessor;
 import com.lczme.liquidglass.mixin.GameRendererAccessor;
 import com.lczme.liquidglass.mixin.LevelRendererAccessor;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import java.lang.reflect.Method;
@@ -21,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.CommonListenerCookie;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.telemetry.TelemetryEventSender;
@@ -63,6 +66,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL30;
 
 /**
  * The menu cave as a real (display-only) client level, drawn by the actual world renderer so a loaded Iris shader pack
@@ -97,6 +101,8 @@ final class ShaderCave {
     private static ClientLevel pendingLevel;
     @Nullable
     private static ClientPacketListener pendingListener;
+    // Render-stage listeners (Create's track outline, for one) assume a game mode whenever there is a level.
+    private static MultiPlayerGameMode gameMode;
     @Nullable
     private static CompletableFuture<List<ClientboundLevelChunkWithLightPacket>> chunkData;
     @Nullable
@@ -249,6 +255,7 @@ final class ShaderCave {
         LocalPlayer stand = new LocalPlayer(minecraft, cave, listener, new StatsCounter(), new ClientRecipeBook(), false, false);
         level = cave;
         player = stand;
+        gameMode = new MultiPlayerGameMode(minecraft, listener);
         chunkData = null;
         LiquidGlass.LOGGER.info("Shader cave level delivered in {} ms", Util.getMillis() - start);
         return true;
@@ -379,6 +386,9 @@ final class ShaderCave {
         Entity previousCamera = minecraft.cameraEntity;
         HitResult previousHit = minecraft.hitResult;
         Entity previousPick = minecraft.crosshairPickEntity;
+        MultiPlayerGameMode previousGameMode = minecraft.gameMode;
+        // Screens may draw into their own framebuffer (Catnip's do, for stencils) and copy it over the main one after.
+        int screenTarget = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
         Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting sorting = RenderSystem.getVertexSorting();
         CameraType cameraType = minecraft.options.getCameraType();
@@ -393,6 +403,7 @@ final class ShaderCave {
             minecraft.level = cave;
             minecraft.player = stand;
             minecraft.cameraEntity = stand;
+            minecraft.gameMode = gameMode;
             minecraft.options.setCameraType(CameraType.FIRST_PERSON);
             CameraAccessor mainCamera = (CameraAccessor) gameRenderer.getMainCamera();
             mainCamera.liquidglass$setEyeHeight(EYE_HEIGHT);
@@ -423,6 +434,7 @@ final class ShaderCave {
             minecraft.level = previousLevel;
             minecraft.player = previousPlayer;
             minecraft.cameraEntity = previousCamera;
+            minecraft.gameMode = previousGameMode;
             minecraft.options.setCameraType(cameraType);
             fov.liquidglass$setFov(previousFov);
             fov.liquidglass$setOldFov(previousOldFov);
@@ -433,8 +445,16 @@ final class ShaderCave {
             modelView.popMatrix();
             RenderSystem.applyModelViewMatrix();
             RenderSystem.setProjectionMatrix(projection, sorting);
-            minecraft.getMainRenderTarget().bindWrite(true);
+            RenderTarget main = minecraft.getMainRenderTarget();
+            main.bindWrite(true);
             RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+            if (screenTarget != main.frameBufferId) {
+                GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, main.frameBufferId);
+                GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, screenTarget);
+                GlStateManager._glBlitFrameBuffer(0, 0, main.width, main.height, 0, 0, main.width, main.height,
+                        GL11.GL_COLOR_BUFFER_BIT, GL11.GL_NEAREST);
+                GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, screenTarget);
+            }
         }
     }
 }

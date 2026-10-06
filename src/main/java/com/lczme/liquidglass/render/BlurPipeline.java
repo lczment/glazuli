@@ -68,6 +68,8 @@ public final class BlurPipeline {
         guiGraphics.flush();
 
         RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
+        // Usually the main target, but screens may draw into their own (Catnip's do, for stencils).
+        int screenTarget = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
         int passes = LiquidGlassConfig.BLUR_QUALITY.get().passes();
         ShaderInstance down = LiquidGlassShaders.kawaseDown();
         ShaderInstance up = LiquidGlassShaders.kawaseUp();
@@ -87,7 +89,7 @@ public final class BlurPipeline {
         RenderSystem.disableBlend();
         RenderSystem.disableDepthTest();
 
-        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, main.frameBufferId);
+        GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, screenTarget);
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, sharp.frameBufferId);
         GlStateManager._glBlitFrameBuffer(0, 0, main.width, main.height, 0, 0, sharp.width, sharp.height, GL11.GL_COLOR_BUFFER_BIT, GL11.GL_LINEAR);
 
@@ -106,6 +108,7 @@ public final class BlurPipeline {
         }
 
         main.bindWrite(true);
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, screenTarget);
         if (scissor) {
             GlStateManager._enableScissorTest();
             GlStateManager._scissorBox(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);

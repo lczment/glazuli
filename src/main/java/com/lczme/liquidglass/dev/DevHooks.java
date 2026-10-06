@@ -18,6 +18,15 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.world.BossEvent;
@@ -72,6 +81,9 @@ public final class DevHooks {
     private static double shotStart;
     private static double grabTime;
     private static boolean grabbed;
+    // Where the Create shots place their blocks: the block the player looks at once in the world.
+    @Nullable
+    private static BlockPos createPos;
 
     // In-memory config changes only (ConfigValue#set does not write to disk); glass is re-enabled at the end.
     private static final Shot[] SHOTS = {
@@ -107,6 +119,12 @@ public final class DevHooks {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(menu);
             }),
+            new Shot("liquidglass_autoshot_create_menu.png", SETTLED, () -> openReflective("create",
+                    "com.simibubi.create.infrastructure.gui.CreateMainMenuScreen")),
+            new Shot("liquidglass_autoshot_create_config.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
+                    "net.createmod.catnip.config.ui.BaseConfigScreen").getConstructor(Screen.class, String.class).newInstance(menu, "create"))),
+            new Shot("liquidglass_autoshot_ponder_index.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
+                    "net.createmod.ponder.foundation.ui.PonderIndexScreen").getConstructor().newInstance())),
             // Switching shader packs on the title screen rebuilds Iris' pipeline while the cave is showing.
             // Mid-flight between two camera spots: temporal shader effects show their smearing here.
             new Shot("liquidglass_autoshot_cave_motion.png", 0.7, () -> Minecraft.getInstance().setScreen(
@@ -177,7 +195,119 @@ public final class DevHooks {
                     mc.setScreen(new AdvancementsScreen(mc.player.connection.getAdvancements()));
                 }
             }),
+            // Create: a creative motor where the player looks, seen through goggles; the items for the next shots.
+            new Shot("liquidglass_autoshot_create_goggles.png", 2.5, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                mc.setScreen(null);
+                if (!ModList.get().isLoaded("create") || mc.player == null || !(mc.hitResult instanceof BlockHitResult hit)) {
+                    return;
+                }
+                createPos = hit.getBlockPos();
+                mc.player.connection.sendCommand("gamerule sendCommandFeedback false");
+                mc.player.connection.sendCommand("time set noon");
+                mc.player.connection.sendCommand("item replace entity @s hotbar.0 with create:cogwheel");
+                mc.player.connection.sendCommand("item replace entity @s hotbar.1 with create:filter");
+                mc.player.connection.sendCommand("item replace entity @s hotbar.2 with air");
+                mc.player.connection.sendCommand("item replace entity @s hotbar.3 with create:goggles");
+                mc.player.connection.sendCommand(String.format("setblock %d %d %d create:creative_motor[facing=up]",
+                        createPos.getX(), createPos.getY(), createPos.getZ()));
+                mc.player.lookAt(EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(createPos));
+                // Put on like a player does; the server handles the packets in order, so the goggles are there by then.
+                if (mc.gameMode != null) {
+                    mc.player.getInventory().selected = 3;
+                    mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+                    mc.player.getInventory().selected = 2;
+                }
+            }),
+            new Shot("liquidglass_autoshot_create_inventory.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (createPos != null && mc.player != null) {
+                    mc.setScreen(new InventoryScreen(mc.player));
+                }
+            }),
+            // Create's item description tooltip on the cogwheel in the first hotbar slot. Opening a screen centres the
+            // cursor, hence a shot of its own.
+            new Shot("liquidglass_autoshot_create_tooltip.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (!(mc.screen instanceof InventoryScreen inventory)) {
+                    return;
+                }
+                hover(inventory.getGuiLeft() + 16.0, inventory.getGuiTop() + 150.0);
+            }),
+            new Shot("liquidglass_autoshot_create_filter.png", 5.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (createPos == null || mc.player == null || mc.gameMode == null) {
+                    return;
+                }
+                mc.player.closeContainer();
+                mc.player.connection.sendCommand(String.format("setblock %d %d %d create:schematic_table",
+                        createPos.getX(), createPos.getY(), createPos.getZ()));
+                mc.player.getInventory().selected = 1;
+                mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+            }, () -> isScreen("FilterScreen"), true),
+            new Shot("liquidglass_autoshot_create_schematic_table.png", 5.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (createPos == null || mc.player == null || mc.gameMode == null) {
+                    return;
+                }
+                mc.player.closeContainer();
+                mc.player.getInventory().selected = 2;
+                mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                        new BlockHitResult(Vec3.atCenterOf(createPos), Direction.UP, createPos, false));
+            }, () -> isScreen("SchematicTableScreen"), true),
+            // Ponder scenes need a client level.
+            new Shot("liquidglass_autoshot_ponder.png", 3.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.player.closeContainer();
+                }
+                openCreate(() -> (Screen) Class.forName("net.createmod.ponder.foundation.ui.PonderUI")
+                        .getMethod("of", ItemStack.class).invoke(null, createStack("cogwheel")));
+            }),
     };
+
+    /**
+     * Puts the mouse at GUI coordinates. Moving the OS cursor sends no events while the window is in the background,
+     * so this sets the position the game reads instead.
+     */
+    private static void hover(double guiX, double guiY) {
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            java.lang.reflect.Field x = net.minecraft.client.MouseHandler.class.getDeclaredField("xpos");
+            java.lang.reflect.Field y = net.minecraft.client.MouseHandler.class.getDeclaredField("ypos");
+            x.setAccessible(true);
+            y.setAccessible(true);
+            x.setDouble(mc.mouseHandler, guiX * mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth());
+            y.setDouble(mc.mouseHandler, guiY * mc.getWindow().getScreenHeight() / mc.getWindow().getGuiScaledHeight());
+        } catch (ReflectiveOperationException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not move the mouse", e);
+        }
+    }
+
+    private static boolean isScreen(String simpleName) {
+        Screen screen = Minecraft.getInstance().screen;
+        return screen != null && screen.getClass().getSimpleName().equals(simpleName);
+    }
+
+    private static ItemStack createStack(String path) {
+        return new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("create", path)));
+    }
+
+    private interface ScreenFactory {
+        Screen create() throws ReflectiveOperationException;
+    }
+
+    /** Create is not on the compile classpath; its screens are built reflectively. */
+    private static void openCreate(ScreenFactory factory) {
+        if (!ModList.get().isLoaded("create")) {
+            return;
+        }
+        try {
+            Minecraft.getInstance().setScreen(factory.create());
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            LiquidGlass.LOGGER.warn("[autoshot] could not open a Create screen", e);
+        }
+    }
 
     /** Switches the open Iris shader pack screen to the pack's option menu, as its "Shader Pack Settings" button does. */
     private static void openIrisOptions() {

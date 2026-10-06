@@ -5,6 +5,7 @@
   "plugin": "com.lczme.liquidglass.compat.CompatMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "create.RemovedGuiUtilsMixin",
     "iris.IrisGuiUtilMixin",
     "jade.JadeBoxElementMixin",
     "jei.JeiDrawableSpriteMixin",

@@ -51,6 +51,12 @@ public final class GlassRenderer {
 
     /** Draws a glass panel at GUI coordinates, honoring the current {@link GuiGraphics#pose()} transform. */
     public static void drawPanel(GuiGraphics guiGraphics, float x, float y, float width, float height, GlassStyle style) {
+        drawPanel(guiGraphics, x, y, width, height, style, false);
+    }
+
+    /** {@code depthTested}: anything already drawn at a higher z than the pose's stays in front of the panel. */
+    public static void drawPanel(GuiGraphics guiGraphics, float x, float y, float width, float height, GlassStyle style,
+                                 boolean depthTested) {
         if (width <= 0.0F || height <= 0.0F || style.opacity() <= 0.0F) {
             return;
         }
@@ -87,7 +93,11 @@ public final class GlassRenderer {
         RenderSystem.blendFuncSeparate(
                 GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                 GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        RenderSystem.disableDepthTest();
+        if (depthTested) {
+            RenderSystem.enableDepthTest();
+        } else {
+            RenderSystem.disableDepthTest();
+        }
 
         float m = style.shadow() > 0.0F ? SHADOW_MARGIN : 1.0F;
         Matrix4f pose = guiGraphics.pose().last().pose();

@@ -117,6 +117,8 @@ configurations {
     devMods { transitive = false }
 }
 
+def createModrinthVersions = project.create_modrinth_versions.split(',').collectEntries { it.trim().split(':') as List }
+
 dependencies {
     // Optional integrations. Sodium's and Jade's APIs are compiled against; the others are only targeted by name.
     compileOnly "net.caffeinemc:sodium-neoforge-mod:${sodium_version}"
@@ -135,6 +137,9 @@ dependencies {
             devMods "maven.modrinth:xaeros-world-map:${xaeros_world_map_modrinth_version}"
             devMods "maven.modrinth:curios:${curios_modrinth_version}"
         }
+        if (project.findProperty('compat_create') != 'false') {
+            createModrinthVersions.each { slug, id -> devMods "maven.modrinth:${slug}:${id}" }
+        }
     }
 }
 
@@ -144,7 +149,8 @@ def syncDevMods = tasks.register('syncDevMods', Sync) {
     // Only manage our own jars; anything else dropped into run/mods is left alone.
     preserve {
         include '**'
-        ['sodium', 'jade', 'appleskin', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'curios'].each { exclude "${it}-*.jar" }
+        (['sodium', 'jade', 'appleskin', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'curios'] + createModrinthVersions.keySet())
+                .each { exclude "${it}-*.jar" }
     }
 }
 tasks.matching { it.name ==~ /runClient.*/ }.configureEach { dependsOn syncDevMods }
