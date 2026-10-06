@@ -16,6 +16,7 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.TutorialToast;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -120,8 +121,14 @@ public final class DevHooks {
                 LiquidGlassConfig.ENABLE_GLASS.set(true);
                 Minecraft.getInstance().setScreen(menu);
             }),
-            new Shot("liquidglass_autoshot_create_menu.png", SETTLED, () -> openReflective("create",
-                    "com.simibubi.create.infrastructure.gui.CreateMainMenuScreen")),
+            new Shot("liquidglass_autoshot_title_classic.png", SETTLED, () -> {
+                LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(false);
+                Minecraft.getInstance().setScreen(new TitleScreen());
+            }),
+            new Shot("liquidglass_autoshot_create_menu.png", SETTLED, () -> {
+                LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(true);
+                openReflective("create", "com.simibubi.create.infrastructure.gui.CreateMainMenuScreen");
+            }),
             new Shot("liquidglass_autoshot_create_config.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
                     "net.createmod.catnip.config.ui.BaseConfigScreen").getConstructor(Screen.class, String.class).newInstance(menu, "create"))),
             new Shot("liquidglass_autoshot_ponder_index.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(

@@ -11,6 +11,8 @@
   "liquidglass.configuration.styleReloadOverlay": "Mojang Screen for Reloads",
   "liquidglass.configuration.menu": "Menus",
   "liquidglass.configuration.customTitleScreen": "Glass Title Screen",
+  "liquidglass.title.classic": "Classic Menu",
+  "liquidglass.title.glass": "Glass Menu",
   "liquidglass.configuration.glassButtons": "Glass Buttons",
   "liquidglass.configuration.screenFade": "Screen Cross-fade",
   "liquidglass.configuration.caveBackground": "Dynamic Cave Background",

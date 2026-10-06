@@ -8,8 +8,8 @@ import net.minecraft.util.Mth;
 /** Shared building blocks for restyled mod screens: cards, glass buttons, iOS switches and soft highlights. */
 public final class GlassUi {
     public static final float CARD_RADIUS = 8.0F;
-    public static final GlassStyle CARD = GlassStyle.film(GlassStyle.FILM_COLOR, 0.12F).withCornerRadius(CARD_RADIUS);
-    public static final GlassStyle POPOVER = GlassStyle.film(GlassStyle.FILM_COLOR, 0.32F).withCornerRadius(6.0F);
+    /** Light like the cards it pops over, a little more opaque and lifted by a shadow so it separates from them. */
+    public static final GlassStyle POPOVER = GlassStyle.film(0xF4F6FA, (0.62F - 0.42F) / 0.7F).withCornerRadius(6.0F).withShadow(0.3F);
     public static final GlassStyle SELECTION = GlassStyle.button(5.0F, 0.16F).withShadow(0.0F);
     /** Text starts 6 px in, so the corners stay tighter than a capsule. */
     public static final GlassStyle FIELD = GlassButtons.BUTTON_CLEAR.withCornerRadius(6.0F);
@@ -18,8 +18,9 @@ public final class GlassUi {
             0.5F, 2.2F, 0.7F, 0.0F, 1.0F, true, 1.0F, 0.0F);
     public static final GlassStyle KNOB = GlassStyle.button(GlassStyle.CAPSULE, 0.92F).withShadow(0.2F);
     public static final GlassStyle TRACK = GlassStyle.button(GlassStyle.CAPSULE, 0.2F).withShadow(0.0F);
-    private static final GlassStyle SLIDER_TRACK = GlassStyle.film(0xFFFFFF, -0.3F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
-    private static final GlassStyle SLIDER_FILL = GlassStyle.film(0xFFFFFF, 0.7F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
+    // Sliders sit on the light frosted cards: dark groove and fill, white knob.
+    private static final GlassStyle SLIDER_TRACK = GlassStyle.film(0x000000, -0.3F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
+    private static final GlassStyle SLIDER_FILL = GlassStyle.film(0x3A3A40, 0.7F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.0F);
     private static final GlassStyle SLIDER_KNOB = GlassStyle.film(0xFFFFFF, 0.7F).withCornerRadius(GlassStyle.CAPSULE).withShadow(0.35F);
 
     public static final int ROW = 0x0CFFFFFF;
@@ -88,7 +89,7 @@ public final class GlassUi {
         float trackY = centerY - thickness * 0.5F;
         if (!GlassRenderer.isGlassAvailable()) {
             GlassRenderer.fillRounded(g, x, trackY, width, thickness, thickness * 0.5F, withAlpha(FLAT_SWITCH_OFF, opacity));
-            GlassRenderer.fillRounded(g, x, trackY, fillEnd - x, thickness, thickness * 0.5F, withAlpha(0xFFFFFFFF, opacity));
+            GlassRenderer.fillRounded(g, x, trackY, fillEnd - x, thickness, thickness * 0.5F, withAlpha(0xFF3A3A40, opacity));
             GlassRenderer.fillRounded(g, fillEnd - knob * 0.5F, centerY - knob * 0.5F, knob, knob, knob * 0.5F, withAlpha(0xFFFFFFFF, opacity));
             return;
         }

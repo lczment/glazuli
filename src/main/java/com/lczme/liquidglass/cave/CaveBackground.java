@@ -200,7 +200,10 @@ public final class CaveBackground {
         RenderSystem.setShaderFogEnd(camera.fogEnd);
         RenderSystem.setShaderFogColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F);
         RenderSystem.setShaderFogShape(FogShape.SPHERE);
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        // The mesh doesn't cover every pixel (openings, beyond the fog end); without a colour clear those show the
+        // previous screen.
+        RenderSystem.clearColor(((DARK >> 16) & 0xFF) / 255.0F, ((DARK >> 8) & 0xFF) / 255.0F, (DARK & 0xFF) / 255.0F, 1.0F);
+        RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
         int lightmapId = lightmap().getId();
         for (RenderType layer : CaveMesh.LAYERS) {

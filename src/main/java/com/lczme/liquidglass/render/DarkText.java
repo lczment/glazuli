@@ -11,7 +11,7 @@ public final class DarkText {
     private static final int DARKEST = 0x1D;
     private static final int LIGHTEST = 0x50;
     /** Coloured text is scaled down to at most this luminance. */
-    private static final float MAX_COLOURED = 0.42F;
+    private static final float MAX_COLOURED = 0.3F;
 
     private static int depth;
 

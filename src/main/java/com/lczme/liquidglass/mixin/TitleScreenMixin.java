@@ -1,13 +1,17 @@
 package com.lczme.liquidglass.mixin;
 
+import com.lczme.liquidglass.config.LiquidGlassConfig;
+import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.title.TitleMenu;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.LogoRenderer;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -16,7 +20,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(TitleScreen.class)
-public abstract class TitleScreenMixin {
+public abstract class TitleScreenMixin extends Screen {
+    @Unique
+    private static final int LIQUIDGLASS$STYLE_BUTTON_MARGIN = 4;
+
     @Shadow
     private boolean fading;
     @Shadow
@@ -25,9 +32,17 @@ public abstract class TitleScreenMixin {
     @Unique
     private TitleMenu liquidglass$menu;
 
+    protected TitleScreenMixin(Component title) {
+        super(title);
+    }
+
     @Inject(method = "init", at = @At("TAIL"))
     private void liquidglass$layout(CallbackInfo ci) {
+        if (LiquidGlassConfig.SPEC.isLoaded()) {
+            liquidglass$addStyleButton();
+        }
         if (!TitleMenu.isEnabled()) {
+            liquidglass$menu = null;
             return;
         }
         if (liquidglass$menu == null) {
@@ -36,12 +51,26 @@ public abstract class TitleScreenMixin {
         liquidglass$menu.layout((Screen) (Object) this);
     }
 
+    /** Switches between the glass title screen and the vanilla one (vanilla layout, logo and buttons, cave kept). */
+    @Unique
+    private void liquidglass$addStyleButton() {
+        Component label = Component.translatable(TitleMenu.isEnabled() ? "liquidglass.title.classic" : "liquidglass.title.glass");
+        int width = this.font.width(label) + 16;
+        this.addRenderableWidget(Button.builder(label, button -> {
+            LiquidGlassConfig.CUSTOM_TITLE_SCREEN.set(!LiquidGlassConfig.CUSTOM_TITLE_SCREEN.get());
+            LiquidGlassConfig.CUSTOM_TITLE_SCREEN.save();
+            // Not while the widget list is being iterated (the click may fire from a render pass).
+            this.minecraft.tell(this::rebuildWidgets);
+        }).bounds(this.width - width - LIQUIDGLASS$STYLE_BUTTON_MARGIN, LIQUIDGLASS$STYLE_BUTTON_MARGIN, width, 20).build());
+    }
+
     /**
      * Drives vanilla's title fade with our entrance: while fading, vanilla's opacity is
      * {@code clampedMap((now - fadeInStart) / 2000, 0.5, 1, 0, 1)}, so choosing {@code fadeInStart} sets it exactly.
      */
     @Inject(method = "render", at = @At("HEAD"))
     private void liquidglass$beforeRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        GlassButtons.setSuppressed(LiquidGlassConfig.SPEC.isLoaded() && !TitleMenu.isEnabled());
         if (liquidglass$menu == null) {
             return;
         }
@@ -51,6 +80,11 @@ public abstract class TitleScreenMixin {
         if (fading) {
             fadeInStart = Util.getMillis() - (long) (1000.0F + 1000.0F * alpha);
         }
+    }
+
+    @Inject(method = "render", at = @At("RETURN"))
+    private void liquidglass$afterRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        GlassButtons.setSuppressed(false);
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
@@ -69,12 +103,16 @@ public abstract class TitleScreenMixin {
         }
     }
 
+    /** Vanilla never blurs the title panorama; here it follows the accessibility "Menu Background Blur" like other menus. */
     @Inject(method = "render", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/client/gui/screens/TitleScreen;renderPanorama(Lnet/minecraft/client/gui/GuiGraphics;F)V"))
     private void liquidglass$drawBackdrop(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        if (this.minecraft.options.getMenuBackgroundBlurriness() > 0) {
+            guiGraphics.flush();
+            this.renderBlurredBackground(partialTick);
+        }
         if (liquidglass$menu != null) {
-            Screen self = (Screen) (Object) this;
-            liquidglass$menu.drawBackdrop(guiGraphics, self.width, self.height);
+            liquidglass$menu.drawBackdrop(guiGraphics, this.width, this.height);
         }
     }
 }

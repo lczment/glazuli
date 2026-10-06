@@ -46,7 +46,9 @@ public final class LiquidGlassConfig {
 
         builder.push("menu");
         CUSTOM_TITLE_SCREEN = builder
-                .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.")
+                .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.",
+                        "When off, the title screen keeps vanilla's layout, logo and buttons (the cave background stays).",
+                        "Also toggled by the button in the title screen's top-right corner.")
                 .define("customTitleScreen", true);
         GLASS_BUTTONS = builder
                 .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
