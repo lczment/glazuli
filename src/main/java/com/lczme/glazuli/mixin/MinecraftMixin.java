@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -49,7 +50,17 @@ public abstract class MinecraftMixin {
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void glazuli$uncapAnimatedMenus(CallbackInfoReturnable<Integer> cir) {
         Minecraft minecraft = (Minecraft) (Object) this;
-        if (minecraft.level != null || !minecraft.isWindowActive() && !Perf.ON) {
+        if (minecraft.level != null) {
+            return;
+        }
+        // Minimized, vanilla would go on drawing the menu (and our scene) at 60 fps. Not while loading: reload stages
+        // run their main-thread parts between frames.
+        if (!minecraft.isWindowActive() && IntroState.isDone() && minecraft.getOverlay() == null
+                && GLFW.glfwGetWindowAttrib(minecraft.getWindow().getWindow(), GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE) {
+            cir.setReturnValue(GLAZULI$MINIMIZED_FPS);
+            return;
+        }
+        if (!minecraft.isWindowActive() && !Perf.ON) {
             return;
         }
         // Called every frame from the start: CaveBackground may only be touched once mod loading is over, as its
@@ -71,6 +82,8 @@ public abstract class MinecraftMixin {
         }
     }
 
+    @Unique
+    private static final int GLAZULI$MINIMIZED_FPS = 10;
     @Unique
     private static int glazuli$refreshRate;
     @Unique
