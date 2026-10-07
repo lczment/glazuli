@@ -11,13 +11,14 @@ import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.font.FontSet;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.font.glyphs.BakedGlyph;
 import net.minecraft.client.resources.language.ClientLanguage;
 import net.minecraft.locale.Language;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
 /**
- * Bakes the glyphs of the current language ahead of use, most frequent first, a little per frame while a menu is idle.
+ * Bakes the glyphs of the current language ahead of use, most frequent first, a little per frame on the title screens and the pause menu.
  * A glyph is rasterised and uploaded the first time it is drawn, about 0.1 ms each for CJK at UI scale, so a screen
  * full of new text would otherwise stall its first frame (and its opening animation) by ten milliseconds or more.
  */
@@ -42,7 +43,7 @@ public final class GlyphWarmup {
 
     public static void onRenderFramePost(RenderFrameEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null || mc.getOverlay() != null || !IntroState.isDone()) {
+        if (mc.level != null && !(mc.screen instanceof PauseScreen) || mc.getOverlay() != null || !IntroState.isDone()) {
             return;
         }
         Language current = Language.getInstance();
