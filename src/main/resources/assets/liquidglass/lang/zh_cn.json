@@ -35,6 +35,7 @@
   "liquidglass.scene.save_failed": "保存场景失败：%s",
   "liquidglass.configuration.glassButtons": "玻璃按钮",
   "liquidglass.configuration.screenFade": "界面切换渐变",
+  "liquidglass.configuration.menuBlurDefaulted": "已关闭菜单背景模糊",
   "liquidglass.configuration.caveBackground": "动态洞穴背景",
   "liquidglass.configuration.font": "字体",
   "liquidglass.configuration.customFont": "鸿蒙黑体 / 苹方字体",

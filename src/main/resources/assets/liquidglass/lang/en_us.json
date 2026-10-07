@@ -35,6 +35,7 @@
   "liquidglass.scene.save_failed": "Couldn't save the scene: %s",
   "liquidglass.configuration.glassButtons": "Glass Buttons",
   "liquidglass.configuration.screenFade": "Screen Cross-fade",
+  "liquidglass.configuration.menuBlurDefaulted": "Menu Blur Already Turned Off",
   "liquidglass.configuration.caveBackground": "Dynamic Cave Background",
   "liquidglass.configuration.font": "Font",
   "liquidglass.configuration.customFont": "HarmonyOS Sans / PingFang Font",

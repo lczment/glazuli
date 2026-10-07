@@ -16,6 +16,8 @@ import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
 import com.lczme.liquidglass.render.LiquidGlassShaders;
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -42,7 +44,10 @@ public final class LiquidGlass {
         modBus.addListener(LiquidGlassShaders::onRegisterShaders);
         modBus.addListener(FontPack::onAddPackFinders);
         modBus.addListener(FontScale::onConfigReloading);
-        modBus.addListener((FMLClientSetupEvent event) -> CaveBackground.startGenerating());
+        modBus.addListener((FMLClientSetupEvent event) -> {
+            CaveBackground.startGenerating();
+            event.enqueueWork(LiquidGlass::defaultMenuBlurOff);
+        });
         modBus.addListener((RegisterClientReloadListenersEvent event) -> {
             event.registerReloadListener(CaveBackground.reloadListener());
             event.registerReloadListener(PackOverrides.reloadListener());
@@ -61,6 +66,17 @@ public final class LiquidGlass {
         NeoForge.EVENT_BUS.addListener(MenuScenes::registerCommands);
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
+    }
+
+    private static void defaultMenuBlurOff() {
+        if (!LiquidGlassConfig.SPEC.isLoaded() || LiquidGlassConfig.MENU_BLUR_DEFAULTED.get()) {
+            return;
+        }
+        Options options = Minecraft.getInstance().options;
+        options.menuBackgroundBlurriness().set(0);
+        options.save();
+        LiquidGlassConfig.MENU_BLUR_DEFAULTED.set(true);
+        LiquidGlassConfig.MENU_BLUR_DEFAULTED.save();
     }
 
     public static ResourceLocation id(String path) {

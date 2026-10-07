@@ -14,6 +14,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
+    public static final ModConfigSpec.BooleanValue MENU_BLUR_DEFAULTED;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
     public static final ModConfigSpec.ConfigValue<String> MENU_SCENE;
     public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
@@ -70,6 +71,10 @@ public final class LiquidGlassConfig {
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);
+        MENU_BLUR_DEFAULTED = builder
+                .comment("Set once the vanilla Menu Background Blur option (Accessibility Settings) has been turned down to 0 so the",
+                        "menu scene stays sharp. Raise that slider again for blurred menus; set this to false to reset it to 0 on next launch.")
+                .define("menuBlurDefaulted", false);
         builder.pop();
 
         builder.push("font");
