@@ -50,6 +50,10 @@ public final class BlurPipeline {
         frame++;
     }
 
+    public static long frame() {
+        return frame;
+    }
+
     /** A screen draws over the HUD (dimmed or blurred), so its panels must not reuse a capture taken by HUD glass. */
     public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
         capturedFrame = -1;

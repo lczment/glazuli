@@ -21,6 +21,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.TutorialToast;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -128,6 +129,14 @@ public final class Bench {
                     show(open ? new InventoryScreen(mc.player) : null);
                 }
             }, WARMUP),
+            world("world_toasts", true, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                for (int i = 0; i < 4; i++) {
+                    mc.getToasts().addToast(new TutorialToast(TutorialToast.Icons.MOVEMENT_KEYS,
+                            Component.literal("Benchmark toast " + i), Component.literal("Press W to move"), false));
+                }
+                show(null);
+            }),
     };
 
     private static int index = -1;

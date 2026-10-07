@@ -27,6 +27,8 @@ public final class VanillaGlass {
     private static final ResourceLocation BOSS_BAR_SPRITE = ResourceLocation.withDefaultNamespace("boss_bar/white_background");
     private static final ResourceLocation ADVANCEMENTS_WINDOW = ResourceLocation.withDefaultNamespace("textures/gui/advancements/window.png");
 
+    private static long toastCaptureFrame = -1;
+
     private VanillaGlass() {
     }
 
@@ -44,7 +46,11 @@ public final class VanillaGlass {
             if (PackOverrides.sprite(sprite)) {
                 return false;
             }
-            GlassRenderer.recaptureBackdrop(guiGraphics);
+            // Toasts sit in their own slots and never overlap each other, so the frame's first one recaptures for all.
+            if (toastCaptureFrame != BlurPipeline.frame()) {
+                toastCaptureFrame = BlurPipeline.frame();
+                GlassRenderer.recaptureBackdrop(guiGraphics);
+            }
             GlassRenderer.drawPanel(guiGraphics, x, y, width, height, POPOVER);
             return true;
         }
