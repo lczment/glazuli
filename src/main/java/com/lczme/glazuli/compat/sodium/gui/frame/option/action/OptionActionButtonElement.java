@@ -1,8 +1,6 @@
 package com.lczme.glazuli.compat.sodium.gui.frame.option.action;
 
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuideProvider;
 import net.caffeinemc.mods.sodium.client.config.structure.StatefulOption;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,14 +20,12 @@ import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.List;
 
-final class OptionActionButtonElement implements GuiEventListener, NarratableEntry, ControlGuideProvider {
+final class OptionActionButtonElement implements GuiEventListener, NarratableEntry {
     private final Supplier<LayoutBounds> rowBoundsSupplier;
     private final Supplier<@Nullable StatefulOption<?>> optionSupplier;
     private final IntSupplier buttonsFromRight;
     private final ResourceLocation icon;
-    private final Component guideLabel;
     private final Function<StatefulOption<?>, Component> narrationLabelProvider;
     private final Predicate<StatefulOption<?>> visiblePredicate;
     private final Predicate<StatefulOption<?>> activePredicate;
@@ -40,13 +36,12 @@ final class OptionActionButtonElement implements GuiEventListener, NarratableEnt
     private boolean hovered;
 
     OptionActionButtonElement(Supplier<LayoutBounds> rowBoundsSupplier, Supplier<@Nullable StatefulOption<?>> optionSupplier,
-                              IntSupplier buttonsFromRight, ResourceLocation icon, Component guideLabel, Function<StatefulOption<?>, Component> narrationLabelProvider, Predicate<StatefulOption<?>> visiblePredicate, Predicate<StatefulOption<?>> activePredicate,
+                              IntSupplier buttonsFromRight, ResourceLocation icon, Function<StatefulOption<?>, Component> narrationLabelProvider, Predicate<StatefulOption<?>> visiblePredicate, Predicate<StatefulOption<?>> activePredicate,
                               Consumer<StatefulOption<?>> action, Runnable clickSound, Runnable afterAction) {
         this.rowBoundsSupplier = rowBoundsSupplier;
         this.optionSupplier = optionSupplier;
         this.buttonsFromRight = buttonsFromRight;
         this.icon = icon;
-        this.guideLabel = guideLabel;
         this.narrationLabelProvider = narrationLabelProvider;
         this.visiblePredicate = visiblePredicate;
         this.activePredicate = activePredicate;
@@ -66,11 +61,6 @@ final class OptionActionButtonElement implements GuiEventListener, NarratableEnt
         StatefulOption<?> option = this.optionSupplier.get();
 
         return option != null && this.visiblePredicate.test(option);
-    }
-
-    @Override
-    public List<ControlGuide> controlGuides() {
-        return this.isFocused() && this.isActive() ? List.of(new ControlGuide(ControlGuide.Input.PRESS, this.guideLabel)) : List.of();
     }
 
     public LayoutBounds getDimensions() {

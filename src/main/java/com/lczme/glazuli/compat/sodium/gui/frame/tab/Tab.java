@@ -51,36 +51,6 @@ public class Tab<T extends AbstractFrame> {
     }
 
     public static class Builder<T extends AbstractFrame> {
-        private ModOptions modOptions;
-        private Component title;
-        private Page page;
-        private Function<LayoutBounds, T> frameFunction;
-
-        public Builder<T> withTitle(Component title) {
-            this.title = title;
-            return this;
-        }
-
-        public Builder<T> withFrameFunction(Function<LayoutBounds, T> frameFunction) {
-            this.frameFunction = frameFunction;
-            return this;
-        }
-
-        public Builder<T> withPage(Page page) {
-            this.page = page;
-            return this;
-        }
-
-        public Builder<T> withModOptions(ModOptions modOptions) {
-            this.modOptions = modOptions;
-            return this;
-        }
-
-
-        public Tab<T> build() {
-            return new Tab<T>(this.modOptions, this.title, this.page, this.frameFunction);
-        }
-
         public Tab<ScrollableFrame> from(Screen screen, ModOptions modOptions, Page page, Holder<Integer> verticalScrollBarOffset, OptionStateStore optionStateStore) {
             return new Tab<>(modOptions, page.name(), page, bounds -> {
                 PageFrame pageFrame = PageFrame

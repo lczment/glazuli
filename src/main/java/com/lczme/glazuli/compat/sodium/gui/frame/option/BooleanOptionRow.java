@@ -4,7 +4,6 @@ import com.lczme.glazuli.anim.Spring;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.glazuli.render.GlassUi;
 import org.jetbrains.annotations.Nullable;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
 import com.lczme.glazuli.compat.sodium.gui.state.OptionStateStore;
 import com.lczme.glazuli.compat.sodium.gui.theme.GuiTheme;
 import net.caffeinemc.mods.sodium.client.config.structure.BooleanOption;
@@ -14,7 +13,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-import java.util.List;
 
 final class BooleanOptionRow extends AbstractOptionRow {
     private static final int CONTENT_WIDTH = 30;
@@ -39,10 +37,6 @@ final class BooleanOptionRow extends AbstractOptionRow {
     @Override
     protected int controlContentWidth() {
         return CONTENT_WIDTH;
-    }
-
-    public List<ControlGuide> controlGuides() {
-        return this.canShowControlGuide() ? List.of(ControlGuide.press(Component.translatable("rso.controller.guide.toggle"))) : List.of();
     }
 
     @Override

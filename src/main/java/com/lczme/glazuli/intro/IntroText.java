@@ -31,12 +31,12 @@ final class IntroText {
      * Draws {@code text} with its box's top edge at {@code y}; {@code align} 0 = left, 0.5 = centered, 1 = right of
      * {@code x}. Use {@link IntroDraw#blendPremultiplied()}. Returns the drawn width in GUI units, 0 if not ready.
      */
-    static float draw(Matrix4f pose, String text, float x, float y, float size, IntroRaster.Weight weight, int argb, float align) {
+    static float draw(Matrix4f pose, String text, float x, float y, float size, int argb, float align) {
         if (text.isEmpty() || (argb >>> 24) == 0) {
             return 0.0F;
         }
         float scale = (float) Minecraft.getInstance().getWindow().getGuiScale();
-        Entry entry = entry(new Key(text, Math.max(4, Math.round(size * scale)), weight));
+        Entry entry = entry(new Key(text, Math.max(4, Math.round(size * scale))));
         if (entry.texture == null) {
             return 0.0F;
         }
@@ -79,7 +79,7 @@ final class IntroText {
         CACHE.clear();
     }
 
-    private record Key(String text, int pixelSize, IntroRaster.Weight weight) {
+    private record Key(String text, int pixelSize) {
     }
 
     private static final class Entry {
@@ -93,7 +93,7 @@ final class IntroText {
 
         void rasterize(Key key) {
             try {
-                Font font = IntroRaster.font(key.weight, key.pixelSize, key.text);
+                Font font = IntroRaster.font(key.pixelSize, key.text);
                 BufferedImage probe = IntroRaster.newImage(1, 1);
                 Graphics2D pg = IntroRaster.graphics(probe);
                 FontMetrics metrics = pg.getFontMetrics(font);

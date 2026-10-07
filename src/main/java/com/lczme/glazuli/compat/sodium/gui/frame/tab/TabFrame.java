@@ -191,14 +191,6 @@ public class TabFrame extends AbstractFrame {
         return tabs;
     }
 
-    public AbstractFrame getSelectedFrame() {
-        return this.tabSelection.selectedFrame();
-    }
-
-    public Optional<Tab<?>> getSelectedTab() {
-        return this.tabSelection.selectedTab();
-    }
-
     public Optional<String> getSelectedTabKey() {
         return this.tabSelection.selectedTabKey();
     }

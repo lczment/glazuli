@@ -14,7 +14,6 @@ import com.lczme.glazuli.compat.sodium.gui.state.OptionsScreenUiState;
 import com.lczme.glazuli.compat.sodium.gui.widget.BaseWidget;
 import net.caffeinemc.mods.sodium.client.SodiumClientMod;
 import net.caffeinemc.mods.sodium.client.config.ConfigManager;
-import net.caffeinemc.mods.sodium.client.config.structure.ExternalPage;
 import net.caffeinemc.mods.sodium.client.config.structure.ModOptions;
 import net.caffeinemc.mods.sodium.client.config.structure.StatefulOption;
 import net.caffeinemc.mods.sodium.client.data.fingerprint.HashedFingerprint;
@@ -49,7 +48,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable, PreviousScreenHolder {
@@ -103,26 +101,6 @@ public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable
     @Override
     public Screen glazuli$previousScreen() {
         return this.prevScreen;
-    }
-
-    public @Nullable FlatButtonWidget glazuli$getApplyButton() {
-        return this.applyButton;
-    }
-
-    public @Nullable FlatButtonWidget glazuli$getCloseButton() {
-        return this.closeButton;
-    }
-
-    public @Nullable FlatButtonWidget glazuli$getUndoButton() {
-        return this.undoButton;
-    }
-
-    public @Nullable SearchTextFieldWidget glazuli$getSearchTextField() {
-        return this.searchTextField;
-    }
-
-    public @Nullable TabFrame glazuli$getTabFrame() {
-        return this.tabFrame;
     }
 
     private void checkPromptTimers() {
@@ -674,101 +652,6 @@ public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable
         return this.tabFrame == null ? null : this.tabFrame.getSelectedTabKey().orElse(null);
     }
 
-    public @Nullable String glazuli$getSelectedTabKey() {
-        return this.getSelectedTabKey();
-    }
-
-    public boolean glazuli$cycleTab(int direction) {
-        BaseWidget.setKeyboardFocusVisible(true);
-
-        if (this.tabFrame == null || direction == 0) {
-            return false;
-        }
-
-        List<Tab<?>> tabs = this.tabFrame.getTabs();
-        if (tabs.isEmpty()) {
-            return false;
-        }
-
-        int currentIndex = this.tabFrame.getSelectedTab()
-                .map(tabs::indexOf)
-                .filter(index -> index >= 0)
-                .orElse(0);
-
-        for (int offset = 1; offset <= tabs.size(); offset++) {
-            int nextIndex = Math.floorMod(currentIndex + direction * offset, tabs.size());
-            Tab<?> nextTab = tabs.get(nextIndex);
-            if (nextTab.getPage() instanceof ExternalPage) {
-                continue;
-            }
-
-            this.clearArrowNavigationMemory();
-            this.uiState.scrollSelectedTabIntoView().set(true);
-            this.tabFrame.setTab(Optional.of(nextTab));
-            this.focusFirstOptionInSelectedTab();
-            this.rememberCurrentOptionFocus();
-            return true;
-        }
-
-        return false;
-    }
-
-    public boolean glazuli$focusFirstOptionInSelectedTab() {
-        BaseWidget.setKeyboardFocusVisible(true);
-
-        return this.focusFirstOptionInSelectedTab();
-    }
-
-    private boolean focusFirstOptionInSelectedTab() {
-        if (this.tabFrame == null) {
-            return false;
-        }
-
-        return this.focusOptionRow(this.tabFrame.findFirstSelectedOptionRow());
-    }
-
-    public boolean glazuli$navigateController(ScreenDirection direction) {
-        int keyCode = keyForDirection(direction);
-        BaseWidget.setKeyboardFocusVisible(true);
-
-        if (this.prompt != null) {
-            return this.keyPressed(keyCode, 0, 0);
-        }
-
-        return this.keyPressedArrow(keyCode, 0, 0, direction);
-    }
-
-    public boolean glazuli$handleControllerBack() {
-        BaseWidget.setKeyboardFocusVisible(true);
-
-        return this.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0);
-    }
-
-    public boolean glazuli$handleControllerPress() {
-        BaseWidget.setKeyboardFocusVisible(true);
-
-        return this.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
-    }
-
-    public void glazuli$afterControllerInput(@Nullable String previousTabKey) {
-        this.afterInput(previousTabKey);
-    }
-
-    public @Nullable GuiEventListener glazuli$getFocusedLeaf() {
-        return focusedLeaf(this.getFocused());
-    }
-
-    private static @Nullable GuiEventListener focusedLeaf(@Nullable GuiEventListener listener) {
-        if (listener instanceof ContainerEventHandler container) {
-            GuiEventListener focused = container.getFocused();
-            if (focused != null) {
-                return focusedLeaf(focused);
-            }
-        }
-
-        return listener;
-    }
-
     private boolean keyPressedArrow(int keyCode, int scanCode, int modifiers, ScreenDirection direction) {
         GuiEventListener focused = this.getFocused();
         if (focused != null && focused.keyPressed(keyCode, scanCode, modifiers)) {
@@ -873,15 +756,6 @@ public class SodiumVideoOptionsScreen extends Screen implements ScreenPromptable
             case GLFW.GLFW_KEY_UP -> ScreenDirection.UP;
             case GLFW.GLFW_KEY_DOWN -> ScreenDirection.DOWN;
             default -> null;
-        };
-    }
-
-    private static int keyForDirection(ScreenDirection direction) {
-        return switch (direction) {
-            case LEFT -> GLFW.GLFW_KEY_LEFT;
-            case RIGHT -> GLFW.GLFW_KEY_RIGHT;
-            case UP -> GLFW.GLFW_KEY_UP;
-            case DOWN -> GLFW.GLFW_KEY_DOWN;
         };
     }
 

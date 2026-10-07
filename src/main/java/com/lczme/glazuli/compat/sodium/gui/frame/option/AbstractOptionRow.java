@@ -1,7 +1,5 @@
 package com.lczme.glazuli.compat.sodium.gui.frame.option;
 
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuideProvider;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.glazuli.compat.sodium.gui.option.OptionExtended;
 import com.lczme.glazuli.compat.sodium.gui.state.OptionStateStore;
@@ -35,7 +33,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 
-abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHandler, OptionRow, ControlGuideProvider {
+abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHandler, OptionRow {
     protected static final int CONTROL_RIGHT_PADDING = 6;
     private static final int SEARCH_RESULT_MARKER = 0x66FFFFFF;
     private static final int SEARCH_RESULT_MARKER_WIDTH = 2;
@@ -238,15 +236,6 @@ abstract class AbstractOptionRow extends BaseWidget implements ContainerEventHan
 
     protected boolean isRowFocused() {
         return this.rowFocused;
-    }
-
-    @Override
-    public List<ControlGuide> controlGuides() {
-        return List.of();
-    }
-
-    protected boolean canShowControlGuide() {
-        return this.isRowFocused() && this.getOption().isEnabled() && this.optionShowsControl();
     }
 
     protected boolean isMouseOverRow(double mouseX, double mouseY) {

@@ -1,7 +1,6 @@
 package com.lczme.glazuli.compat.sodium.gui.frame.option;
 
 import com.lczme.glazuli.compat.sodium.config.ReeseSodiumOptionsConfig;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.glazuli.compat.sodium.gui.state.OptionStateStore;
 import com.lczme.glazuli.render.GlassUi;
@@ -17,7 +16,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
 
 final class IntegerSliderOptionRow extends AbstractOptionRow {
     private static final int SLIDER_WIDTH = 90;
@@ -54,16 +52,6 @@ final class IntegerSliderOptionRow extends AbstractOptionRow {
     @Override
     protected int controlContentWidth() {
         return this.contentWidth;
-    }
-
-    public List<ControlGuide> controlGuides() {
-        if (!this.canShowControlGuide()) {
-            return List.of();
-        }
-
-        return this.editMode
-                ? List.of(ControlGuide.navigationLeftRight(Component.translatable("rso.controller.guide.adjust_value")), ControlGuide.press(Component.translatable("rso.controller.guide.done")))
-                : List.of(ControlGuide.press(Component.translatable("rso.controller.guide.edit_slider")));
     }
 
     @Override

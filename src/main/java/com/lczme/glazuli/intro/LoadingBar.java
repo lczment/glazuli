@@ -72,7 +72,7 @@ final class LoadingBar {
         IntroDraw.glow(pose, x + fill - 1.0F, y + HEIGHT * 0.5F, 3.5F, 2.2F, IntroDraw.withAlpha(0xFFFFFFFF, alpha * 0.7F));
 
         IntroDraw.blendPremultiplied();
-        IntroText.draw(pose, label, cx, y + HEIGHT + 7.0F, LABEL_SIZE, IntroRaster.Weight.REGULAR,
+        IntroText.draw(pose, label, cx, y + HEIGHT + 7.0F, LABEL_SIZE,
                 IntroDraw.withAlpha(LABEL, alpha * labelFade.value()), 0.5F);
         IntroDraw.end();
     }

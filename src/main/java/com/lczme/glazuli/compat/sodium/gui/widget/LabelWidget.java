@@ -1,7 +1,5 @@
 package com.lczme.glazuli.compat.sodium.gui.widget;
 
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuideProvider;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.glazuli.render.GlassUi;
 import com.lczme.glazuli.compat.sodium.gui.theme.GuiTheme;
@@ -16,9 +14,8 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 
-public class LabelWidget extends BaseWidget implements ControlGuideProvider {
+public class LabelWidget extends BaseWidget {
     private static final int TEXT_PADDING = 5;
     private static final int CHEVRON_GAP = 4;
     private static final String CHEVRON_COLLAPSED = "▶";
@@ -55,14 +52,6 @@ public class LabelWidget extends BaseWidget implements ControlGuideProvider {
 
     public void setCollapsed(boolean collapsed) {
         this.collapsed = collapsed;
-    }
-
-    public List<ControlGuide> controlGuides() {
-        if (this.onToggle == null || !this.isFocused()) {
-            return List.of();
-        }
-
-        return List.of(ControlGuide.press(Component.translatable(this.collapsed ? "rso.controller.guide.expand" : "rso.controller.guide.collapse")));
     }
 
     @Override

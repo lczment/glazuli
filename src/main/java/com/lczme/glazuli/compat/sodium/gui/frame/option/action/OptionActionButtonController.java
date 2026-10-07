@@ -33,8 +33,8 @@ public final class OptionActionButtonController {
         this.optionSupplier = optionSupplier;
         // Ordered left-to-right: reset sits to the left of undo.
         this.buttons = new ArrayList<>(2);
-        this.buttons.add(new ActionButton(0, OptionResetAction.ICON, Component.translatable("rso.controller.guide.reset"), option -> Component.translatable("rso.narration.reset_to_default", option.getName()), OptionResetAction::isVisible, OptionResetAction::isActive, OptionResetAction::resetToDefault, clickSound));
-        this.undoButton = new ActionButton(1, OptionUndoAction.ICON, Component.translatable("rso.controller.guide.undo"), option -> Component.translatable("rso.narration.undo_changes", option.getName()), OptionUndoAction::isVisible, OptionUndoAction::isActive, OptionUndoAction::undoChanges, clickSound);
+        this.buttons.add(new ActionButton(0, OptionResetAction.ICON, option -> Component.translatable("rso.narration.reset_to_default", option.getName()), OptionResetAction::isVisible, OptionResetAction::isActive, OptionResetAction::resetToDefault, clickSound));
+        this.undoButton = new ActionButton(1, OptionUndoAction.ICON, option -> Component.translatable("rso.narration.undo_changes", option.getName()), OptionUndoAction::isVisible, OptionUndoAction::isActive, OptionUndoAction::undoChanges, clickSound);
         this.buttons.add(this.undoButton);
     }
 
@@ -299,14 +299,13 @@ public final class OptionActionButtonController {
         private final OptionActionButtonElement element;
         private boolean heldVisible;
 
-        private ActionButton(int index, ResourceLocation icon, Component guideLabel, Function<StatefulOption<?>, Component> narrationLabelProvider, Predicate<StatefulOption<?>> visiblePredicate, Predicate<StatefulOption<?>> activePredicate, Consumer<StatefulOption<?>> action, Runnable clickSound) {
+        private ActionButton(int index, ResourceLocation icon, Function<StatefulOption<?>, Component> narrationLabelProvider, Predicate<StatefulOption<?>> visiblePredicate, Predicate<StatefulOption<?>> activePredicate, Consumer<StatefulOption<?>> action, Runnable clickSound) {
             this.index = index;
             this.element = new OptionActionButtonElement(
                     OptionActionButtonController.this.rowBoundsSupplier,
                     OptionActionButtonController.this.optionSupplier,
                     this::buttonsFromRight,
                     icon,
-                    guideLabel,
                     narrationLabelProvider,
                     visiblePredicate,
                     activePredicate,

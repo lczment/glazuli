@@ -35,16 +35,6 @@ public final class Spring {
         return new Spring(initial, omega * omega, 2.0F * dampingRatio * omega);
     }
 
-    /** Critically damped: fast, no overshoot. */
-    public static Spring smooth(float initial) {
-        return new Spring(initial, 170.0F, 26.0F);
-    }
-
-    /** Under-damped: slight overshoot and settle, the "liquid" feel for hover and pop-in. */
-    public static Spring bouncy(float initial) {
-        return new Spring(initial, 320.0F, 20.0F);
-    }
-
     /** Changes the response/damping (as in {@link #of}) without disturbing the current motion. */
     public void retune(float response, float dampingRatio) {
         float omega = Mth.TWO_PI / response;

@@ -29,24 +29,12 @@ public record LayoutBounds(int x, int y, int width, int height) {
         return this.y + this.height / 2;
     }
 
-    public LayoutBounds withX(int x) {
-        return new LayoutBounds(x, this.y, this.width, this.height);
-    }
-
     public LayoutBounds withY(int y) {
         return new LayoutBounds(this.x, y, this.width, this.height);
     }
 
-    public LayoutBounds withWidth(int width) {
-        return new LayoutBounds(this.x, this.y, width, this.height);
-    }
-
     public LayoutBounds withHeight(int height) {
         return new LayoutBounds(this.x, this.y, this.width, height);
-    }
-
-    public LayoutBounds withSize(int width, int height) {
-        return new LayoutBounds(this.x, this.y, width, height);
     }
 
     public LayoutBounds translate(int deltaX, int deltaY) {

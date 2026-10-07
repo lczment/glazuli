@@ -56,10 +56,6 @@ public final class ReeseSodiumOptionsConfig {
             return true;
         }
 
-        public boolean isThemedTooltipBorders() {
-            return true;
-        }
-
         public boolean isReducedMotion() {
             return false;
         }
@@ -90,10 +86,6 @@ public final class ReeseSodiumOptionsConfig {
 
         public FocusBorderMode getFocusBorderMode() {
             return FocusBorderMode.KEYBOARD;
-        }
-
-        public boolean isControllerGuides() {
-            return false;
         }
 
         public boolean isResetButtonOverlay() {

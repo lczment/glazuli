@@ -1,13 +1,9 @@
 package com.lczme.glazuli.intro;
 
 import com.lczme.glazuli.anim.AnimClock;
-import javax.annotation.Nullable;
 import net.minecraft.util.Mth;
 
-/**
- * Public, render-thread-only view of the startup intro, for screens that continue its animation (e.g. a custom
- * title screen picking up the logo where the outro left it).
- */
+/** Public, render-thread-only view of the startup intro. */
 public final class IntroState {
     public enum Phase {
         /** Startup overlay not created yet. */
@@ -22,27 +18,9 @@ public final class IntroState {
         DISABLED
     }
 
-    /**
-     * Logo placement in GUI coordinates.
-     *
-     * @param centerX logo center
-     * @param centerY logo center
-     * @param width   drawn width (already scaled)
-     * @param height  drawn height (already scaled)
-     * @param alpha   opacity in [0, 1]
-     */
-    public record LogoPose(float centerX, float centerY, float width, float height, float alpha) {
-    }
-
-    static final float MENU_LOGO_Y = 0.24F;
-    static final float MENU_LOGO_SCALE = 0.82F;
-
     private static Phase phase = Phase.PENDING;
     private static double phaseStart = AnimClock.now();
     private static float outroDuration = 1.0F;
-    @Nullable
-    private static LogoPose logoPose;
-    private static boolean logoHandoff;
     private static boolean loadingDone;
     private static boolean skipRequested;
 
@@ -51,16 +29,6 @@ public final class IntroState {
 
     public static Phase phase() {
         return phase;
-    }
-
-    /** Vertical logo center where the outro leaves the logo, in GUI units. */
-    public static float menuLogoCenterY(float screenHeight) {
-        return screenHeight * MENU_LOGO_Y;
-    }
-
-    /** Logo box height where the outro leaves the logo, in GUI units. */
-    public static float menuLogoHeight(float screenHeight) {
-        return StartupOverlay.logoHeight(screenHeight) * MENU_LOGO_SCALE;
     }
 
     public static boolean isPlaying() {
@@ -89,24 +57,6 @@ public final class IntroState {
         };
     }
 
-    /** Where the logo is drawn this frame, or where it ended once {@link Phase#FINISHED}. {@code null} if never drawn. */
-    @Nullable
-    public static LogoPose logoPose() {
-        return logoPose;
-    }
-
-    /**
-     * Asks the outro to keep the logo fully opaque at its end pose instead of fading it out, because the caller will
-     * draw the same logo there from then on (see {@link IntroLogo#draw}). Must be called before the outro ends.
-     */
-    public static void requestLogoHandoff() {
-        logoHandoff = true;
-    }
-
-    public static boolean isLogoHandoffRequested() {
-        return logoHandoff;
-    }
-
     /** Requests skipping the rest of the intro. Only possible once loading has finished. Returns whether it was accepted. */
     public static boolean requestSkip() {
         if (phase == Phase.OUTRO || phase == Phase.LOADING && loadingDone) {
@@ -133,9 +83,5 @@ public final class IntroState {
 
     static void setOutroDuration(float seconds) {
         outroDuration = seconds;
-    }
-
-    static void setLogoPose(@Nullable LogoPose pose) {
-        logoPose = pose;
     }
 }

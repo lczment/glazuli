@@ -1,7 +1,6 @@
 package com.lczme.glazuli.compat.sodium.gui.frame.option;
 
 import com.lczme.glazuli.compat.sodium.config.ReeseSodiumOptionsConfig;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.glazuli.compat.sodium.gui.state.OptionStateStore;
 import com.lczme.glazuli.compat.sodium.gui.theme.GuiTheme;
@@ -12,7 +11,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.util.List;
 
 final class EnumOptionRow<E extends Enum<E>> extends AbstractOptionRow {
     private static final int MAX_CONTENT_WIDTH = 70;
@@ -32,10 +30,6 @@ final class EnumOptionRow<E extends Enum<E>> extends AbstractOptionRow {
     @Override
     protected int controlContentWidth() {
         return Math.min(MAX_CONTENT_WIDTH, this.font.width(this.displayValue()));
-    }
-
-    public List<ControlGuide> controlGuides() {
-        return this.canShowControlGuide() ? List.of(ControlGuide.press(Component.translatable("rso.controller.guide.next_value"))) : List.of();
     }
 
     @Override

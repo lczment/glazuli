@@ -19,7 +19,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 /**
- * Java2D rasterization for intro text and the procedural logo. The game font is not usable during the initial
+ * Java2D rasterization for intro text. The game font is not usable during the initial
  * resource load, so text is rendered with system fonts into textures instead. Rasterization runs on a private daemon
  * thread so a slow (or misbehaving) font subsystem can never stall the render thread; results are uploaded later.
  */
@@ -30,21 +30,7 @@ final class IntroRaster {
         return thread;
     });
 
-    enum Weight {
-        LIGHT("Segoe UI Light", "Segoe UI Semilight", "SF Pro Display Light", "Helvetica Neue Light",
-                "Microsoft YaHei UI Light", "Microsoft YaHei Light", "PingFang SC Light"),
-        REGULAR(),
-        SEMIBOLD("Segoe UI Semibold", "SF Pro Display Semibold", "Helvetica Neue Medium",
-                "Microsoft YaHei UI", "PingFang SC Semibold");
-
-        private final String[] preferred;
-
-        Weight(String... preferred) {
-            this.preferred = preferred;
-        }
-    }
-
-    private static final String[] REGULAR_FAMILIES = {
+    private static final String[] FAMILIES = {
             "Segoe UI", "SF Pro Text", "Helvetica Neue", "Inter", "Noto Sans", "Ubuntu", "Cantarell", "DejaVu Sans"
     };
 
@@ -55,31 +41,19 @@ final class IntroRaster {
     }
 
     /** Raster thread only. Falls back to the logical Dialog font, which also covers CJK, if the text needs it. */
-    static Font font(Weight weight, float size, String text) {
+    static Font font(float size, String text) {
         if (families == null) {
             families = new HashSet<>(Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
         }
         Font font = null;
-        for (String family : weight.preferred) {
+        for (String family : FAMILIES) {
             if (families.contains(family)) {
-                Font candidate = new Font(family, Font.PLAIN, 1);
-                if (candidate.canDisplayUpTo(text) == -1) {
-                    font = candidate;
-                    break;
-                }
+                font = new Font(family, Font.PLAIN, 1);
+                break;
             }
         }
         if (font == null) {
-            int style = weight == Weight.SEMIBOLD ? Font.BOLD : Font.PLAIN;
-            for (String family : REGULAR_FAMILIES) {
-                if (families.contains(family)) {
-                    font = new Font(family, style, 1);
-                    break;
-                }
-            }
-            if (font == null) {
-                font = new Font(Font.SANS_SERIF, style, 1);
-            }
+            font = new Font(Font.SANS_SERIF, Font.PLAIN, 1);
         }
         if (font.canDisplayUpTo(text) != -1) {
             font = new Font(Font.DIALOG, font.getStyle(), 1);
@@ -115,20 +89,6 @@ final class IntroRaster {
             }
         }
         return out;
-    }
-
-    /** Premultiplies a straight-alpha ABGR image in place. */
-    static void premultiply(NativeImage image) {
-        image.applyToAllPixels(c -> {
-            int a = c >>> 24;
-            if (a == 255) {
-                return c;
-            }
-            int r = (c & 0xFF) * a / 255;
-            int g = (c >> 8 & 0xFF) * a / 255;
-            int b = (c >> 16 & 0xFF) * a / 255;
-            return a << 24 | b << 16 | g << 8 | r;
-        });
     }
 
     /** Render thread. Takes ownership of {@code image}. Linear filtering, clamped edges. */

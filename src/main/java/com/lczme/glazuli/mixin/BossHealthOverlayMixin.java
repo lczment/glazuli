@@ -3,7 +3,6 @@ package com.lczme.glazuli.mixin;
 import com.lczme.glazuli.render.VanillaGlass;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.BossHealthOverlay;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.BossEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

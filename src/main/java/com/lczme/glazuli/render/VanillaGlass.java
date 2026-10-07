@@ -1,6 +1,5 @@
 package com.lczme.glazuli.render;
 
-import com.lczme.glazuli.config.GlazuliConfig;
 import java.util.Set;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;

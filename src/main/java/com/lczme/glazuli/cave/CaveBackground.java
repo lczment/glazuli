@@ -5,7 +5,6 @@ import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.config.GlazuliConfig;
 import com.lczme.glazuli.intro.GlassLoadingOverlay;
 import com.lczme.glazuli.intro.IntroState;
-import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.shaders.FogShape;
 import com.mojang.blaze3d.systems.RenderSystem;

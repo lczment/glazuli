@@ -261,11 +261,6 @@ public class ScrollableFrame extends AbstractFrame {
             return this;
         }
 
-        public Builder withHorizontalScrollBarOffset(Holder<Integer> horizontalScrollBarOffset) {
-            this.horizontalScrollBarOffset = horizontalScrollBarOffset;
-            return this;
-        }
-
         public Builder withFrame(AbstractFrame frame) {
             this.frame = frame;
             return this;

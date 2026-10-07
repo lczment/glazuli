@@ -136,8 +136,4 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         IntroOverlays.onIntroPlayed(minecraft);
         remove();
     }
-
-    static float logoHeight(float screenHeight) {
-        return Mth.clamp(screenHeight * 0.12F, 20.0F, 44.0F);
-    }
 }

@@ -2,8 +2,6 @@ package com.lczme.glazuli.compat.sodium.gui.widget;
 
 import com.lczme.glazuli.compat.sodium.config.ReeseSodiumOptionsConfig;
 import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
-import com.lczme.glazuli.compat.sodium.gui.control.ControlGuideProvider;
 import com.lczme.glazuli.render.GlassUi;
 import com.lczme.glazuli.compat.sodium.gui.theme.GuiThemes;
 import net.minecraft.client.Minecraft;
@@ -24,9 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
 
-public class TextFieldWidget extends BaseWidget implements ControlGuideProvider {
+public class TextFieldWidget extends BaseWidget {
     private static final long CURSOR_ANIMATION_DURATION = 750;
 
     private final Font font = Minecraft.getInstance().font;
@@ -48,13 +45,6 @@ public class TextFieldWidget extends BaseWidget implements ControlGuideProvider 
     public TextFieldWidget(LayoutBounds dim, @Nullable Component placeholder) {
         super(dim);
         this.placeholder = placeholder;
-    }
-
-    @Override
-    public List<ControlGuide> controlGuides() {
-        return this.isVisible() && this.isEditable() && this.isFocused()
-                ? List.of(ControlGuide.press(Component.translatable("rso.controller.guide.edit")))
-                : List.of();
     }
 
     /** Called whenever the text content changes. */
@@ -161,48 +151,6 @@ public class TextFieldWidget extends BaseWidget implements ControlGuideProvider 
         int selectionStartIndex = Math.min(this.selectionStart, this.selectionEnd);
         int selectionEndIndex = Math.max(this.selectionStart, this.selectionEnd);
         return this.text.substring(selectionStartIndex, selectionEndIndex);
-    }
-
-    public String getText() {
-        return this.text;
-    }
-
-    public boolean glazuli$acceptChar(char ch, int modifiers) {
-        if (!this.isVisible() || !this.isEditable()) {
-            return false;
-        }
-
-        this.setFocused(true);
-        this.write(String.valueOf(ch));
-        return true;
-    }
-
-    public boolean glazuli$acceptKeyCode(int keycode, int scancode, int modifiers) {
-        if (!this.isVisible()) {
-            return false;
-        }
-
-        this.setFocused(true);
-        return this.keyPressed(keycode, scancode, modifiers);
-    }
-
-    public boolean glazuli$moveCursor(int amount) {
-        if (!this.isVisible()) {
-            return false;
-        }
-
-        this.moveCursor(amount);
-        return true;
-    }
-
-    public boolean glazuli$copyText() {
-        if (!this.isVisible()) {
-            return false;
-        }
-
-        String selectedText = this.getSelectedText();
-        Minecraft.getInstance().keyboardHandler.setClipboard(selectedText.isEmpty() ? this.text : selectedText);
-        return true;
     }
 
     public void write(String text) {
