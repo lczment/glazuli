@@ -3,6 +3,7 @@ package com.lczme.glazuli.dev;
 import com.lczme.glazuli.Glazuli;
 import com.lczme.glazuli.cave.CaveBackground;
 import com.lczme.glazuli.config.GlazuliConfig;
+import com.lczme.glazuli.intro.IntroState;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -334,7 +335,8 @@ public final class Bench {
                 introIntervals[introFrames++] = interval;
                 if (interval > 50_000_000L) {
                     if (introGaps.size() < 16) {
-                        introGaps.add(String.format("%.0fms@%.1fs", ms(interval), (t - introStart) / 1.0E9));
+                        introGaps.add(String.format("%.0fms@%.1fs(%s+%.1fs)", ms(interval), (t - introStart) / 1.0E9,
+                                IntroState.phase(), IntroState.phaseElapsed()));
                     }
                     collectSamples(introLast, t, introSamples);
                 }
