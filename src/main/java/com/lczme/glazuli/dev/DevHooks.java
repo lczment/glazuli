@@ -218,7 +218,13 @@ public final class DevHooks {
             // Mid-flight between two camera spots: temporal shader effects show their smearing here.
             new Shot("glazuli_autoshot_cave_motion.png", 0.7, () -> Minecraft.getInstance().setScreen(
                     new OptionsScreen(menu, Minecraft.getInstance().options))),
+            // The pack stays loaded but the scene uses Glazuli's own lighting.
+            new Shot("glazuli_autoshot_menu_shader_scene_off.png", 4.0, () -> {
+                Minecraft.getInstance().setScreen(menu);
+                GlazuliConfig.SHADER_SCENE.set(false);
+            }),
             new Shot("glazuli_autoshot_menu_shader_switch.png", 4.0, () -> {
+                GlazuliConfig.SHADER_SCENE.set(true);
                 Minecraft.getInstance().setScreen(menu);
                 switchIrisPack();
             }),
@@ -616,7 +622,7 @@ public final class DevHooks {
         }
     }
 
-    private static void enterWorld() {
+    static void enterWorld() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.getLevelSource().levelExists(WORLD)) {
             mc.createWorldOpenFlows().openWorld(WORLD, () -> mc.setScreen(menu));

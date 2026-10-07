@@ -2,6 +2,7 @@ package com.lczme.glazuli.cave;
 
 import com.lczme.glazuli.Glazuli;
 import com.lczme.glazuli.anim.AnimClock;
+import com.lczme.glazuli.config.GlazuliConfig;
 import com.lczme.glazuli.mixin.CameraAccessor;
 import com.lczme.glazuli.mixin.ClientPacketListenerAccessor;
 import com.lczme.glazuli.mixin.GameRendererAccessor;
@@ -154,7 +155,7 @@ public final class ShaderCave {
         if (Boolean.getBoolean("glazuli.shaderCave")) {
             return true;
         }
-        if (!ModList.get().isLoaded("iris")) {
+        if (!ModList.get().isLoaded("iris") || GlazuliConfig.SPEC.isLoaded() && !GlazuliConfig.SHADER_SCENE.get()) {
             return false;
         }
         // "Pack loaded", not IrisApi#isShaderPackInUse: that needs a pipeline, which on the title screen only our own

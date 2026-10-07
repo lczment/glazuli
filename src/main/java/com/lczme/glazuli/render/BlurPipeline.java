@@ -1,6 +1,7 @@
 package com.lczme.glazuli.render;
 
 import com.lczme.glazuli.config.GlazuliConfig;
+import com.lczme.glazuli.dev.Perf;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -66,7 +67,12 @@ public final class BlurPipeline {
         RenderSystem.assertOnRenderThread();
         // GuiGraphics batches draws; without the flush, already "drawn" GUI would be missing from the capture.
         guiGraphics.flush();
+        Perf.begin(Perf.CAPTURE);
+        captureFlushed();
+        Perf.end(Perf.CAPTURE);
+    }
 
+    private static void captureFlushed() {
         RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
         // Usually the main target, but screens may draw into their own (Catnip's do, for stencils).
         int screenTarget = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
@@ -77,14 +83,10 @@ public final class BlurPipeline {
         boolean blend = GL11.glIsEnabled(GL11.GL_BLEND);
         boolean depth = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
         boolean scissor = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
-        int[] scissorBox = new int[4];
-        if (scissor) {
-            GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, scissorBox);
-        }
 
         ensureTargets(main.width, main.height, passes);
 
-        // glBlitFramebuffer and our passes are both clipped by the scissor test.
+        // glBlitFramebuffer and our passes are both clipped by the scissor test; turning it off keeps the box.
         GlStateManager._disableScissorTest();
         RenderSystem.disableBlend();
         RenderSystem.disableDepthTest();
@@ -111,7 +113,6 @@ public final class BlurPipeline {
         GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, screenTarget);
         if (scissor) {
             GlStateManager._enableScissorTest();
-            GlStateManager._scissorBox(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
         }
         if (depth) {
             RenderSystem.enableDepthTest();

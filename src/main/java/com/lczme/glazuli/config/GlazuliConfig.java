@@ -24,6 +24,7 @@ public final class GlazuliConfig {
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
     public static final ModConfigSpec.ConfigValue<String> MENU_SCENE;
     public static final ModConfigSpec.BooleanValue REAL_TIME_LIGHTING;
+    public static final ModConfigSpec.BooleanValue SHADER_SCENE;
     public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
     public static final ModConfigSpec.EnumValue<FontWeight> FONT_WEIGHT;
     public static final ModConfigSpec.BooleanValue GLASS_INVENTORY;
@@ -84,6 +85,11 @@ public final class GlazuliConfig {
                 .comment("Outdoor menu scenes follow the computer's clock: sunrise at 6:00, noon, sunset at 18:00, night.",
                         "When off, every scene keeps its own time of day.")
                 .define("realTimeLighting", true);
+        SHADER_SCENE = builder
+                .comment("Draw the menu scene through the loaded shader pack. The menu then costs about as much GPU time as a world;",
+                        "turn this off on slower graphics cards to light the scene Glazuli's own, far cheaper way.",
+                        "Scenes with block entities (beds, chests, machines) still go through the world renderer.")
+                .define("shaderScene", true);
         GLASS_INVENTORY = builder
                 .comment("Draw inventories, containers (chests, furnaces, modded ones using the vanilla palette) and the hotbar as liquid glass.")
                 .define("glassInventory", true);

@@ -1,6 +1,7 @@
 package com.lczme.glazuli.render;
 
 import com.lczme.glazuli.config.GlazuliConfig;
+import com.lczme.glazuli.dev.Perf;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -67,6 +68,7 @@ public final class GlassRenderer {
 
         BlurPipeline.ensureCaptured(guiGraphics);
         guiGraphics.flush();
+        Perf.begin(Perf.PANEL);
 
         ShaderInstance shader = GlazuliShaders.glassPanel();
         boolean film = style.material() == GlassStyle.Material.FILM;
@@ -109,6 +111,7 @@ public final class GlassRenderer {
         BufferUploader.drawWithShader(builder.buildOrThrow());
 
         restoreGuiState();
+        Perf.end(Perf.PANEL);
     }
 
     private static void drawFallback(GuiGraphics guiGraphics, float x, float y, float width, float height, GlassStyle style) {

@@ -1,6 +1,7 @@
 package com.lczme.glazuli.mixin;
 
 import com.lczme.glazuli.cave.CaveBackground;
+import com.lczme.glazuli.dev.Perf;
 import com.lczme.glazuli.font.FontScale;
 import com.lczme.glazuli.intro.IntroOverlays;
 import com.lczme.glazuli.intro.IntroState;
@@ -39,12 +40,13 @@ public abstract class MinecraftMixin {
 
     /**
      * Vanilla caps menus and loading screens at 60 fps; on a faster display that judders the animated startup and the
-     * cave camera, so they get the player's own limit.
+     * cave camera, so they get the player's own limit. Not while the window is in the background: nobody is watching,
+     * and the shader scene would keep the GPU at full load.
      */
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void glazuli$uncapAnimatedMenus(CallbackInfoReturnable<Integer> cir) {
         Minecraft minecraft = (Minecraft) (Object) this;
-        if (minecraft.level != null) {
+        if (minecraft.level != null || !minecraft.isWindowActive() && !Perf.ON) {
             return;
         }
         // Called every frame from the start: CaveBackground may only be touched once mod loading is over, as its

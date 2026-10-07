@@ -1,9 +1,11 @@
 package com.lczme.glazuli;
 
+import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.cave.CaveBackground;
 import com.lczme.glazuli.cave.MenuScenes;
 import com.lczme.glazuli.compat.Compat;
 import com.lczme.glazuli.config.GlazuliConfig;
+import com.lczme.glazuli.dev.Bench;
 import com.lczme.glazuli.dev.DevHooks;
 import com.lczme.glazuli.font.FontPack;
 import com.lczme.glazuli.font.FontScale;
@@ -21,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -59,6 +62,7 @@ public final class Glazuli {
             event.registerReloadListener(PackOverrides.reloadListener());
             event.registerReloadListener(CreatePanels.reloadListener());
         });
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, (RenderFrameEvent.Pre event) -> AnimClock.onFrameStart());
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(BlurPipeline::onScreenRenderPre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
@@ -73,6 +77,7 @@ public final class Glazuli {
         NeoForge.EVENT_BUS.addListener(MenuScenes::registerCommands);
         Compat.register(NeoForge.EVENT_BUS);
         DevHooks.register(NeoForge.EVENT_BUS);
+        Bench.register(NeoForge.EVENT_BUS);
     }
 
     /** The mod used to be "liquidglass"; carry its config file and folder over once, then the old blur flag. */

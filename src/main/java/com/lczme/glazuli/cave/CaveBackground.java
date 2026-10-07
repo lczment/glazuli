@@ -3,6 +3,7 @@ package com.lczme.glazuli.cave;
 import com.lczme.glazuli.Glazuli;
 import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.config.GlazuliConfig;
+import com.lczme.glazuli.dev.Perf;
 import com.lczme.glazuli.intro.GlassLoadingOverlay;
 import com.lczme.glazuli.intro.IntroState;
 import com.mojang.blaze3d.platform.Window;
@@ -173,12 +174,14 @@ public final class CaveBackground {
     }
 
     public static void render(GuiGraphics guiGraphics, int width, int height) {
+        Perf.begin(Perf.CAVE);
         try {
             renderUnsafe(guiGraphics, width, height);
         } catch (RuntimeException e) {
             failed = true;
             Glazuli.LOGGER.error("Cave background failed, falling back to the vanilla panorama", e);
         }
+        Perf.end(Perf.CAVE);
     }
 
     private static void renderUnsafe(GuiGraphics guiGraphics, int width, int height) {
@@ -198,7 +201,10 @@ public final class CaveBackground {
         cam.update(minecraft.screen, now, introMayStart);
 
         guiGraphics.flush();
-        if (!ShaderCave.render(minecraft, scene, cam)) {
+        Perf.begin(Perf.SHADER_CAVE);
+        boolean shaded = ShaderCave.render(minecraft, scene, cam);
+        Perf.end(Perf.SHADER_CAVE);
+        if (!shaded) {
             drawScene(minecraft, mesh, cam, scene);
         }
 

@@ -74,6 +74,18 @@ neoForge {
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 
+        // Frame times and the mod's CPU/GPU cost in fixed menus and in-world screens, appended to run/glazuli_bench.txt.
+        clientBench {
+            client()
+            systemProperty 'glazuli.bench', 'true'
+            systemProperty 'glazuli.bench.only', System.getenv('LG_BENCH_ONLY') ?: ''
+            systemProperty 'glazuli.bench.label', System.getenv('LG_BENCH_LABEL') ?: ''
+            programArguments.addAll '--width', '1920', '--height', '1080'
+            if (System.getenv('LG_BENCH_JFR')) {
+                jvmArgument "-XX:StartFlightRecording=filename=${System.getenv('LG_BENCH_JFR')},settings=profile"
+            }
+        }
+
         data {
             data()
             // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
