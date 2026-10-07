@@ -46,7 +46,7 @@ public final class FontPack implements PackResources {
     private static final ResourceLocation SOUNDS = Glazuli.id("sounds.json");
     private static final ResourceLocation STARTUP_SOUND_FILE = Glazuli.id("sounds/startup_custom.ogg");
     /** Em size in GUI pixels; CJK glyphs then fill the 9 px line like the vanilla unifont glyphs do. */
-    private static final float SIZE = 10.0F;
+    static final float SIZE = 10.0F;
     private static final float SHIFT_Y = 0.5F;
 
     private final PackLocationInfo location;

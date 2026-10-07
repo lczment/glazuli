@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 @Mixin(FontTexture.class)
 public abstract class FontTextureMixin {
     @Unique
-    private static final int GLAZULI$MONO_SIZE = 1024;
+    private static final int GLAZULI$MONO_SIZE = 2048;
 
     @Shadow
     @Final

@@ -24,8 +24,10 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
  */
 public final class GlyphWarmup {
     private static final long BUDGET_NANOS = 750_000L;
-    /** The rarest characters are left to bake on first use: at 4K a glyph sheet holds only a few hundred of them. */
+    /** The rarest characters are left to bake on first use. */
     private static final int MAX_GLYPHS = 4000;
+    /** Glyph sheet area the warm-up may fill (16 MB of sheets); glyphs grow with the GUI scale, up to 91 px at 4K. */
+    private static final int MAX_TEXELS = 16 << 20;
 
     @Nullable
     private static Language language;
@@ -68,7 +70,9 @@ public final class GlyphWarmup {
             probe = null;
             next = 0;
         }
-        if (next >= codepoints.length) {
+        int cell = (int) Math.ceil(FontPack.SIZE * mc.getWindow().getGuiScale()) + 1;
+        int limit = Math.min(codepoints.length, MAX_TEXELS / (cell * cell));
+        if (next >= limit) {
             return;
         }
         long deadline = System.nanoTime() + BUDGET_NANOS;
@@ -80,7 +84,8 @@ public final class GlyphWarmup {
                 probe = glyph;
             }
             next++;
-        } while (next < codepoints.length && System.nanoTime() < deadline);    }
+        } while (next < limit && System.nanoTime() < deadline);
+    }
 
     private static int[] rank(Map<String, String> data) {
         Int2IntOpenHashMap counts = new Int2IntOpenHashMap();
