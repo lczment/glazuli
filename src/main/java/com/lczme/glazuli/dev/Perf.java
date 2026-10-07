@@ -92,6 +92,14 @@ public final class Perf {
         }
     }
 
+    static long draws;
+
+    public static void noteDraw() {
+        if (ON) {
+            draws++;
+        }
+    }
+
     static final java.util.Map<String, Integer> captureCallers = new java.util.HashMap<>();
 
     /** Who asked for a backdrop capture: the first caller outside the blur and panel code. */
@@ -115,6 +123,7 @@ public final class Perf {
         Arrays.fill(cpuTotal, 0L);
         Arrays.fill(gpuTotal, 0L);
         Arrays.fill(calls, 0L);
+        draws = 0;
         captureCallers.clear();
     }
 }

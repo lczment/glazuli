@@ -15,6 +15,7 @@
     "GameRendererAccessor",
     "GameRendererMixin",
     "BossHealthOverlayMixin",
+    "BufferUploaderMixin",
     "ChatComponentMixin",
     "ChatScreenMixin",
     "ClientPacketListenerAccessor",

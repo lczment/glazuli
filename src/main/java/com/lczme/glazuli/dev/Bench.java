@@ -120,6 +120,15 @@ public final class Bench {
                 show(new ChatScreen(""));
             }),
             world("world_chat_vanilla", false, () -> show(new ChatScreen(""))),
+            world("world_chat_cjk", true, () -> {
+                String[] lines = {"玩家甲取得了进度[石器时代]", "玩家乙被僵尸杀死了", "玩家丙加入了游戏", "服务器将在五分钟后重启，请做好准备",
+                        "已将时间设为日出", "玩家丁完成了挑战[探索的时光]", "欢迎来到生存服务器，祝你玩得开心！", "末影龙已被击败，传送门已开启",
+                        "你的背包已满，部分物品掉落在地上", "下界要塞的坐标已经标记在地图上", "今晚八点举行建筑比赛，奖励钻石十颗", "请不要在主城附近挖矿或砍树"};
+                for (String line : lines) {
+                    Minecraft.getInstance().gui.getChat().addMessage(Component.literal(line));
+                }
+                show(new ChatScreen(""));
+            }),
             world("world_pause", true, () -> show(new PauseScreen(true))),
             world("world_pause_vanilla", false, () -> show(new PauseScreen(true))),
             world("world_hud_again", true, () -> show(null)),
@@ -491,6 +500,7 @@ public final class Bench {
                 ms(sortedWork[n / 2]), ms(sortedWork[Math.min(n - 1, (int) (n * 0.99))]), ms(worstSwitch)));
         line.append(String.format(" | alloc %.0f KB/frame | gc %d (%d ms)", allocated / 1024.0 / n, gcCount() - gcCountStart,
                 gcMillis() - gcMillisStart));
+        line.append(String.format(" | draws %.0f/frame", Perf.draws / (double) n));
         for (int i = 0; i < Perf.NAMES.length; i++) {
             if (Perf.calls[i] > 0) {
                 line.append(String.format(" | %s cpu %.3f", Perf.NAMES[i], Perf.cpuTotal[i] / 1.0E6 / n));
