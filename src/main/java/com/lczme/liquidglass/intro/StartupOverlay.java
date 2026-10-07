@@ -62,18 +62,24 @@ public final class StartupOverlay extends GlassLoadingOverlay {
                 end();
                 return;
             }
+            splash.animation.preload();
         }
         if (isFinishCalled() && !splash.outro.isStarted()) {
             CaveBackground.prepare();
         }
         double sinceFill = AnimClock.now() - fillStart;
         boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
+        if (isFinishCalled() && filled) {
+            splash.animation.update();
+        }
+        // The animation also covers the shader cave's warm-up.
         boolean backdropReady = CaveBackground.isReady() || sinceFill >= CaveBackground.readyWaitLimitSeconds();
-        if (isFinishCalled() && !splash.outro.isStarted() && filled && backdropReady) {
+        if (isFinishCalled() && !splash.outro.isStarted() && filled && backdropReady && splash.animation.isFinished()) {
             splash.outro.start();
             IntroState.setPhase(IntroState.Phase.OUTRO);
         }
         if (IntroState.consumeSkip() && isFinishCalled()) {
+            splash.animation.skip();
             if (!splash.outro.isStarted()) {
                 splash.outro.start();
                 IntroState.setPhase(IntroState.Phase.OUTRO);
@@ -83,6 +89,9 @@ public final class StartupOverlay extends GlassLoadingOverlay {
 
         drawFrame(guiGraphics, mouseX, mouseY, partialTick, progress);
         DevHooks.onBootFrame(IntroState.phase(), splash.outro.isStarted() ? splash.outro.elapsed() : elapsed());
+        if (splash.animation.isStarted() && !splash.outro.isStarted()) {
+            DevHooks.onLogoAnimationFrame(splash.animation.elapsed());
+        }
 
         if (splash.outro.isFinished()) {
             end();

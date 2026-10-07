@@ -114,13 +114,12 @@ final class CaveCamera {
         introProgress = u;
         float e = Easing.IN_OUT_CUBIC.apply(u);
         catmullRom(path, e, eye);
-        Vector3f lookAhead = catmullRom(path, Math.min(1.0F, e + 0.08F), new Vector3f());
-        Vector3f titleLook = spotLook(Spot.TITLE, now, new Vector3f());
-        float w = smoothstep(0.6F, 1.0F, e);
-        if (e + 0.08F >= 1.0F) {
-            lookAhead.set(titleLook);
-        }
-        target.set(lookAhead).lerp(titleLook, w);
+        // Backing in, like LabyMod: facing the way it came, it turns round to the title view as it slows down.
+        Vector3f back = catmullRom(path, Math.max(0.0F, e - 0.02F), new Vector3f())
+                .sub(catmullRom(path, Math.min(1.0F, e + 0.02F), new Vector3f()));
+        Vector3f titleDir = spotLook(Spot.TITLE, now, new Vector3f()).sub(eye);
+        float w = smoothstep(0.58F, 1.0F, e);
+        target.set(eye).add(turn(back, titleDir, w).mul(8.0F));
         fogEnd = baseFogEnd;
         if (u >= 1.0F) {
             introFlown = true;
@@ -195,6 +194,20 @@ final class CaveCamera {
     private static boolean isDiveScreen(@Nullable Screen screen) {
         return screen instanceof ConnectScreen || screen instanceof LevelLoadingScreen || screen instanceof ProgressScreen
                 || screen instanceof GenericMessageScreen || screen instanceof ReceivingLevelScreen;
+    }
+
+    /** Unit direction turned from {@code from} to {@code to} by yaw and pitch, so a half turn doesn't pass through zero. */
+    private static Vector3f turn(Vector3f from, Vector3f to, float t) {
+        if (from.lengthSquared() < 1.0E-6F) {
+            from = to;
+        }
+        Vector3f a = new Vector3f(from).normalize();
+        Vector3f b = new Vector3f(to).normalize();
+        float yawA = (float) Math.atan2(a.x, a.z);
+        float yawB = (float) Math.atan2(b.x, b.z);
+        float yaw = yawA + Mth.wrapDegrees((yawB - yawA) * Mth.RAD_TO_DEG) * Mth.DEG_TO_RAD * t;
+        float pitch = Mth.lerp(t, (float) Math.asin(Mth.clamp(a.y, -1.0F, 1.0F)), (float) Math.asin(Mth.clamp(b.y, -1.0F, 1.0F)));
+        return new Vector3f(Mth.sin(yaw) * Mth.cos(pitch), Mth.sin(pitch), Mth.cos(yaw) * Mth.cos(pitch));
     }
 
     private static float smoothstep(float edge0, float edge1, float x) {

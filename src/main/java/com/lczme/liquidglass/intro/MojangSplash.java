@@ -42,6 +42,7 @@ final class MojangSplash {
     private static final float MAX_ZOOM = 80.0F;
 
     private final Minecraft minecraft;
+    final MojangAnimation animation;
     final Timeline outro = new Timeline();
     private final Timeline.Track outroBar = outro.track(1.0F).to(0.0F, 0.25F, 0.0F, Easing.OUT_CUBIC);
     private final Timeline.Track outroCut = outro.track(0.0F).to(0.05F, 0.45F, 1.0F, Easing.IN_OUT_CUBIC);
@@ -53,6 +54,7 @@ final class MojangSplash {
 
     MojangSplash(Minecraft minecraft) {
         this.minecraft = minecraft;
+        this.animation = new MojangAnimation(minecraft);
     }
 
     static int brandColor(Minecraft minecraft) {
@@ -63,8 +65,10 @@ final class MojangSplash {
     void drawLoading(Matrix4f pose, float w, float h, int background, float progress, float alpha) {
         IntroDraw.fill(pose, 0.0F, 0.0F, w, h, IntroDraw.withAlpha(background, alpha));
         IntroDraw.blendAdditive();
-        drawLogo(pose, w, h, alpha);
+        drawLogo(pose, w, h, alpha * animation.staticLogoAlpha());
         IntroDraw.blendNormal();
+        float logoH = logoDrawHeight(w, h);
+        animation.draw(pose, (int) (w * 0.5F) - logoH * 2.0F, (int) (h * 0.5F) - logoH * 0.5F, logoH * 4.0F, logoH, alpha);
         drawProgressBar(pose, w, h, progress, alpha);
     }
 

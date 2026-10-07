@@ -187,6 +187,7 @@ public final class DevHooks {
             }),
             new Shot("liquidglass_autoshot_inventory.png", SETTLED, () -> {
                 Minecraft mc = Minecraft.getInstance();
+                CaveBackground.select("cave", false);
                 if (mc.player != null) {
                     mc.setScreen(new InventoryScreen(mc.player));
                 }
@@ -466,6 +467,23 @@ public final class DevHooks {
     }
 
     /** Called by the startup overlay at the end of each of its frames, with seconds since the phase's first frame. */
+    private static final double[] LOGO_SHOT_TIMES = {0.12, 0.9, 2.0, 3.15};
+    private static final boolean[] logoTaken = new boolean[LOGO_SHOT_TIMES.length];
+
+    /** Frames of the Mojang logo animation, by seconds since it started. */
+    public static void onLogoAnimationFrame(double elapsed) {
+        if (!AUTOSHOT) {
+            return;
+        }
+        for (int i = 0; i < LOGO_SHOT_TIMES.length; i++) {
+            if (!logoTaken[i] && elapsed >= LOGO_SHOT_TIMES[i]) {
+                logoTaken[i] = true;
+                grab("liquidglass_autoshot_boot_logo_" + i + ".png");
+                return;
+            }
+        }
+    }
+
     public static void onBootFrame(IntroState.Phase phase, double phaseElapsed) {
         if (!AUTOSHOT) {
             return;
