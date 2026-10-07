@@ -3,12 +3,14 @@ package com.lczme.glazuli.render;
 import com.lczme.glazuli.config.GlazuliConfig;
 import com.lczme.glazuli.dev.Perf;
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.ShaderInstance;
@@ -88,8 +90,21 @@ public final class GlassRenderer {
         shader.safeGetUniform("Specular").set(film ? 0.0F : style.specular());
         shader.safeGetUniform("Highlight").set(Mth.clamp(style.hover(), 0.0F, 1.0F));
 
-        RenderSystem.setShader(() -> shader);
-        RenderSystem.setShaderTexture(0, style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
+        // Only the defaults this shader reads: vanilla's full set (twelve samplers by name) costs more than the draw.
+        shader.setSampler("Sampler0", style.blur() ? BlurPipeline.blurredTexture() : BlurPipeline.sharpTexture());
+        if (shader.MODEL_VIEW_MATRIX != null) {
+            shader.MODEL_VIEW_MATRIX.set(RenderSystem.getModelViewMatrix());
+        }
+        if (shader.PROJECTION_MATRIX != null) {
+            shader.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
+        }
+        if (shader.COLOR_MODULATOR != null) {
+            shader.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
+        }
+        if (shader.SCREEN_SIZE != null) {
+            Window window = Minecraft.getInstance().getWindow();
+            shader.SCREEN_SIZE.set((float) window.getWidth(), (float) window.getHeight());
+        }
         RenderSystem.enableBlend();
         // The shader outputs premultiplied alpha so the AA edge and the outer shadow composite correctly.
         RenderSystem.blendFuncSeparate(
@@ -108,7 +123,9 @@ public final class GlassRenderer {
         builder.addVertex(pose, x - m, y + height + m, 0.0F).setUv(-m, height + m);
         builder.addVertex(pose, x + width + m, y + height + m, 0.0F).setUv(width + m, height + m);
         builder.addVertex(pose, x + width + m, y - m, 0.0F).setUv(width + m, -m);
-        BufferUploader.drawWithShader(builder.buildOrThrow());
+        shader.apply();
+        BufferUploader.draw(builder.buildOrThrow());
+        shader.clear();
 
         restoreGuiState();
         Perf.end(Perf.PANEL);
