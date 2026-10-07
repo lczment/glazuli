@@ -2,6 +2,8 @@
 
 Glazuli (琉璃) redoes Minecraft's loading screen, title screen and menus. Client-side only, works on any server.
 
+**Note: this mod was developed with AI assistance.**
+
 ## Startup
 
 After the red Mojang loading screen, the Mojang Studios logo animation plays with sound. The camera then flies through the logo into the menu scene and the title drops in letter by letter. Any key skips it. Resource reloads (packs, language, F3+T) use the same red screen, and quitting fades to black.
@@ -43,6 +45,10 @@ Every feature can be turned off in Mods > Glazuli > Config. On weak GPUs, lower 
 - Minecraft 1.21.1
 - NeoForge 21.1
 - Optional: Sodium 0.8.13 or newer (below 0.9), Iris, JEI, Jade, Create
+
+## License
+
+The code is open source under LGPL-3.0. The bundled font, the Mojang logo animation and the startup sound keep their own terms, listed below.
 
 ## Credits
 

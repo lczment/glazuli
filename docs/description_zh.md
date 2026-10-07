@@ -2,6 +2,8 @@
 
 琉璃 (Glazuli) 是一个界面美化模组，重做了加载画面、主菜单和游戏内的各种界面。纯客户端，进服务器不受影响。
 
+**注意：本模组为 AI 辅助开发。**
+
 ## 启动动画
 
 - 红底 Mojang 画面加载完后，播放 Mojang Studios 标志动画和音效，镜头穿过标志进入主菜单场景，标题逐个字母落下，按任意键可跳过；
@@ -41,6 +43,7 @@
 
 ## 版权
 
+- 本模组代码以 LGPL-3.0 协议开源。内置的字体、Mojang 标志动画和启动音效不在此列，各自的版权见下；
 - 字体使用[鸿蒙黑体 (HarmonyOS Sans)](https://developer.huawei.com/consumer/cn/design/resource/)，版权归华为终端有限公司所有，按 HarmonyOS Sans 字体许可协议使用；
 - 玻璃风格的钠视频设置界面基于 FlashyReese 的 [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options)（MIT 协议）；
 - Mojang Studios 标志动画的帧图和音效取自 Karasu-Lab 的 [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation)，图像和声音版权归 Mojang 所有；
@@ -59,4 +62,4 @@
 - 运行环境：客户端需装，服务端无效
 - 前置 Mod：无
 - 联动的 Mod：钠 (Sodium)、Iris Shaders、JEI、Jade、机械动力 (Create)
-- 开源属性 / 许可证：闭源（All Rights Reserved）
+- 开源属性 / 许可证：开源（LGPL-3.0）

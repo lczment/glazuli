@@ -195,6 +195,10 @@ publishing {
     }
 }
 
+tasks.named('jar') {
+    from('COPYING', 'COPYING.LESSER') { into 'META-INF/licenses/glazuli' }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
