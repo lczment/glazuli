@@ -4,7 +4,7 @@ Glazuli (琉璃, "liuli", is Chinese for glazed glass) reworks the parts of Mine
 
 ## Startup
 
-The red Mojang screen stays, but when loading finishes the Mojang Studios logo animation plays with its sound. Then the logo turns see-through, the camera flies through it into the menu scene, and the Minecraft title drops in letter by letter. If you've used LabyMod, you'll recognize where the idea came from. Press any key to skip it.
+The red Mojang screen stays, but when loading finishes the Mojang Studios logo animation plays with its sound. Then the logo turns see-through, the camera flies through it into the menu scene, and the Minecraft title drops in letter by letter. Press any key to skip it.
 
 Changing resource packs or language, or pressing F3+T, shows the same red screen instead of the vanilla overlay. Quitting the game fades to black.
 
@@ -58,4 +58,4 @@ On first launch, Glazuli sets vanilla's Menu Background Blur to 0 so the scene s
 - The glass Sodium settings are based on [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options) by FlashyReese (MIT).
 - The Mojang Studios logo animation frames and sound were taken from [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation) by Karasu-Lab. The artwork and sound belong to Mojang.
 - The startup sound is based on the opening of "Minecraft" by C418.
-- The startup sequence is inspired by LabyMod. Glazuli isn't affiliated with LabyMod or Mojang.
+- Glazuli isn't affiliated with Mojang.

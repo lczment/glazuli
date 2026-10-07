@@ -4,7 +4,7 @@
 
 ## 启动动画
 
-红底的 Mojang 画面还在，加载完以后会播放 Mojang Studios 的标志动画和音效。接着标志变透明，镜头从中间穿过去进入主菜单场景，Minecraft 标题再一个字母一个字母落下来。用过 LabyMod 的人应该一眼就能认出来是照着它做的。按任意键可以跳过。
+红底的 Mojang 画面还在，加载完以后会播放 Mojang Studios 的标志动画和音效。接着标志变透明，镜头从中间穿过去进入主菜单场景，Minecraft 标题再一个字母一个字母落下来。按任意键可以跳过。
 
 切换资源包、换语言或者按 F3+T 重载时，也是同样的红底画面，不会再闪出原版的加载条。退出游戏时画面渐黑。
 
@@ -58,4 +58,4 @@
 - 玻璃风格的钠设置界面基于 FlashyReese 的 [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options)（MIT 协议）。
 - Mojang Studios 标志动画的帧图和音效取自 Karasu-Lab 的 [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation)，图像和声音的版权归 Mojang 所有。
 - 启动音效改编自 C418 的《Minecraft》开头。
-- 启动流程参考了 LabyMod。琉璃与 LabyMod、Mojang 均无关联。
+- 琉璃与 Mojang 无关联。
