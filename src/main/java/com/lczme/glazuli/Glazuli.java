@@ -42,7 +42,6 @@ import java.nio.file.Path;
 public final class Glazuli {
     public static final String MODID = "glazuli";
     public static final Logger LOGGER = LogUtils.getLogger();
-
     public Glazuli(IEventBus modBus, ModContainer container) {
         migrateLegacyConfig();
         container.registerConfig(ModConfig.Type.CLIENT, GlazuliConfig.SPEC);
@@ -76,11 +75,20 @@ public final class Glazuli {
         DevHooks.register(NeoForge.EVENT_BUS);
     }
 
-    /** The mod used to be "liquidglass"; carry its config file and folder over once. */
+    /** The mod used to be "liquidglass"; carry its config file and folder over once, then the old blur flag. */
     private static void migrateLegacyConfig() {
         Path dir = FMLPaths.CONFIGDIR.get();
         moveIfAbsent(dir.resolve("liquidglass"), dir.resolve(MODID));
         moveIfAbsent(dir.resolve("liquidglass-client.toml"), dir.resolve(MODID + "-client.toml"));
+        // Older versions kept the blur flag in the client config, which NeoForge prunes once the spec loads.
+        Path config = dir.resolve(MODID + "-client.toml");
+        try {
+            if (Files.exists(config) && Files.readString(config).contains("menuBlurDefaulted = true")) {
+                writeMenuBlurMarker();
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Could not read {}", config, e);
+        }
     }
 
     private static void moveIfAbsent(Path from, Path to) {
@@ -95,15 +103,31 @@ public final class Glazuli {
         }
     }
 
+    /** Turns the vanilla menu blur down to 0 once, so the menu scene stays sharp; players can raise it again. */
     private static void defaultMenuBlurOff() {
-        if (!GlazuliConfig.SPEC.isLoaded() || GlazuliConfig.MENU_BLUR_DEFAULTED.get()) {
+        if (Files.exists(menuBlurMarker())) {
             return;
         }
         Options options = Minecraft.getInstance().options;
         options.menuBackgroundBlurriness().set(0);
         options.save();
-        GlazuliConfig.MENU_BLUR_DEFAULTED.set(true);
-        GlazuliConfig.MENU_BLUR_DEFAULTED.save();
+        writeMenuBlurMarker();
+    }
+
+    private static Path menuBlurMarker() {
+        return FMLPaths.CONFIGDIR.get().resolve(MODID).resolve("menu-blur-reset");
+    }
+
+    private static void writeMenuBlurMarker() {
+        Path marker = menuBlurMarker();
+        try {
+            Files.createDirectories(marker.getParent());
+            if (!Files.exists(marker)) {
+                Files.createFile(marker);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Could not write {}", marker, e);
+        }
     }
 
     public static ResourceLocation id(String path) {

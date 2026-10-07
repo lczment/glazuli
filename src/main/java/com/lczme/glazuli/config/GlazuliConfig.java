@@ -21,7 +21,6 @@ public final class GlazuliConfig {
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
-    public static final ModConfigSpec.BooleanValue MENU_BLUR_DEFAULTED;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
     public static final ModConfigSpec.ConfigValue<String> MENU_SCENE;
     public static final ModConfigSpec.BooleanValue REAL_TIME_LIGHTING;
@@ -61,7 +60,7 @@ public final class GlazuliConfig {
 
         builder.push("menu");
         CLASSIC_UI = builder
-                .comment("Classic mode: every screen, the font and the menu transitions go back to vanilla; only the cave background stays.",
+                .comment("Vanilla look and font in the menus, keeping only the animated background.",
                         "Also toggled by the button in the title screen's top-right corner.")
                 .define("classicUi", false);
         IN_GAME_UI = builder
@@ -75,7 +74,7 @@ public final class GlazuliConfig {
                 .comment("Draw buttons on every screen as liquid glass instead of the vanilla texture.")
                 .define("glassButtons", true);
         CAVE_BACKGROUND = builder
-                .comment("Replace the menu panorama with a 3D cave: a flight in at startup, a viewpoint per menu, a dive when joining.")
+                .comment("Replace the panorama with a 3D scene. The camera moves as you switch menus and when you join a world.")
                 .define("caveBackground", true);
         MENU_SCENE = builder
                 .comment("The 3D menu scene: cave, lush, deep_dark, ice, nether, ocean, or custom:<name> for a scene saved in a world",
@@ -91,10 +90,6 @@ public final class GlazuliConfig {
         SCREEN_FADE = builder
                 .comment("Cross-fade from the previous screen when switching between menus.")
                 .define("screenFade", true);
-        MENU_BLUR_DEFAULTED = builder
-                .comment("Set once the vanilla Menu Background Blur option (Accessibility Settings) has been turned down to 0 so the",
-                        "menu scene stays sharp. Raise that slider again for blurred menus; set this to false to reset it to 0 on next launch.")
-                .define("menuBlurDefaulted", false);
         builder.pop();
 
         builder.push("font");
