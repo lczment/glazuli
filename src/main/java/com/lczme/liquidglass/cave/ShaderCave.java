@@ -1,6 +1,7 @@
 package com.lczme.liquidglass.cave;
 
 import com.lczme.liquidglass.LiquidGlass;
+import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.mixin.CameraAccessor;
 import com.lczme.liquidglass.mixin.ClientPacketListenerAccessor;
 import com.lczme.liquidglass.mixin.GameRendererAccessor;
@@ -115,6 +116,11 @@ final class ShaderCave {
 
     /** Frames rendered before the cave counts as warmed up (shader programs compiled, history buffers filled). */
     private static final int WARM_FRAMES = 8;
+    /**
+     * Every section must stay compiled this long: the section graph is built over several frames and light updates
+     * re-mesh sections, so a single "all rendered" frame can still be followed by chunks popping in.
+     */
+    private static final double SETTLE_SECONDS = 0.75;
     private static final long TICK_MILLIS = 50L;
 
     @Nullable
@@ -138,6 +144,7 @@ final class ShaderCave {
     private static boolean drawnThisFrame;
     private static boolean loggedWarm;
     private static int warmFrames;
+    private static double settledSince = Double.NaN;
     private static long lastLightTick;
     @Nullable
     private static Object lastPipeline;
@@ -211,7 +218,7 @@ final class ShaderCave {
         if (!wanted()) {
             return true;
         }
-        boolean warm = level != null && builtFor == world && warmFrames >= WARM_FRAMES && minecraft.levelRenderer.hasRenderedAllSections();
+        boolean warm = level != null && builtFor == world && !Double.isNaN(settledSince) && AnimClock.now() - settledSince >= SETTLE_SECONDS;
         if (warm && !loggedWarm) {
             loggedWarm = true;
             LiquidGlass.LOGGER.info("Shader cave warmed up after {} frames", warmFrames);
@@ -236,6 +243,7 @@ final class ShaderCave {
         pendingListener = null;
         chunkData = null;
         warmFrames = 0;
+        settledSince = Double.NaN;
         loggedWarm = false;
     }
 
@@ -468,6 +476,11 @@ final class ShaderCave {
                 lastPipeline = pipeline;
             }
             warmFrames++;
+            if (!minecraft.levelRenderer.hasRenderedAllSections() || warmFrames < WARM_FRAMES) {
+                settledSince = Double.NaN;
+            } else if (Double.isNaN(settledSince)) {
+                settledSince = AnimClock.now();
+            }
         } finally {
             minecraft.level = previousLevel;
             minecraft.player = previousPlayer;

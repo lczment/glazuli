@@ -88,7 +88,12 @@ public final class CaveBackground {
 
     /** True once scene {@code id} is fully faded in (for the dev screenshots). */
     public static boolean isShowing(String id) {
-        return id.equals(sceneId) && nextWorld == null && !Double.isNaN(readyTime) && AnimClock.now() - readyTime > FADE_IN_SECONDS + 1.0;
+        return isShowing(id, 1.0);
+    }
+
+    /** True once scene {@code id} has been fully faded in for {@code seconds}. */
+    public static boolean isShowing(String id, double seconds) {
+        return id.equals(sceneId) && nextWorld == null && !Double.isNaN(readyTime) && AnimClock.now() - readyTime > FADE_IN_SECONDS + seconds;
     }
 
     /**
@@ -206,8 +211,11 @@ public final class CaveBackground {
         }
     }
 
-    /** Called by the startup overlay once loading is done, so the cave is meshed before the outro reveals it. */
-    public static void prepare() {
+    /**
+     * Called by the startup overlay once loading is done, so the cave is meshed before the outro reveals it.
+     * {@code render}: also render it (off-screen, under the splash); a full shader pack frame halves the splash's frame rate.
+     */
+    public static void prepare(boolean render) {
         if (!isActive()) {
             return;
         }
@@ -216,7 +224,7 @@ public final class CaveBackground {
             double now = AnimClock.now();
             pollBuild(minecraft, now);
             // Rendered under the opaque splash: the shader pack compiles and the chunks mesh before the reveal.
-            if (mesh != null && world != null && world.isDone()) {
+            if (render && mesh != null && world != null && world.isDone()) {
                 CaveWorld scene = world.join();
                 CaveCamera cam = camera(scene);
                 cam.update(minecraft.screen, now, false);

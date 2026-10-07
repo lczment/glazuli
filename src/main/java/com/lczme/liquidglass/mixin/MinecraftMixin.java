@@ -1,7 +1,9 @@
 package com.lczme.liquidglass.mixin;
 
+import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.font.FontScale;
 import com.lczme.liquidglass.intro.IntroOverlays;
+import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.render.QuitFade;
 import com.lczme.liquidglass.render.ScreenFade;
 import javax.annotation.Nullable;
@@ -13,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
@@ -31,6 +34,23 @@ public abstract class MinecraftMixin {
     private void liquidglass$fadeOutOnQuit(CallbackInfo ci) {
         if (QuitFade.deferStop()) {
             ci.cancel();
+        }
+    }
+
+    /**
+     * Vanilla caps menus and loading screens at 60 fps; on a faster display that judders the animated startup and the
+     * cave camera, so they get the player's own limit.
+     */
+    @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
+    private void liquidglass$uncapAnimatedMenus(CallbackInfoReturnable<Integer> cir) {
+        Minecraft minecraft = (Minecraft) (Object) this;
+        if (minecraft.level != null) {
+            return;
+        }
+        // Called every frame from the start: CaveBackground may only be touched once mod loading is over, as its
+        // dependencies (blocks, render types) must not be class-loaded while mods register.
+        if (IntroState.isPlaying() || IntroState.isDone() && minecraft.getOverlay() == null && CaveBackground.isActive()) {
+            cir.setReturnValue(minecraft.getWindow().getFramerateLimit());
         }
     }
 

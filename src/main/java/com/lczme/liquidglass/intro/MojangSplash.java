@@ -69,7 +69,7 @@ final class MojangSplash {
         IntroDraw.blendNormal();
         float logoH = logoDrawHeight(w, h);
         animation.draw(pose, (int) (w * 0.5F) - logoH * 2.0F, (int) (h * 0.5F) - logoH * 0.5F, logoH * 4.0F, logoH, alpha);
-        drawProgressBar(pose, w, h, progress, alpha);
+        drawProgressBar(pose, w, h, progress, alpha * animation.barAlpha());
     }
 
     /**
@@ -107,7 +107,7 @@ final class MojangSplash {
         IntroDraw.blendAdditive();
         drawLogo(zoomed, w, h, 1.0F - cut);
         IntroDraw.blendNormal();
-        drawProgressBar(pose, w, h, progress, outroBar.value());
+        drawProgressBar(pose, w, h, progress, outroBar.value() * animation.barAlpha());
     }
 
     void close() {

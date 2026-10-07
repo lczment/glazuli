@@ -79,7 +79,7 @@ public final class ReloadOverlay extends GlassLoadingOverlay {
             }
         }
         if (isFinishCalled() && !splash.outro.isStarted()) {
-            CaveBackground.prepare();
+            CaveBackground.prepare(true);
             double sinceFill = AnimClock.now() - fillStart;
             boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
             boolean backdropReady = CaveBackground.isUpToDate() || sinceFill >= MAX_BACKDROP_WAIT_SECONDS;

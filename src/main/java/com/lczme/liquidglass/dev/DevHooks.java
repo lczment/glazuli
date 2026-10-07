@@ -130,7 +130,11 @@ public final class DevHooks {
                 CaveBackground.select("lush", false);
             }, () -> CaveBackground.isShowing("lush"), true),
             sceneShot("deep_dark", ""),
-            sceneShot("ice", ""),
+            // First fully revealed frame vs a while later: nothing may still be loading in.
+            new Shot("liquidglass_autoshot_scene_ice_reveal.png", SCENE_TIMEOUT, () -> CaveBackground.select("ice", false),
+                    () -> CaveBackground.isShowing("ice", 0.0), true),
+            new Shot("liquidglass_autoshot_scene_ice_late.png", SCENE_TIMEOUT, () -> { },
+                    () -> CaveBackground.isShowing("ice", 2.5), true),
             sceneShot("nether", ""),
             sceneShot("ocean", ""),
             new Shot("liquidglass_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> MenuScenes.list().stream()
@@ -467,28 +471,44 @@ public final class DevHooks {
     }
 
     /** Called by the startup overlay at the end of each of its frames, with seconds since the phase's first frame. */
-    private static final double[] LOGO_SHOT_TIMES = {0.05, 0.9, 2.0, 3.0};
+    // Mid-animation, the last frame, and the static logo that replaces it (must match it pixel for pixel).
+    private static final double[] LOGO_SHOT_TIMES = {1.0, 2.85, 3.05};
+    private static final double LOGO_STATIC_FROM = 3.0;
+    private static final double LOGO_FRAMES_END = 2.73;
     private static final boolean[] logoTaken = new boolean[LOGO_SHOT_TIMES.length];
     private static double logoLastFrame = Double.NaN;
     private static double logoMaxGap;
     private static int logoFrames;
+    private static int logoSlowFrames;
+    private static boolean logoLogged;
 
-    /** Frames of the Mojang logo animation, by seconds since it started; logs the worst frame gap at the end. */
+    /** Autoshot only: the logo animation shows vanilla's static logo instead of its last frame, for comparison. */
+    public static boolean forceStaticLogo(double elapsed) {
+        return AUTOSHOT && elapsed >= LOGO_STATIC_FROM;
+    }
+
+    /** Frames of the Mojang logo animation, by seconds since it started; logs frame pacing (screenshot frames excluded). */
     public static void onLogoAnimationFrame(double elapsed) {
         if (!AUTOSHOT) {
             return;
         }
-        if (!Double.isNaN(logoLastFrame) && elapsed < 3.2) {
-            logoMaxGap = Math.max(logoMaxGap, elapsed - logoLastFrame);
+        if (!Double.isNaN(logoLastFrame) && elapsed < LOGO_FRAMES_END) {
+            double gap = elapsed - logoLastFrame;
+            logoMaxGap = Math.max(logoMaxGap, gap);
             logoFrames++;
-        } else if (elapsed >= 3.2 && logoFrames > 0) {
-            LiquidGlass.LOGGER.info("[autoshot] logo animation: {} frames, worst gap {} ms", logoFrames, Math.round(logoMaxGap * 1000));
-            logoFrames = 0;
+            if (gap > 0.012) {
+                logoSlowFrames++;
+            }
+        } else if (elapsed >= LOGO_FRAMES_END && !logoLogged) {
+            logoLogged = true;
+            LiquidGlass.LOGGER.info("[autoshot] logo animation: {} frames ({} fps), {} over 12 ms, worst gap {} ms", logoFrames,
+                    Math.round(logoFrames / LOGO_FRAMES_END), logoSlowFrames, Math.round(logoMaxGap * 1000));
         }
         logoLastFrame = elapsed;
         for (int i = 0; i < LOGO_SHOT_TIMES.length; i++) {
             if (!logoTaken[i] && elapsed >= LOGO_SHOT_TIMES[i]) {
                 logoTaken[i] = true;
+                logoLastFrame = Double.NaN;
                 grab("liquidglass_autoshot_boot_logo_" + i + ".png");
                 return;
             }

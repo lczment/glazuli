@@ -66,7 +66,8 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         }
         splash.animation.tick();
         if (isFinishCalled() && !splash.outro.isStarted()) {
-            CaveBackground.prepare();
+            // Paused while the animation plays (the cave stays warm), resumed just before the outro shows it.
+            CaveBackground.prepare(!splash.animation.isStarted() || splash.animation.remaining() < 0.3);
         }
         double sinceFill = AnimClock.now() - fillStart;
         boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;

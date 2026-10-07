@@ -2,6 +2,7 @@ package com.lczme.liquidglass.intro;
 
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
+import com.lczme.liquidglass.dev.DevHooks;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +33,8 @@ final class MojangAnimation {
     private static final float HOLD_SECONDS = 0.5F;
     /** Cross-fade from the early window's static logo to the first frame. */
     private static final float INTRO_FADE_SECONDS = 0.4F;
+    private static final float BAR_FADE_SECONDS = 0.25F;
+    private static final float HANDOVER_SECONDS = 0.2F;
     /** Uploads per frame, so the loading screen doesn't hitch. */
     private static final int UPLOADS_PER_FRAME = 4;
     /** Once loading is done the outro doesn't wait longer than this for the remaining frames. */
@@ -43,8 +46,8 @@ final class MojangAnimation {
     private static final float FRAME_H = 280.0F;
     private static final float BOX_X0 = 24.0F;
     private static final float BOX_X1 = 1033.0F;
-    private static final float BOX_Y0 = 31.0F;
-    private static final float BOX_Y1 = 285.4F;
+    private static final float BOX_Y0 = 31.17F;
+    private static final float BOX_Y1 = 281.88F;
 
     private final List<DynamicTexture> textures = new ArrayList<>();
     @Nullable
@@ -159,12 +162,31 @@ final class MojangAnimation {
         }
     }
 
+    double remaining() {
+        return isStarted() ? length() - elapsed() : length();
+    }
+
+    /** The progress bar leaves as the animation starts. */
+    float barAlpha() {
+        return isStarted() ? Math.max(0.0F, 1.0F - (float) elapsed() / BAR_FADE_SECONDS) : 1.0F;
+    }
+
+    private boolean showsFrame() {
+        return !textures.isEmpty() && !isFinished() && !(isStarted() && DevHooks.forceStaticLogo(elapsed()));
+    }
+
     /** How much of vanilla's static logo shows: all of it unless a frame is drawn, except while fading to frame 0. */
     float staticLogoAlpha() {
-        if (textures.isEmpty() || isFinished()) {
+        if (!showsFrame()) {
             return 1.0F;
         }
-        return isStarted() ? 0.0F : 1.0F - frameZeroAlpha();
+        return isStarted() ? handoverAlpha() : 1.0F - frameZeroAlpha();
+    }
+
+    /** The last frame and vanilla's logo differ by a pixel along some edges (rasterised apart), so they cross-fade. */
+    private float handoverAlpha() {
+        float t = (float) elapsed() - (length() - HANDOVER_SECONDS);
+        return Math.max(0.0F, Math.min(1.0F, t / HANDOVER_SECONDS));
     }
 
     private float frameZeroAlpha() {
@@ -173,13 +195,14 @@ final class MojangAnimation {
 
     /** The current frame over vanilla's logo box ({@code x}, {@code y}, {@code w}, {@code h}); normal blending. */
     void draw(Matrix4f pose, float x, float y, float w, float h, float alpha) {
-        if (textures.isEmpty() || isFinished()) {
+        if (!showsFrame()) {
             return;
         }
         int index = 0;
         float frameAlpha = alpha;
         if (isStarted()) {
             index = Math.min(Math.min(FRAMES, textures.size()) - 1, (int) ((AnimClock.now() - start) / FRAME_SECONDS));
+            frameAlpha *= 1.0F - handoverAlpha();
         } else {
             frameAlpha *= frameZeroAlpha();
         }
