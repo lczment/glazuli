@@ -6,7 +6,10 @@
   },
   "startup.theme": {
     "sounds": [
-      "glazuli:startup/theme"
+      {
+        "name": "glazuli:startup/theme",
+        "volume": 0.35
+      }
     ]
   }
 }
