@@ -112,7 +112,7 @@ public final class ShaderCave {
      * re-mesh sections, so a single "all rendered" frame can still be followed by chunks popping in.
      */
     private static final double SETTLE_SECONDS = 0.75;
-    private static final long TICK_MILLIS = 50L;
+    private static final int MAX_CATCH_UP_TICKS = 10;
     private static final long DELIVERY_BUDGET_NANOS = 6_000_000L;
 
     @Nullable
@@ -140,7 +140,7 @@ public final class ShaderCave {
     private static boolean loggedWarm;
     private static int warmFrames;
     private static double settledSince = Double.NaN;
-    private static long lastLightTick;
+    private static int pendingTicks;
     @Nullable
     private static Object lastPipeline;
     @Nullable
@@ -183,6 +183,12 @@ public final class ShaderCave {
      */
     static boolean wanted(CaveWorld world) {
         return world.needsWorld() ? !failed : wanted();
+    }
+
+    public static void onClientTick() {
+        if (level != null && pendingTicks < MAX_CATCH_UP_TICKS) {
+            pendingTicks++;
+        }
     }
 
     /** Whether {@code level} is the menu scene's (Flywheel must not instance its block entities: nothing ticks it). */
@@ -485,11 +491,12 @@ public final class ShaderCave {
             fov.glazuli$setOldFov(1.0F);
             gameRenderer.setRenderHand(false);
             gameRenderer.setRenderBlockOutline(false);
-            long now = Util.getMillis();
-            if (now - lastLightTick >= TICK_MILLIS) {
-                lastLightTick = now;
+            // Nothing ticks this level: advance the clocks block entity animations read (banners, Create's gears). In
+            // step with the client's own ticks, since the partial tick they add on comes from the client's timer.
+            int ticks = Math.min(pendingTicks, MAX_CATCH_UP_TICKS);
+            pendingTicks = 0;
+            for (int i = 0; i < ticks; i++) {
                 gameRenderer.lightTexture().tick();
-                // Nothing ticks this level: advance the clocks block entity animations read (banners, Create's gears).
                 cave.setGameTime(cave.getGameTime() + 1L);
                 CreateCompat.tickAnimations();
             }
