@@ -29,6 +29,9 @@ public final class ScreenFade {
 
     @Nullable
     private static TextureTarget snapshot;
+    private static final double MAX_FIRST_STEP = 1.0 / 60.0;
+
+    private static double requestedAt = Double.NaN;
     private static double startTime = Double.NaN;
     // Between RenderFrameEvent.Pre and Post the main target holds a partial frame, so it can't be snapshotted.
     private static boolean inFrame;
@@ -43,7 +46,8 @@ public final class ScreenFade {
             return;
         }
         copyMainTarget(minecraft.getMainRenderTarget());
-        startTime = AnimClock.now();
+        requestedAt = AnimClock.now();
+        startTime = Double.NaN;
     }
 
     public static void onRenderFramePre(RenderFrameEvent.Pre event) {
@@ -52,6 +56,12 @@ public final class ScreenFade {
 
     public static void onRenderFramePost(RenderFrameEvent.Post event) {
         inFrame = false;
+        if (!Double.isNaN(requestedAt)) {
+            // Timed from the new screen's first frame: a slow init (a big key binds list) mustn't eat into the fade.
+            double now = AnimClock.now();
+            startTime = now - Math.min(now - requestedAt, MAX_FIRST_STEP);
+            requestedAt = Double.NaN;
+        }
         if (Double.isNaN(startTime) || snapshot == null) {
             return;
         }
