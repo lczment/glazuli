@@ -80,9 +80,10 @@ neoForge {
             systemProperty 'glazuli.bench', 'true'
             systemProperty 'glazuli.bench.only', System.getenv('LG_BENCH_ONLY') ?: ''
             systemProperty 'glazuli.bench.label', System.getenv('LG_BENCH_LABEL') ?: ''
+            systemProperty 'glazuli.bench.sample', System.getenv('LG_BENCH_SAMPLE') ?: 'false'
             programArguments.addAll '--width', '1920', '--height', '1080'
             if (System.getenv('LG_BENCH_JFR')) {
-                jvmArgument "-XX:StartFlightRecording=filename=${System.getenv('LG_BENCH_JFR')},settings=profile"
+                jvmArgument "-XX:StartFlightRecording=filename=${System.getenv('LG_BENCH_JFR')},settings=${System.getenv('LG_BENCH_JFC') ?: 'profile'}"
             }
         }
 

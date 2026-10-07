@@ -33,18 +33,24 @@ final class VanillaData {
     private static CloseableResourceManager resources;
     @Nullable
     private static StructureTemplateManager templates;
+    // Separate locks: the render thread polls registries() every frame and must not wait while another thread spends
+    // a while opening the pack or building the template manager.
+    private static final Object RESOURCES_LOCK = new Object();
+    private static final Object TEMPLATES_LOCK = new Object();
 
     private VanillaData() {
     }
 
-    private static synchronized CloseableResourceManager resources() {
-        if (resources == null) {
-            PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
-            packs.reload();
-            packs.setSelected(List.of("vanilla"));
-            resources = new MultiPackResourceManager(PackType.SERVER_DATA, packs.openAllSelected());
+    private static CloseableResourceManager resources() {
+        synchronized (RESOURCES_LOCK) {
+            if (resources == null) {
+                PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
+                packs.reload();
+                packs.setSelected(List.of("vanilla"));
+                resources = new MultiPackResourceManager(PackType.SERVER_DATA, packs.openAllSelected());
+            }
+            return resources;
         }
-        return resources;
     }
 
     /** Loads (once) off-thread. */
@@ -63,14 +69,16 @@ final class VanillaData {
     }
 
     /** Vanilla's structure templates ({@code data/minecraft/structure}); blocks until made. */
-    static synchronized StructureTemplateManager templates() throws IOException {
-        if (templates == null) {
-            // The manager also looks for templates saved in a world's "generated" folder; it gets an empty one.
-            Path dir = Files.createTempDirectory(Glazuli.MODID + "-structures");
-            try (LevelStorageSource.LevelStorageAccess access = LevelStorageSource.createDefault(dir).createAccess("menu")) {
-                templates = new StructureTemplateManager(resources(), access, DataFixers.getDataFixer(), BuiltInRegistries.BLOCK.asLookup());
+    static StructureTemplateManager templates() throws IOException {
+        synchronized (TEMPLATES_LOCK) {
+            if (templates == null) {
+                // The manager also looks for templates saved in a world's "generated" folder; it gets an empty one.
+                Path dir = Files.createTempDirectory(Glazuli.MODID + "-structures");
+                try (LevelStorageSource.LevelStorageAccess access = LevelStorageSource.createDefault(dir).createAccess("menu")) {
+                    templates = new StructureTemplateManager(resources(), access, DataFixers.getDataFixer(), BuiltInRegistries.BLOCK.asLookup());
+                }
             }
+            return templates;
         }
-        return templates;
     }
 }

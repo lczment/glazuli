@@ -12,7 +12,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import javax.annotation.Nullable;
@@ -128,6 +132,19 @@ public final class Bench {
     private static final List<String> intervalSpikes = new ArrayList<>();
     private static int lastSwitchFrame;
     private static final com.sun.management.ThreadMXBean THREADS = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
+    private static final boolean SAMPLE = Boolean.getBoolean("glazuli.bench.sample");
+    private static final long[] SAMPLE_TIMES = new long[1024];
+    private static final StackTraceElement[][] SAMPLE_STACKS = new StackTraceElement[1024][];
+    private static int sampleHead;
+    private static final Map<String, Integer> spikeSamples = new HashMap<>();
+    private static final Map<String, Integer> switchSamples = new HashMap<>();
+    private static boolean samplerStarted;
+    private static final long[] introIntervals = new long[32768];
+    private static int introFrames;
+    private static long introLast;
+    private static long introStart;
+    private static final List<String> introGaps = new ArrayList<>();
+    private static final Map<String, Integer> introSamples = new HashMap<>();
     private static long allocStart;
     private static long allocated;
     private static long gcCountStart;
@@ -159,8 +176,74 @@ public final class Bench {
     private static void show(@Nullable Screen screen) {
         long t = System.nanoTime();
         Minecraft.getInstance().setScreen(screen);
-        pendingSwitch += System.nanoTime() - t;
+        long end = System.nanoTime();
+        pendingSwitch += end - t;
         lastSwitchFrame = frames;
+        if (!Double.isNaN(measureStart)) {
+            collectSamples(t, end, switchSamples);
+        }
+    }
+
+    /**
+     * Stack samples of the render thread, every millisecond: JFR's sampler spreads over all threads and skips native
+     * code, so it rarely catches the render thread in a one-frame hitch.
+     */
+    private static void startSampler(Thread target) {
+        Thread sampler = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                if (index >= 0 && Double.isNaN(measureStart)) {
+                    continue;
+                }
+                StackTraceElement[] stack = target.getStackTrace();
+                long t = System.nanoTime();
+                synchronized (SAMPLE_TIMES) {
+                    SAMPLE_TIMES[sampleHead] = t;
+                    SAMPLE_STACKS[sampleHead] = stack;
+                    sampleHead = (sampleHead + 1) % SAMPLE_TIMES.length;
+                }
+            }
+        }, "Glazuli bench sampler");
+        sampler.setDaemon(true);
+        sampler.start();
+    }
+
+    private static void collectSamples(long from, long to, Map<String, Integer> into) {
+        if (!SAMPLE) {
+            return;
+        }
+        synchronized (SAMPLE_TIMES) {
+            for (int i = 0; i < SAMPLE_TIMES.length; i++) {
+                if (SAMPLE_STACKS[i] != null && SAMPLE_TIMES[i] >= from && SAMPLE_TIMES[i] <= to) {
+                    Set<String> seen = new HashSet<>();
+                    for (StackTraceElement e : SAMPLE_STACKS[i]) {
+                        String c = e.getClassName();
+                        seen.add(c.substring(c.lastIndexOf('.') + 1) + "." + e.getMethodName());
+                    }
+                    for (String m : seen) {
+                        into.merge(m, 1, Integer::sum);
+                    }
+                    StackTraceElement leaf = SAMPLE_STACKS[i].length > 0 ? SAMPLE_STACKS[i][0] : null;
+                    if (leaf != null) {
+                        into.merge("LEAF " + leaf.getClassName().substring(leaf.getClassName().lastIndexOf('.') + 1) + "."
+                                + leaf.getMethodName(), 1, Integer::sum);
+                    }
+                    into.merge("#samples", 1, Integer::sum);
+                    SAMPLE_STACKS[i] = null;
+                }
+            }
+        }
+    }
+
+    private static String topSamples(Map<String, Integer> samples) {
+        StringBuilder s = new StringBuilder();
+        samples.entrySet().stream().sorted((a, b) -> b.getValue() - a.getValue()).limit(120)
+                .forEach(e -> s.append(String.format("  %5d %s%n", e.getValue(), e.getKey())));
+        return s.toString();
     }
 
     private static long gcCount() {
@@ -225,8 +308,27 @@ public final class Bench {
                         frames > 0 ? ms(work[frames - 1]) : 0.0, frames - lastSwitchFrame));
             }
         }
+        if (index < 0) {
+            if (introLast != 0 && introFrames < introIntervals.length) {
+                long interval = t - introLast;
+                introIntervals[introFrames++] = interval;
+                if (interval > 50_000_000L) {
+                    if (introGaps.size() < 16) {
+                        introGaps.add(String.format("%.0fms@%.1fs", ms(interval), (t - introStart) / 1.0E9));
+                    }
+                    collectSamples(introLast, t, introSamples);
+                }
+            } else if (introLast == 0) {
+                introStart = t;
+            }
+            introLast = t;
+        }
         lastFrame = t;
         frameStart = t;
+        if (SAMPLE && !samplerStarted) {
+            samplerStarted = true;
+            startSampler(Thread.currentThread());
+        }
         allocStart = THREADS.getCurrentThreadAllocatedBytes();
         Perf.startFrame();
         Perf.begin(Perf.FRAME);
@@ -240,6 +342,9 @@ public final class Bench {
             work[frames] = w;
             allocated += THREADS.getCurrentThreadAllocatedBytes() - allocStart;
             noteSpike(w);
+            if (frames >= 60 && w >= 2 * median && w >= 4_000_000L) {
+                collectSamples(frameStart, System.nanoTime(), spikeSamples);
+            }
             frames++;
             if (frames % 60 == 0) {
                 long[] sorted = Arrays.copyOf(intervals, frames);
@@ -260,6 +365,7 @@ public final class Bench {
                 mc.getWindow().updateVsync(false);
                 mc.options.framerateLimit().set(260);
                 mc.getWindow().setFramerateLimit(260);
+                reportIntro();
                 begin(0);
             }
             return;
@@ -284,6 +390,8 @@ public final class Bench {
                 intervalMedian = Long.MAX_VALUE / 4;
                 lastSwitchFrame = -1000;
                 allocated = 0;
+                spikeSamples.clear();
+                switchSamples.clear();
                 gcCountStart = gcCount();
                 gcMillisStart = gcMillis();
                 Arrays.fill(intervals, 0L);
@@ -380,6 +488,41 @@ public final class Bench {
             Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("glazuli_bench.txt");
             Files.writeString(file, (LABEL.isBlank() ? "" : "[" + LABEL + "] ") + line + System.lineSeparator(), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            if (SAMPLE) {
+                Files.writeString(file.resolveSibling("glazuli_bench_samples.txt"), "[" + LABEL + "] " + s.name()
+                                + System.lineSeparator() + " spikes:" + System.lineSeparator() + topSamples(spikeSamples)
+                                + " setScreen:" + System.lineSeparator() + topSamples(switchSamples),
+                        StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            Glazuli.LOGGER.warn("[bench] could not write results", e);
+        }
+    }
+
+    /** Frame pacing from the first rendered frame until the title screen is up (the startup animation). */
+    private static void reportIntro() {
+        int n = Math.max(1, introFrames);
+        long[] sorted = Arrays.copyOf(introIntervals, n);
+        Arrays.sort(sorted);
+        int over33 = 0;
+        int over100 = 0;
+        for (int i = 0; i < n; i++) {
+            over33 += sorted[i] > 33_000_000L ? 1 : 0;
+            over100 += sorted[i] > 100_000_000L ? 1 : 0;
+        }
+        String line = String.format("%-24s frames %d over %.1fs | frame p50 %6.2f p90 %6.2f p99 %6.2f max %6.1f | >33ms %d >100ms %d | gaps %s",
+                "intro", introFrames, (introLast - introStart) / 1.0E9, ms(sorted[n / 2]), ms(sorted[(int) (n * 0.9)]),
+                ms(sorted[Math.min(n - 1, (int) (n * 0.99))]), ms(sorted[n - 1]), over33, over100, String.join(", ", introGaps));
+        Glazuli.LOGGER.info("[bench] {}", line);
+        try {
+            Path file = Minecraft.getInstance().gameDirectory.toPath().resolve("glazuli_bench.txt");
+            Files.writeString(file, (LABEL.isBlank() ? "" : "[" + LABEL + "] ") + line + System.lineSeparator(), StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            if (SAMPLE) {
+                Files.writeString(file.resolveSibling("glazuli_bench_samples.txt"), "[" + LABEL + "] intro gaps"
+                        + System.lineSeparator() + topSamples(introSamples), StandardCharsets.UTF_8, StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND);
+            }
         } catch (IOException e) {
             Glazuli.LOGGER.warn("[bench] could not write results", e);
         }

@@ -113,6 +113,7 @@ public final class ShaderCave {
      */
     private static final double SETTLE_SECONDS = 0.75;
     private static final long TICK_MILLIS = 50L;
+    private static final long DELIVERY_BUDGET_NANOS = 6_000_000L;
 
     @Nullable
     private static ClientLevel pendingLevel;
@@ -122,6 +123,11 @@ public final class ShaderCave {
     private static MultiPlayerGameMode gameMode;
     @Nullable
     private static CompletableFuture<List<ClientboundLevelChunkWithLightPacket>> chunkData;
+    /** Chunk packets being handed to the level, {@link #delivered} of them so far. */
+    @Nullable
+    private static List<ClientboundLevelChunkWithLightPacket> delivering;
+    private static int delivered;
+    private static long deliveryStart;
     @Nullable
     private static ClientLevel level;
     @Nullable
@@ -197,7 +203,8 @@ public final class ShaderCave {
                 reset();
                 builtFor = world;
             }
-            if (level == null && !build(minecraft, world)) {
+            if (level == null) {
+                build(minecraft, world);
                 return false;
             }
             if (drawnThisFrame) {
@@ -244,6 +251,7 @@ public final class ShaderCave {
         pendingLevel = null;
         pendingListener = null;
         chunkData = null;
+        delivering = null;
         warmFrames = 0;
         settledSince = Double.NaN;
         loggedWarm = false;
@@ -254,10 +262,15 @@ public final class ShaderCave {
         Glazuli.LOGGER.error(message, e);
     }
 
-    private static boolean build(Minecraft minecraft, CaveWorld world) {
+    /**
+     * Builds the level over several frames so none of them stalls for long: the level and its chunk data (off-thread),
+     * then the world renderer, then the chunks a few milliseconds' worth per frame. The first world render, a long frame
+     * of its own, follows on the frame after.
+     */
+    private static void build(Minecraft minecraft, CaveWorld world) {
         CompletableFuture<RegistryAccess.Frozen> registries = VanillaData.registries();
         if (!registries.isDone()) {
-            return false;
+            return;
         }
         Span span = Span.of(world);
         if (pendingLevel == null) {
@@ -277,26 +290,35 @@ public final class ShaderCave {
             pendingLevel = cave;
             pendingListener = listener;
             chunkData = CompletableFuture.supplyAsync(() -> chunkPackets(cave, world, span), Util.backgroundExecutor());
-            return false;
+            return;
         }
         if (!chunkData.isDone()) {
-            return false;
+            return;
         }
-        long start = Util.getMillis();
         ClientLevel cave = pendingLevel;
         ClientPacketListener listener = pendingListener;
-        cave.getChunkSource().updateViewCenter(span.chunksX() / 2, span.chunksZ() / 2);
-        minecraft.levelRenderer.setLevel(cave);
-        for (ClientboundLevelChunkWithLightPacket packet : chunkData.join()) {
-            listener.handleLevelChunkWithLight(packet);
+        if (delivering == null) {
+            deliveryStart = Util.getMillis();
+            cave.getChunkSource().updateViewCenter(span.chunksX() / 2, span.chunksZ() / 2);
+            minecraft.levelRenderer.setLevel(cave);
+            delivering = chunkData.join();
+            delivered = 0;
+            return;
+        }
+        long until = Util.getNanos() + DELIVERY_BUDGET_NANOS;
+        do {
+            listener.handleLevelChunkWithLight(delivering.get(delivered++));
+        } while (delivered < delivering.size() && Util.getNanos() < until);
+        if (delivered < delivering.size()) {
+            return;
         }
         LocalPlayer stand = new LocalPlayer(minecraft, cave, listener, new StatsCounter(), new ClientRecipeBook(), false, false);
         level = cave;
         player = stand;
         gameMode = new MultiPlayerGameMode(minecraft, listener);
         chunkData = null;
-        Glazuli.LOGGER.info("Shader cave level delivered in {} ms", Util.getMillis() - start);
-        return true;
+        delivering = null;
+        Glazuli.LOGGER.info("Shader cave level delivered over {} ms", Util.getMillis() - deliveryStart);
     }
 
     /** Fills, lights and serializes the chunks; touches nothing but the new chunks, so it runs off-thread. */
