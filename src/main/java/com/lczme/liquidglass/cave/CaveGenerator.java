@@ -5,6 +5,7 @@ import static com.lczme.liquidglass.cave.CaveWorld.SIZE_Y;
 import static com.lczme.liquidglass.cave.CaveWorld.SIZE_Z;
 
 import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -663,6 +664,59 @@ public final class CaveGenerator {
                 world.blocks[i] = WATER;
             } else if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
                 world.blocks[i] = state.setValue(BlockStateProperties.WATERLOGGED, true);
+            }
+        }
+    }
+
+    /**
+     * Sky light for open scenes: full down every column until something stops it (leaves and water dim it), then
+     * spread sideways under overhangs, like vanilla's sky light.
+     */
+    static void skyLight(CaveWorld world) {
+        int sx = world.sizeX;
+        int sy = world.sizeY;
+        byte[] sky = world.sky;
+        IntArrayFIFOQueue queue = new IntArrayFIFOQueue();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int z = 0; z < world.sizeZ; z++) {
+            for (int x = 0; x < sx; x++) {
+                int level = 15;
+                for (int y = sy - 1; y >= 0 && level > 0; y--) {
+                    BlockState state = world.get(x, y, z);
+                    if (CaveWorld.isOpaqueCube(state)) {
+                        break;
+                    }
+                    int dim = state.getLightBlock(world, pos.set(x, y, z));
+                    if (dim > 0 || !state.getFluidState().isEmpty()) {
+                        level = Math.max(0, level - Math.max(1, dim));
+                    }
+                    int i = world.index(x, y, z);
+                    sky[i] = (byte) level;
+                    queue.enqueue(i);
+                }
+            }
+        }
+        while (!queue.isEmpty()) {
+            int i = queue.dequeueInt();
+            int level = sky[i];
+            if (level <= 1) {
+                continue;
+            }
+            int x = i % sx;
+            int y = (i / sx) % sy;
+            int z = i / (sx * sy);
+            for (Direction direction : Direction.values()) {
+                int nx = x + direction.getStepX();
+                int ny = y + direction.getStepY();
+                int nz = z + direction.getStepZ();
+                if (!world.contains(nx, ny, nz)) {
+                    continue;
+                }
+                int n = world.index(nx, ny, nz);
+                if (sky[n] < level - 1 && !CaveWorld.isOpaqueCube(world.blocks[n])) {
+                    sky[n] = (byte) (level - 1);
+                    queue.enqueue(n);
+                }
             }
         }
     }

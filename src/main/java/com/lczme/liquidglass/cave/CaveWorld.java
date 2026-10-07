@@ -1,6 +1,9 @@
 package com.lczme.liquidglass.cave;
 
+import java.util.HashMap;
+import java.util.Map;
 import javax.annotation.Nullable;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -36,8 +39,13 @@ public final class CaveWorld implements BlockAndTintGetter {
     @Nullable
     final byte[] sky;
     final boolean open;
-    final CameraRig rig;
+    /** Built scenes aim their camera at the finished blocks, so they set it afterwards. */
+    CameraRig rig;
     final SceneLook look;
+    /** Block entity data by position (structure scenes); drawn only by the world renderer, see {@link #needsWorld()}. */
+    final Map<BlockPos, CompoundTag> blockEntities = new HashMap<>();
+    /** Open scenes: nothing past the edges (floating end islands) instead of the edge columns continuing. */
+    boolean voidOutside;
 
     CaveWorld(int sizeX, int sizeY, int sizeZ, @Nullable byte[] sky, boolean open, CameraRig rig, SceneLook look) {
         this.sizeX = sizeX;
@@ -49,6 +57,10 @@ public final class CaveWorld implements BlockAndTintGetter {
         this.open = open;
         this.rig = rig;
         this.look = look;
+    }
+
+    boolean needsWorld() {
+        return !blockEntities.isEmpty();
     }
 
     CameraRig rig() {
@@ -75,6 +87,9 @@ public final class CaveWorld implements BlockAndTintGetter {
     BlockState get(int x, int y, int z) {
         if (contains(x, y, z)) {
             return blocks[index(x, y, z)];
+        }
+        if (voidOutside) {
+            return AIR;
         }
         if (!open || y < 0) {
             return STONE;
@@ -130,12 +145,15 @@ public final class CaveWorld implements BlockAndTintGetter {
         int y = pos.getY();
         int z = pos.getZ();
         if (layer == LightLayer.SKY) {
-            if (sky == null || y < 0) {
+            if (sky == null || y < 0 && !voidOutside) {
                 return 0;
+            }
+            if (voidOutside && !contains(x, y, z)) {
+                return 15;
             }
             return y >= sizeY ? 15 : sky[index(Mth.clamp(x, 0, sizeX - 1), y, Mth.clamp(z, 0, sizeZ - 1))];
         }
-        if (open && y >= 0 && y < sizeY) {
+        if (open && !voidOutside && y >= 0 && y < sizeY) {
             return light[index(Mth.clamp(x, 0, sizeX - 1), y, Mth.clamp(z, 0, sizeZ - 1))];
         }
         return contains(x, y, z) ? light[index(x, y, z)] : 0;

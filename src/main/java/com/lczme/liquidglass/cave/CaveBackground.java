@@ -241,9 +241,15 @@ public final class CaveBackground {
         return !isActive() || mesh != null && world.isDone() && ShaderCave.isWarm(Minecraft.getInstance(), world.join());
     }
 
+    /** Development screenshots: holds the camera's idle drift still. */
+    public static void freezeCameraDrift(boolean freeze) {
+        CaveCamera.freezeDrift = freeze;
+    }
+
     /** How long the startup may hold the splash for {@link #isReady()}; compiling a shader pack takes a while. */
     public static float readyWaitLimitSeconds() {
-        return isActive() && ShaderCave.wanted() ? 30.0F : 2.0F;
+        boolean levelScene = world != null && world.isDone() && !world.isCompletedExceptionally() && world.join().needsWorld();
+        return isActive() && (ShaderCave.wanted() || levelScene) ? 30.0F : 2.0F;
     }
 
     /** Like {@link #isReady()}, but also requires the mesh to match the current resources (after a reload). */

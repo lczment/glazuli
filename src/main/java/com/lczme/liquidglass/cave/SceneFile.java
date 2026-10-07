@@ -136,7 +136,7 @@ public final class SceneFile {
         float skyBrightness = Mth.clamp(tag.getFloat("SkyBrightness"), 0.0F, 1.0F);
         SceneLook look = new SceneLook(tag.getInt("Fog"), outdoor ? 20.0F : 12.0F, outdoor ? RADIUS + 8.0F : CaveCamera.FOG_END,
                 1.00F, 0.82F, 0.60F, 0.10F, 0.11F, 0.13F, skyBrightness,
-                tag.getInt("Water"), tag.getInt("Grass"), tag.getInt("Foliage"), tag.getLong("DayTime"));
+                tag.getInt("Water"), tag.getInt("Grass"), tag.getInt("Foliage"), tag.getLong("DayTime"), SceneLook.Dimension.OVERWORLD);
         CustomRig rig = new CustomRig(new Vector3f(tag.getFloat("EyeX"), tag.getFloat("EyeY"), tag.getFloat("EyeZ")),
                 tag.getFloat("Yaw"), tag.getFloat("Pitch"));
         CaveWorld world = new CaveWorld(sx, sy, sz, skyLight, true, rig, look);

@@ -47,6 +47,9 @@ public final class MenuScenes {
         for (CaveTheme theme : CaveTheme.values()) {
             entries.add(new Entry(theme.id(), theme.displayName()));
         }
+        for (String id : BuiltScenes.ids()) {
+            entries.add(new Entry(id, Component.translatable("liquidglass.scene." + id)));
+        }
         Path dir = directory();
         if (Files.isDirectory(dir)) {
             try (Stream<Path> files = Files.list(dir)) {
@@ -70,6 +73,13 @@ public final class MenuScenes {
                 return SceneFile.read(file);
             } catch (IOException | RuntimeException e) {
                 LiquidGlass.LOGGER.error("Couldn't load menu scene {}, using the default cave", file, e);
+            }
+        }
+        if (BuiltScenes.has(id)) {
+            try {
+                return BuiltScenes.build(id, SEED);
+            } catch (IOException | RuntimeException e) {
+                LiquidGlass.LOGGER.error("Couldn't build menu scene {}, using the default cave", id, e);
             }
         }
         CaveTheme theme = CaveTheme.byId(id);

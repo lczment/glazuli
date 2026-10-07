@@ -69,6 +69,8 @@ neoForge {
             client()
             systemProperty 'liquidglass.autoshot', 'true'
             systemProperty 'liquidglass.autoshot.exit', 'true'
+            // Comma-separated parts of shot names to take; empty takes them all.
+            systemProperty 'liquidglass.autoshot.only', System.getenv('LG_AUTOSHOT_ONLY') ?: ''
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 

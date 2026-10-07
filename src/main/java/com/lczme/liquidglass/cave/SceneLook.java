@@ -1,30 +1,59 @@
 package com.lczme.liquidglass.cave;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
+import net.minecraft.world.level.dimension.DimensionType;
 
 /**
  * How a menu scene is coloured: the clear/fog colour and fog range, the light map (block light tint plus an ambient
- * floor so unlit rock isn't pure black, and sky light for captured outdoor scenes), the biome tints and the time of day
- * the shader world is set to.
+ * floor so unlit rock isn't pure black, and sky light for captured outdoor scenes), the biome tints, the time of day
+ * the shader world is set to and the dimension it pretends to be (sky, fog and shader pack look).
  */
 public record SceneLook(int fogColor, float fogStart, float fogEnd,
                         float blockR, float blockG, float blockB,
                         float ambientR, float ambientG, float ambientB,
-                        float skyBrightness, int water, int grass, int foliage, long dayTime) {
+                        float skyBrightness, int water, int grass, int foliage, long dayTime, Dimension dimension) {
     static final int WATER = 0x3F76E4;
     static final int GRASS = 0x79C05A;
     static final int FOLIAGE = 0x59AE30;
 
+    public enum Dimension {
+        OVERWORLD(Level.OVERWORLD, BuiltinDimensionTypes.OVERWORLD),
+        NETHER(Level.NETHER, BuiltinDimensionTypes.NETHER),
+        END(Level.END, BuiltinDimensionTypes.END);
+
+        final ResourceKey<Level> level;
+        final ResourceKey<DimensionType> type;
+
+        Dimension(ResourceKey<Level> level, ResourceKey<DimensionType> type) {
+            this.level = level;
+            this.type = type;
+        }
+    }
+
     static SceneLook underground(int fogColor, float fogEnd, float blockR, float blockG, float blockB,
                                  float ambientR, float ambientG, float ambientB) {
         return new SceneLook(fogColor, 12.0F, fogEnd, blockR, blockG, blockB, ambientR, ambientG, ambientB, 0.0F,
-                WATER, GRASS, FOLIAGE, 6000L);
+                WATER, GRASS, FOLIAGE, 6000L, Dimension.OVERWORLD);
+    }
+
+    /** Daylight scene: sky light at {@code skyBrightness}, warm block light, little ambient. */
+    static SceneLook outdoor(int fogColor, float fogEnd, float skyBrightness, int grass, int foliage, long dayTime) {
+        return new SceneLook(fogColor, fogEnd * 0.55F, fogEnd, 1.00F, 0.82F, 0.60F, 0.05F, 0.06F, 0.08F, skyBrightness,
+                WATER, grass, foliage, dayTime, Dimension.OVERWORLD);
     }
 
     SceneLook withFog(float start, float end) {
         return new SceneLook(fogColor, start, end, blockR, blockG, blockB, ambientR, ambientG, ambientB, skyBrightness,
-                water, grass, foliage, dayTime);
+                water, grass, foliage, dayTime, dimension);
+    }
+
+    SceneLook in(Dimension dimension) {
+        return new SceneLook(fogColor, fogStart, fogEnd, blockR, blockG, blockB, ambientR, ambientG, ambientB, skyBrightness,
+                water, grass, foliage, dayTime, dimension);
     }
 
     float red() {

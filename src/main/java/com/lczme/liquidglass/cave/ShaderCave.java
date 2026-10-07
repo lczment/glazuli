@@ -29,21 +29,13 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.telemetry.TelemetryEventSender;
 import net.minecraft.client.telemetry.WorldSessionTelemetryManager;
-import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
-import net.minecraft.resources.RegistryDataLoader;
-import net.minecraft.server.RegistryLayer;
 import net.minecraft.server.ServerLinks;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.repository.PackRepository;
-import net.minecraft.server.packs.repository.ServerPacksSource;
-import net.minecraft.server.packs.resources.CloseableResourceManager;
-import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraft.stats.StatsCounter;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
@@ -51,14 +43,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.LightChunk;
 import net.minecraft.world.level.chunk.LightChunkGetter;
-import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.phys.HitResult;
@@ -75,7 +65,7 @@ import org.lwjgl.opengl.GL30;
  * packets with precomputed light, and a stand-in player as camera. {@link Minecraft#level} and {@link Minecraft#player}
  * only point at it while it is being drawn, so nothing else ever ticks or sees it.
  */
-final class ShaderCave {
+public final class ShaderCave {
     /**
      * The scene's voxels sit at the world origin; {@link CaveWorld#get} fills the rest of these chunks (a closed cave's
      * stone also caps the top against sky light).
@@ -123,8 +113,6 @@ final class ShaderCave {
     private static final double SETTLE_SECONDS = 0.75;
     private static final long TICK_MILLIS = 50L;
 
-    @Nullable
-    private static CompletableFuture<RegistryAccess.Frozen> registries;
     @Nullable
     private static ClientLevel pendingLevel;
     @Nullable
@@ -183,11 +171,24 @@ final class ShaderCave {
     }
 
     /**
+     * Scenes with block entities (beds, chests, Create's machines) always go through the world renderer: the plain mesh
+     * only has block models.
+     */
+    static boolean wanted(CaveWorld world) {
+        return world.needsWorld() ? !failed : wanted();
+    }
+
+    /** Whether {@code level} is the menu scene's (Flywheel must not instance its block entities: nothing ticks it). */
+    public static boolean isSceneLevel(@Nullable Object level) {
+        return level != null && (level == ShaderCave.level || level == pendingLevel);
+    }
+
+    /**
      * Draws the cave through the world renderer from {@code camera}; false if not (yet) possible, in which case the
      * caller draws the plain mesh.
      */
     static boolean render(Minecraft minecraft, CaveWorld world, CaveCamera camera) {
-        if (!wanted()) {
+        if (!wanted(world)) {
             return false;
         }
         try {
@@ -215,7 +216,7 @@ final class ShaderCave {
      * cave won't stall a frame (or there is nothing to warm up).
      */
     static boolean isWarm(Minecraft minecraft, CaveWorld world) {
-        if (!wanted()) {
+        if (!wanted(world)) {
             return true;
         }
         boolean warm = level != null && builtFor == world && !Double.isNaN(settledSince) && AnimClock.now() - settledSince >= SETTLE_SECONDS;
@@ -252,23 +253,8 @@ final class ShaderCave {
         LiquidGlass.LOGGER.error(message, e);
     }
 
-    /** Vanilla's worldgen registries (biomes, dimension types, damage types) from the built-in data pack, off-thread. */
-    private static RegistryAccess.Frozen loadRegistries() {
-        PackRepository packs = ServerPacksSource.createVanillaTrustedRepository();
-        packs.reload();
-        packs.setSelected(List.of("vanilla"));
-        try (CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packs.openAllSelected())) {
-            LayeredRegistryAccess<RegistryLayer> layers = RegistryLayer.createRegistryAccess();
-            RegistryAccess.Frozen worldgen = RegistryDataLoader.load(resources,
-                    layers.getAccessForLoading(RegistryLayer.WORLDGEN), RegistryDataLoader.WORLDGEN_REGISTRIES);
-            return layers.replaceFrom(RegistryLayer.WORLDGEN, worldgen).compositeAccess();
-        }
-    }
-
     private static boolean build(Minecraft minecraft, CaveWorld world) {
-        if (registries == null) {
-            registries = CompletableFuture.supplyAsync(ShaderCave::loadRegistries, Util.backgroundExecutor());
-        }
+        CompletableFuture<RegistryAccess.Frozen> registries = VanillaData.registries();
         if (!registries.isDone()) {
             return false;
         }
@@ -281,8 +267,9 @@ final class ShaderCave {
                     access, FeatureFlags.DEFAULT_FLAGS, "liquidglass", null, null, Map.of(), null, false, Map.of(), ServerLinks.EMPTY);
             ClientPacketListener listener = new ClientPacketListener(minecraft, connection, cookie);
             ClientLevel.ClientLevelData data = new ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false);
-            ClientLevel cave = new ClientLevel(listener, data, Level.OVERWORLD,
-                    access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
+            SceneLook.Dimension dimension = world.look().dimension();
+            ClientLevel cave = new ClientLevel(listener, data, dimension.level,
+                    access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(dimension.type),
                     span.viewDistance(), span.viewDistance(), minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
             ((ClientPacketListenerAccessor) listener).liquidglass$setLevel(cave);
             cave.setDayTime(world.look().dayTime());
@@ -345,11 +332,13 @@ final class ShaderCave {
 
     private static LevelChunk fill(ClientLevel cave, CaveWorld world, ChunkPos pos, int maxY) {
         LevelChunk chunk = new LevelChunk(cave, pos);
+        int minY = Math.max(MIN_Y, cave.getMinBuildHeight());
+        maxY = Math.min(maxY, cave.getMaxBuildHeight());
         for (int lx = 0; lx < 16; lx++) {
             for (int lz = 0; lz < 16; lz++) {
                 int x = pos.getMinBlockX() + lx;
                 int z = pos.getMinBlockZ() + lz;
-                for (int y = MIN_Y; y < maxY; y++) {
+                for (int y = minY; y < maxY; y++) {
                     BlockState state = world.get(x, y, z);
                     if (state == null || state.isAir()) {
                         continue;
@@ -362,6 +351,21 @@ final class ShaderCave {
         for (LevelChunkSection section : chunk.getSections()) {
             section.recalcBlockCounts();
         }
+        world.blockEntities.forEach((blockPos, tag) -> {
+            if (blockPos.getX() >> 4 == pos.x && blockPos.getZ() >> 4 == pos.z) {
+                BlockState state = chunk.getBlockState(blockPos);
+                if (state.hasBlockEntity()) {
+                    try {
+                        BlockEntity blockEntity = BlockEntity.loadStatic(blockPos, state, tag, cave.registryAccess());
+                        if (blockEntity != null) {
+                            chunk.setBlockEntity(blockEntity);
+                        }
+                    } catch (RuntimeException e) {
+                        LiquidGlass.LOGGER.warn("Menu scene block entity at {} failed to load", blockPos, e);
+                    }
+                }
+            }
+        });
         Heightmap.primeHeightmaps(chunk, EnumSet.allOf(Heightmap.Types.class));
         chunk.initializeLightSources();
         return chunk;
@@ -462,6 +466,9 @@ final class ShaderCave {
             if (now - lastLightTick >= TICK_MILLIS) {
                 lastLightTick = now;
                 gameRenderer.lightTexture().tick();
+                // Nothing ticks this level: advance the clocks block entity animations read (banners, Create's gears).
+                cave.setGameTime(cave.getGameTime() + 1L);
+                CreateCompat.tickAnimations();
             }
             resetGlState();
             gameRenderer.renderLevel(minecraft.getTimer());

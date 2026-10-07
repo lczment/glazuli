@@ -158,15 +158,18 @@ final class CaveCamera {
         fogEnd = baseFogEnd;
     }
 
+    /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */
+    static boolean freezeDrift;
+
     /** Spot position with a slow idle drift, so the menu background never looks frozen. */
     private Vector3f spotEye(Spot s, double now, Vector3f out) {
-        float t = (float) now;
+        float t = freezeDrift ? 0.0F : (float) now;
         return out.set(rig.spotEye(s))
                 .add(0.35F * Mth.sin(t * 0.23F), 0.2F * Mth.sin(t * 0.31F + 1.0F), 0.35F * Mth.cos(t * 0.19F));
     }
 
     private Vector3f spotLook(Spot s, double now, Vector3f out) {
-        float t = (float) now;
+        float t = freezeDrift ? 0.0F : (float) now;
         return out.set(rig.spotLook(s))
                 .add(0.5F * Mth.sin(t * 0.17F + 2.0F), 0.25F * Mth.sin(t * 0.27F), 0.5F * Mth.cos(t * 0.21F + 1.0F));
     }

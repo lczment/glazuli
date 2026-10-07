@@ -19,6 +19,7 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.TutorialToast;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
@@ -63,6 +64,7 @@ import org.lwjgl.glfw.GLFW;
 public final class DevHooks {
     private static final boolean AUTOSHOT = Boolean.getBoolean("liquidglass.autoshot");
     private static final boolean AUTOSHOT_EXIT = Boolean.getBoolean("liquidglass.autoshot.exit");
+    private static final String ONLY = System.getProperty("liquidglass.autoshot.only", "");
     // Time-based rather than frame-based so animation timing is the same regardless of frame rate.
     private static final double SETTLED = 1.5;
     private static final double SAVE_SECONDS = 0.5;
@@ -137,6 +139,16 @@ public final class DevHooks {
                     () -> CaveBackground.isShowing("ice", 2.5), true),
             sceneShot("nether", ""),
             sceneShot("ocean", ""),
+            sceneShot("plains_village", ""),
+            sceneShot("snowy_village", ""),
+            sceneShot("desert_village", ""),
+            sceneShot("ancient_city", ""),
+            sceneShot("trial_chambers", ""),
+            sceneShot("bastion", ""),
+            sceneShot("end_city", ""),
+            sceneShot("create_factory", ""),
+            new Shot("liquidglass_autoshot_scene_create_factory_rest.png", SCENE_TIMEOUT, () -> { },
+                    () -> CaveBackground.isShowing("create_factory", 5.0), true),
             new Shot("liquidglass_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> MenuScenes.list().stream()
                     .filter(entry -> entry.id().startsWith("custom:")).findFirst()
                     .ifPresent(entry -> CaveBackground.select(entry.id(), false)),
@@ -178,6 +190,14 @@ public final class DevHooks {
             sceneShot("ice", "_plain"),
             sceneShot("nether", "_plain"),
             sceneShot("ocean", "_plain"),
+            sceneShot("plains_village", "_plain"),
+            sceneShot("create_factory", "_plain"),
+            // Without a shader pack's temporal jitter, twice a moment apart once the camera is held still: only the
+            // machines may differ.
+            new Shot("liquidglass_autoshot_scene_create_factory_plain_still.png", SCENE_TIMEOUT, () -> CaveBackground.freezeCameraDrift(true),
+                    () -> CaveBackground.isShowing("create_factory", 4.0), true),
+            new Shot("liquidglass_autoshot_scene_create_factory_plain_turned.png", 0.3, () -> CaveBackground.freezeCameraDrift(true)),
+            new Shot("liquidglass_autoshot_scene_create_factory_plain_moving.png", 0.1, () -> CaveBackground.freezeCameraDrift(false)),
             sceneShot("custom:autoshot", "_plain"),
             sceneShot("cave", "_plain"),
             // In-game screens (JEI's overlay) last: there is no way back to the menu without disconnecting.
@@ -564,7 +584,22 @@ public final class DevHooks {
                 msg -> LiquidGlass.LOGGER.info("[autoshot] {}", msg.getString()));
     }
 
+    private static boolean selected(Shot shot) {
+        if (ONLY.isBlank()) {
+            return true;
+        }
+        for (String part : ONLY.split(",")) {
+            if (!part.isBlank() && shot.fileName().contains(part.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void startShot(int index) {
+        while (index < SHOTS.length && !selected(SHOTS[index])) {
+            index++;
+        }
         shot = index;
         shotStart = AnimClock.now();
         grabbed = false;
@@ -584,8 +619,20 @@ public final class DevHooks {
      * {@code waitForOverlay}: only start once no loading overlay is showing.
      */
     private static Shot sceneShot(String id, String suffix) {
-        return new Shot("liquidglass_autoshot_scene_" + id.replace(':', '_') + suffix + ".png", SCENE_TIMEOUT, () -> CaveBackground.select(id, false),
-                () -> CaveBackground.isShowing(id), true);
+        return new Shot("liquidglass_autoshot_scene_" + id.replace(':', '_') + suffix + ".png", 2.0 * SCENE_TIMEOUT, () -> {
+            CaveBackground.select(id, false);
+            if (!(Minecraft.getInstance().screen instanceof BareTitle)) {
+                Minecraft.getInstance().setScreen(new BareTitle());
+            }
+        }, () -> CaveBackground.isShowing(id), true);
+    }
+
+    /** The title screen's camera spot with only the scene drawn, so scene shots show the whole picture. */
+    private static final class BareTitle extends TitleScreen {
+        @Override
+        public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            this.renderPanorama(guiGraphics, partialTick);
+        }
     }
 
     private record Shot(String fileName, double settleSeconds, Runnable setup, @Nullable BooleanSupplier ready, boolean waitForOverlay) {
