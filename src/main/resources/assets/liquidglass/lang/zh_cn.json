@@ -9,6 +9,7 @@
   "liquidglass.configuration.intro": "启动动画",
   "liquidglass.configuration.introMode": "启动动画模式",
   "liquidglass.configuration.styleReloadOverlay": "重载时也用 Mojang 加载动画",
+  "liquidglass.configuration.startupSound": "启动音效",
   "liquidglass.configuration.menu": "菜单",
   "liquidglass.configuration.customTitleScreen": "玻璃风格主菜单",
   "liquidglass.configuration.classicUi": "主菜单原版界面",

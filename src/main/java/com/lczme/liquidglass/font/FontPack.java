@@ -4,9 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.config.LiquidGlassConfig.FontWeight;
+import com.lczme.liquidglass.intro.StartupSound;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -29,6 +32,8 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
  * user-supplied font when one is found (see {@link UserFont}), falling back to {@code minecraft:default}. Text in the
  * default font is redirected to it while it's in use, so classic mode switches without reloading. Generated rather
  * than static so the config can turn it off and so glyphs are rasterised at the current GUI scale.
+ * <p>
+ * Also serves the user's startup sting from the config folder (see {@link StartupSound}).
  */
 public final class FontPack implements PackResources {
     private static final String ID = "liquidglass/fonts";
@@ -38,6 +43,8 @@ public final class FontPack implements PackResources {
     private static final ResourceLocation USER_FONT_FILE = LiquidGlass.id("font/user_font.ttf");
     private static final String USER_FONT = LiquidGlass.MODID + ":user_font.ttf";
     private static final String BUNDLED_FONT_PREFIX = LiquidGlass.MODID + ":harmonyos_sans_sc_";
+    private static final ResourceLocation SOUNDS = LiquidGlass.id("sounds.json");
+    private static final ResourceLocation STARTUP_SOUND_FILE = LiquidGlass.id("sounds/startup_custom.ogg");
     /** Em size in GUI pixels; CJK glyphs then fill the 9 px line like the vanilla unifont glyphs do. */
     private static final float SIZE = 10.0F;
     private static final float SHIFT_Y = 0.5F;
@@ -126,7 +133,13 @@ public final class FontPack implements PackResources {
     @Nullable
     @Override
     public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
-        if (type != PackType.CLIENT_RESOURCES || !FontScale.isLoaded()) {
+        if (type != PackType.CLIENT_RESOURCES) {
+            return null;
+        }
+        if (location.equals(SOUNDS) || location.equals(STARTUP_SOUND_FILE)) {
+            return startupSound(location);
+        }
+        if (!FontScale.isLoaded()) {
             return null;
         }
         if (location.equals(UI_FONT)) {
@@ -139,8 +152,36 @@ public final class FontPack implements PackResources {
         return null;
     }
 
+    /** The user's startup sting and its sound event, only while the file exists (no missing-file warning otherwise). */
+    @Nullable
+    private static IoSupplier<InputStream> startupSound(ResourceLocation location) {
+        Path file = StartupSound.customFile();
+        if (!Files.isRegularFile(file)) {
+            return null;
+        }
+        if (location.equals(STARTUP_SOUND_FILE)) {
+            return () -> Files.newInputStream(file);
+        }
+        JsonObject sound = new JsonObject();
+        sound.addProperty("name", LiquidGlass.MODID + ":startup_custom");
+        JsonArray sounds = new JsonArray();
+        sounds.add(sound);
+        JsonObject event = new JsonObject();
+        event.add("sounds", sounds);
+        JsonObject root = new JsonObject();
+        root.add(StartupSound.CUSTOM.getPath(), event);
+        byte[] json = root.toString().getBytes(StandardCharsets.UTF_8);
+        return () -> new ByteArrayInputStream(json);
+    }
+
     @Override
     public void listResources(PackType type, String namespace, String path, ResourceOutput output) {
+        // The sound manager only loads sound files it finds by listing "sounds".
+        IoSupplier<InputStream> startup = type == PackType.CLIENT_RESOURCES && namespace.equals(LiquidGlass.MODID)
+                && path.equals("sounds") ? startupSound(STARTUP_SOUND_FILE) : null;
+        if (startup != null) {
+            output.accept(STARTUP_SOUND_FILE, startup);
+        }
         if (type == PackType.CLIENT_RESOURCES && namespace.equals(LiquidGlass.MODID) && path.equals("font")
                 && FontScale.isLoaded()) {
             output.accept(UI_FONT, () -> new ByteArrayInputStream(this.fontDefinition()));

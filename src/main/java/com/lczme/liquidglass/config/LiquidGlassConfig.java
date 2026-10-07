@@ -15,6 +15,7 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_REFRACTION;
     public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
+    public static final ModConfigSpec.BooleanValue STARTUP_SOUND;
     public static final ModConfigSpec.BooleanValue CLASSIC_UI;
     public static final ModConfigSpec.EnumValue<InGameUi> IN_GAME_UI;
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
@@ -52,6 +53,10 @@ public final class LiquidGlassConfig {
         STYLE_RELOAD_OVERLAY = builder
                 .comment("Also use the Mojang Studios screen with the fly-through exit for later resource reloads (resource packs, language, F3+T).")
                 .define("styleReloadOverlay", true);
+        STARTUP_SOUND = builder
+                .comment("Play a sting when the title screen first appears and start the menu music after it.",
+                        "Uses config/liquidglass/startup.ogg (Ogg Vorbis) if present, otherwise a short chord of vanilla sounds.")
+                .define("startupSound", true);
         builder.pop();
 
         builder.push("menu");

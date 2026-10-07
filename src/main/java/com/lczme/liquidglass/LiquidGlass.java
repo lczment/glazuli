@@ -7,6 +7,7 @@ import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.dev.DevHooks;
 import com.lczme.liquidglass.font.FontPack;
 import com.lczme.liquidglass.font.FontScale;
+import com.lczme.liquidglass.intro.StartupSound;
 import com.lczme.liquidglass.render.BlurFade;
 import com.lczme.liquidglass.render.BlurPipeline;
 import com.lczme.liquidglass.render.CreatePanels;
@@ -62,6 +63,7 @@ public final class LiquidGlass {
             DarkText.reset();
             BlurFade.onFrameStart();
             CaveBackground.onFrameStart();
+            StartupSound.onFrameStart();
         });
         NeoForge.EVENT_BUS.addListener(MenuScenes::registerCommands);
         Compat.register(NeoForge.EVENT_BUS);

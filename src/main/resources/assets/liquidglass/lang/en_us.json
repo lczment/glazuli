@@ -9,6 +9,7 @@
   "liquidglass.configuration.intro": "Startup Intro",
   "liquidglass.configuration.introMode": "Intro Mode",
   "liquidglass.configuration.styleReloadOverlay": "Mojang Screen for Reloads",
+  "liquidglass.configuration.startupSound": "Startup Sound",
   "liquidglass.configuration.menu": "Menus",
   "liquidglass.configuration.customTitleScreen": "Glass Title Screen",
   "liquidglass.configuration.classicUi": "Classic UI in Menus",
