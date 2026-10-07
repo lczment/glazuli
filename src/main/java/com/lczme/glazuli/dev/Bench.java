@@ -62,6 +62,7 @@ public final class Bench {
                     show(options ? new OptionsScreen(new TitleScreen(), mc.options) : new TitleScreen());
                 }
             }, WARMUP),
+            menu("menu_sodium", () -> show(com.lczme.glazuli.compat.sodium.SodiumScreens.videoSettings(new TitleScreen())), null),
             menu("menu_title_noglass", () -> {
                 GlazuliConfig.ENABLE_GLASS.set(false);
                 show(new TitleScreen());

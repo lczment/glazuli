@@ -23,6 +23,7 @@
     "FontManagerMixin",
     "FontMixin",
     "FontStringRenderOutputMixin",
+    "FontTextureMixin",
     "FlywheelVisualizationMixin",
     "GuiGraphicsMixin",
     "KeyboardHandlerMixin",
