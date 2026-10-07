@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.TutorialToast;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -119,7 +120,12 @@ public final class DevHooks {
                 }
             }),
             new Shot("liquidglass_autoshot_sodium_slider.png", SETTLED, () -> hover(220.0, 81.0)),
+            new Shot("liquidglass_autoshot_sodium_tab_mid.png", 0.1, () -> clickAt(0.12, 0.403), null, false),
+            new Shot("liquidglass_autoshot_sodium_tab_done.png", 0.8, () -> { }, null, false),
             new Shot("liquidglass_autoshot_create_world.png", 3.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
+            new Shot("liquidglass_autoshot_create_world_tab_mid.png", 0.1, () -> clickAt(0.5, 12.0 / Minecraft.getInstance()
+                    .getWindow().getGuiScaledHeight()), null, false),
+            new Shot("liquidglass_autoshot_create_world_tab_done.png", 0.8, () -> { }, null, false),
             new Shot("liquidglass_autoshot_iris.png", SETTLED, () -> openReflective("iris", "net.irisshaders.iris.gui.screen.ShaderPackScreen")),
             new Shot("liquidglass_autoshot_iris_options.png", SETTLED, DevHooks::openIrisOptions),
             new Shot("liquidglass_autoshot_fallback.png", SETTLED, () -> LiquidGlassConfig.ENABLE_GLASS.set(false)),
@@ -131,6 +137,14 @@ public final class DevHooks {
                 Minecraft.getInstance().setScreen(new ScenePickerScreen(menu));
                 CaveBackground.select("lush", false);
             }, () -> CaveBackground.isShowing("lush"), true),
+            new Shot("liquidglass_autoshot_scene_picker_turn_mid.png", 0.1, () -> {
+                if (Minecraft.getInstance().screen instanceof ScenePickerScreen picker) {
+                    picker.children().stream().filter(child -> child instanceof Button button && button.active
+                                    && (button.getMessage().getString().equals(">") || button.getMessage().getString().equals("<")))
+                            .reduce((first, second) -> second).ifPresent(child -> ((Button) child).onPress());
+                }
+            }, null, false),
+            new Shot("liquidglass_autoshot_scene_picker_turn_done.png", 0.8, () -> { }, null, false),
             sceneShot("deep_dark", ""),
             // First fully revealed frame vs a while later: nothing may still be loading in.
             new Shot("liquidglass_autoshot_scene_ice_reveal.png", SCENE_TIMEOUT, () -> CaveBackground.select("ice", false),
@@ -149,6 +163,12 @@ public final class DevHooks {
             sceneShot("create_factory", ""),
             new Shot("liquidglass_autoshot_scene_create_factory_rest.png", SCENE_TIMEOUT, () -> { },
                     () -> CaveBackground.isShowing("create_factory", 5.0), true),
+            new Shot("liquidglass_autoshot_scene_create_factory_belt.png", 2.5, () -> CaveBackground.devCamera(
+                    new org.joml.Vector3f(42.0F, 10.0F, 47.5F), new org.joml.Vector3f(42.0F, 4.0F, 42.5F))),
+            new Shot("liquidglass_autoshot_scene_create_factory_belt_end.png", 2.5, () -> CaveBackground.devCamera(
+                    new org.joml.Vector3f(50.5F, 7.0F, 45.5F), new org.joml.Vector3f(47.5F, 4.0F, 42.5F))),
+            new Shot("liquidglass_autoshot_scene_create_factory_belt_end2.png", 0.4, () -> { }, null, false),
+            new Shot("liquidglass_autoshot_scene_create_factory_belt_done.png", 0.1, () -> CaveBackground.devCamera(null, null)),
             new Shot("liquidglass_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> MenuScenes.list().stream()
                     .filter(entry -> entry.id().startsWith("custom:")).findFirst()
                     .ifPresent(entry -> CaveBackground.select(entry.id(), false)),
@@ -174,6 +194,15 @@ public final class DevHooks {
             }),
             new Shot("liquidglass_autoshot_create_config.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
                     "net.createmod.catnip.config.ui.BaseConfigScreen").getConstructor(Screen.class, String.class).newInstance(menu, "create"))),
+            new Shot("liquidglass_autoshot_create_config_factory_0.png", 2.0 * SCENE_TIMEOUT, () -> {
+                CaveBackground.select("create_factory", false);
+                openCreate(() -> (Screen) Class.forName("net.createmod.catnip.config.ui.BaseConfigScreen")
+                        .getConstructor(Screen.class, String.class).newInstance(menu, "create"));
+            }, () -> CaveBackground.isShowing("create_factory", 2.0), true),
+            new Shot("liquidglass_autoshot_create_config_factory_1.png", 0.03, () -> { }, null, false),
+            new Shot("liquidglass_autoshot_create_config_factory_2.png", 0.03, () -> { }, null, false),
+            new Shot("liquidglass_autoshot_create_config_factory_3.png", 0.03, () -> { }, null, false),
+            new Shot("liquidglass_autoshot_create_config_factory_4.png", 0.03, () -> { }, null, false),
             new Shot("liquidglass_autoshot_ponder_index.png", SETTLED, () -> openCreate(() -> (Screen) Class.forName(
                     "net.createmod.ponder.foundation.ui.PonderIndexScreen").getConstructor().newInstance())),
             // Switching shader packs on the title screen rebuilds Iris' pipeline while the cave is showing.
@@ -355,6 +384,18 @@ public final class DevHooks {
             y.setDouble(mc.mouseHandler, guiY * mc.getWindow().getScreenHeight() / mc.getWindow().getGuiScaledHeight());
         } catch (ReflectiveOperationException e) {
             LiquidGlass.LOGGER.warn("[autoshot] could not move the mouse", e);
+        }
+    }
+
+    /** Clicks the open screen at a fraction of its GUI size, as a mouse press and release there would. */
+    private static void clickAt(double fractionX, double fractionY) {
+        Minecraft mc = Minecraft.getInstance();
+        Screen screen = mc.screen;
+        if (screen != null) {
+            double x = fractionX * mc.getWindow().getGuiScaledWidth();
+            double y = fractionY * mc.getWindow().getGuiScaledHeight();
+            screen.mouseClicked(x, y, 0);
+            screen.mouseReleased(x, y, 0);
         }
     }
 
@@ -555,6 +596,7 @@ public final class DevHooks {
             // Any menu once loading finished (first launch shows the accessibility onboarding instead of the title).
             if (mc.getOverlay() == null && mc.screen != null) {
                 menu = mc.screen;
+                CaveBackground.rememberSelection(false);
                 startShot(0);
             }
             return;

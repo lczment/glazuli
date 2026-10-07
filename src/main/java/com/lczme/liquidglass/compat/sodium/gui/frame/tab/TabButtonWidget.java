@@ -20,6 +20,7 @@ final class TabButtonWidget extends BaseWidget {
     private final GuiTheme theme;
     private final Runnable action;
     private boolean selected;
+    private float hover;
 
     TabButtonWidget(LayoutBounds dim, Tab<?> tab, boolean selected, Runnable action) {
         super(dim);
@@ -35,16 +36,21 @@ final class TabButtonWidget extends BaseWidget {
         this.selected = selected;
     }
 
+    /** The selection pill, drawn by the rail under every tab at {@code y} while it glides to this tab. */
+    void renderPill(GuiGraphics guiGraphics, float y) {
+        int x1 = this.getX() + PILL_INSET_X;
+        int x2 = this.getLimitX() - PILL_INSET_X;
+        GlassUi.panel(guiGraphics, x1, y + 1, x2 - x1, this.getHeight() - 2, GlassUi.SELECTION.withHover(this.hover));
+    }
+
     @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
         this.hovered = this.isMouseOver(mouseX, mouseY);
-        float hover = this.hoverAmount(this.hovered);
+        this.hover = this.hoverAmount(this.hovered);
         int x1 = this.getX() + PILL_INSET_X;
         int x2 = this.getLimitX() - PILL_INSET_X;
-        if (this.selected) {
-            GlassUi.panel(guiGraphics, x1, this.getY() + 1, x2 - x1, this.getHeight() - 2, GlassUi.SELECTION.withHover(hover));
-        } else {
-            GlassUi.roundedFill(guiGraphics, x1, this.getY() + 1, x2, this.getLimitY() - 1, 2, (int) (hover * 0x1E) << 24 | 0xFFFFFF);
+        if (!this.selected) {
+            GlassUi.roundedFill(guiGraphics, x1, this.getY() + 1, x2, this.getLimitY() - 1, 2, (int) (this.hover * 0x1E) << 24 | 0xFFFFFF);
         }
 
         Component label = this.tab.getTitle();

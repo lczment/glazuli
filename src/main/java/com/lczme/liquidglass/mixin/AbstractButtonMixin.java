@@ -5,6 +5,7 @@ import com.lczme.liquidglass.anim.Spring;
 import com.lczme.liquidglass.render.GlassButtons;
 import com.lczme.liquidglass.render.GlassPressable;
 import com.lczme.liquidglass.render.GlassRenderer;
+import com.lczme.liquidglass.render.GlassStyle;
 import com.lczme.liquidglass.render.PackOverrides;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -57,8 +58,14 @@ public abstract class AbstractButtonMixin implements GlassPressable {
             original.call(guiGraphics, sprite, x, y, width, height);
             return;
         }
-        GlassRenderer.drawPanel(guiGraphics, x, y, width, height,
-                GlassButtons.styleFor((AbstractWidget) (Object) this).withHover(liquidglass$hover()));
+        AbstractWidget self = (AbstractWidget) (Object) this;
+        GlassStyle style = GlassButtons.styleFor(self).withHover(liquidglass$hover());
+        // Fading widgets (title entrance, page turns) fade their glass with the label.
+        float alpha = ((AbstractWidgetAccessor) self).liquidglass$alpha();
+        if (alpha < 1.0F) {
+            style = style.withOpacity(style.opacity() * Math.max(alpha, 0.0F));
+        }
+        GlassRenderer.drawPanel(guiGraphics, x, y, width, height, style);
     }
 
     /** Mouse clicks act on release (see {@link #liquidglass$pressScale}); keyboard and programmatic presses are untouched. */

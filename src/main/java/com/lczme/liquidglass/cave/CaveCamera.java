@@ -91,7 +91,11 @@ final class CaveCamera {
     void update(@Nullable Screen screen, double now, boolean introMayStart) {
         boolean gap = now - lastUpdate > CUT_GAP_SECONDS;
         lastUpdate = now;
-        if (isDiveScreen(screen)) {
+        if (devEye != null && devLook != null) {
+            eye.set(devEye);
+            target.set(devLook);
+            fogEnd = baseFogEnd;
+        } else if (isDiveScreen(screen)) {
             updateDive(now);
         } else if (!introFlown && screen instanceof TitleScreen) {
             updateIntro(now, introMayStart);
@@ -160,6 +164,11 @@ final class CaveCamera {
 
     /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */
     static boolean freezeDrift;
+    /** Development screenshots: a fixed camera instead of the screen's spot, null for the normal one. */
+    @Nullable
+    static Vector3f devEye;
+    @Nullable
+    static Vector3f devLook;
 
     /** Spot position with a slow idle drift, so the menu background never looks frozen. */
     private Vector3f spotEye(Spot s, double now, Vector3f out) {

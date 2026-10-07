@@ -62,6 +62,7 @@ public final class CaveBackground {
     private static boolean meshShaded;
     private static boolean failed;
     private static boolean introDone;
+    private static boolean rememberSelection = true;
     private static double meshTime = Double.NaN;
     private static double readyTime = Double.NaN;
     private static double switchStart = Double.NaN;
@@ -101,7 +102,7 @@ public final class CaveBackground {
      * meshed and (with shaders) warmed up. {@code reload} re-reads a scene that is already shown (it was re-captured).
      */
     public static void select(String id, boolean reload) {
-        if (LiquidGlassConfig.SPEC.isLoaded()) {
+        if (rememberSelection && LiquidGlassConfig.SPEC.isLoaded()) {
             LiquidGlassConfig.MENU_SCENE.set(id);
             LiquidGlassConfig.MENU_SCENE.save();
         }
@@ -241,9 +242,20 @@ public final class CaveBackground {
         return !isActive() || mesh != null && world.isDone() && ShaderCave.isWarm(Minecraft.getInstance(), world.join());
     }
 
+    /** Development screenshots switch scenes without replacing the one the player chose. */
+    public static void rememberSelection(boolean remember) {
+        rememberSelection = remember;
+    }
+
     /** Development screenshots: holds the camera's idle drift still. */
     public static void freezeCameraDrift(boolean freeze) {
         CaveCamera.freezeDrift = freeze;
+    }
+
+    /** Development screenshots: looks from {@code eye} at {@code look} (scene coordinates); null eye restores the spots. */
+    public static void devCamera(@Nullable org.joml.Vector3f eye, @Nullable org.joml.Vector3f look) {
+        CaveCamera.devEye = eye;
+        CaveCamera.devLook = look;
     }
 
     /** How long the startup may hold the splash for {@link #isReady()}; compiling a shader pack takes a while. */

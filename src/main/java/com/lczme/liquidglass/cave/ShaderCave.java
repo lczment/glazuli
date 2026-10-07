@@ -470,6 +470,8 @@ public final class ShaderCave {
                 cave.setGameTime(cave.getGameTime() + 1L);
                 CreateCompat.tickAnimations();
             }
+            // Iris only swaps in the pack's programs while the main target is bound, as it is for a normal world frame.
+            minecraft.getMainRenderTarget().bindWrite(true);
             resetGlState();
             gameRenderer.renderLevel(minecraft.getTimer());
             // Chunk meshes carry the pack's vertex format and block ids; Iris only rebuilds them when it creates a

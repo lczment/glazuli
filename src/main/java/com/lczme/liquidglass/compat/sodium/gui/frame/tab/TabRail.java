@@ -1,5 +1,6 @@
 package com.lczme.liquidglass.compat.sodium.gui.frame.tab;
 
+import com.lczme.liquidglass.anim.Spring;
 import com.lczme.liquidglass.compat.sodium.config.ReeseSodiumOptionsConfig;
 import com.lczme.liquidglass.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.liquidglass.compat.sodium.gui.widget.BaseWidget;
@@ -36,6 +37,8 @@ final class TabRail {
     private boolean canScroll;
     private ScrollBarWidget scrollBar;
     private @Nullable BaseWidget selectedTabWidget;
+    private final Spring pill = Spring.of(0.36F, 0.78F, 0.0F);
+    private @Nullable BaseWidget pillWidget;
 
     TabRail(LayoutBounds frameDim, List<Tab<?>> tabs, TabGroupModel groupModel, Holder<Integer> scrollBarOffset, OptionStateStore optionStateStore) {
         this.tabs = tabs;
@@ -166,6 +169,22 @@ final class TabRail {
         }
 
         this.scrollBar.setOffset(ScrollFrameLayout.scrollIntoViewOffset(frameDim, widgetDim, this.scrollBar.getOffset()));
+    }
+
+    /** The selected tab's glass pill, gliding (in rail coordinates, so scrolling doesn't drag it) to a newly selected tab. */
+    void renderSelectionPill(GuiGraphics guiGraphics) {
+        BaseWidget selected = this.selectedTabWidget;
+        if (!(selected instanceof TabButtonWidget button)) {
+            this.pillWidget = selected;
+            return;
+        }
+        float y = button.getY() - this.dim.y();
+        if (!(this.pillWidget instanceof TabButtonWidget)) {
+            this.pill.snapTo(y);
+        }
+        this.pillWidget = button;
+        this.pill.setTarget(y);
+        button.renderPill(guiGraphics, this.dim.y() + this.pill.value());
     }
 
     void extractScrollBar(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {

@@ -1,5 +1,7 @@
 package com.lczme.liquidglass.compat.sodium.gui.frame.tab;
 
+import com.lczme.liquidglass.anim.AnimClock;
+import com.lczme.liquidglass.anim.Easing;
 import com.lczme.liquidglass.compat.sodium.gui.layout.LayoutBounds;
 import com.lczme.liquidglass.compat.sodium.gui.frame.AbstractFrame;
 import com.lczme.liquidglass.compat.sodium.gui.frame.option.OptionRow;
@@ -12,8 +14,10 @@ import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,6 +39,8 @@ public class TabFrame extends AbstractFrame {
     public static final double TAB_RAIL_MAX_WIDTH_RATIO = 0.35D;
     public static final int CARD_GAP = 6;
     public static final int CARD_PADDING = 4;
+    private static final float PAGE_SLIDE_SECONDS = 0.32F;
+    private static final float PAGE_SLIDE_DISTANCE = 28.0F;
 
     private final TabRail tabRail;
     private final TabSelectionState tabSelection;
@@ -44,6 +50,9 @@ public class TabFrame extends AbstractFrame {
     private final Holder<Boolean> scrollSelectedTabIntoView;
     // Page frames share this holder, so inactive-frame rebuilds must not leave their clamped offset in it.
     private final Holder<Integer> optionPageScrollBarOffset;
+    private @Nullable Tab<?> shownTab;
+    private double slideStart = Double.NaN;
+    private int slideDirection;
 
     public TabFrame(LayoutBounds dim, Screen screen, ModOptions modOptions, boolean renderOutline, List<Tab<?>> tabs, Runnable onSetTab, Holder<String> tabRailSelectedTab, Holder<String> tabRailSelectedGroup, Holder<Integer> tabRailScrollBarOffset, Holder<Boolean> scrollSelectedTabIntoView, Holder<Integer> optionPageScrollBarOffset, Set<String> manuallyCollapsedTabGroups, OptionStateStore optionStateStore) {
         super(dim, screen, renderOutline, modOptions);
@@ -120,6 +129,7 @@ public class TabFrame extends AbstractFrame {
         AbstractFrame selectedFrame = this.tabSelection.selectedFrame();
         BaseWidget scrollBar = this.tabRail.scrollBar();
         this.applyScissor(guiGraphics, frameDim.x(), frameDim.y(), frameDim.width(), frameDim.height(), () -> {
+            this.tabRail.renderSelectionPill(guiGraphics);
             for (GuiEventListener child : this.children) {
                 if (child != selectedFrame && child != scrollBar && child instanceof Renderable renderable) {
                     renderable.render(guiGraphics, mouseX, mouseY, delta);
@@ -127,9 +137,34 @@ public class TabFrame extends AbstractFrame {
             }
         });
         if (selectedFrame != null) {
-            selectedFrame.render(guiGraphics, mouseX, mouseY, delta);
+            // A newly selected page slides in from the side of the rail it was picked towards; its own clip stays put.
+            float offset = this.pageSlideOffset();
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0.0F, offset, 0.0F);
+            selectedFrame.render(guiGraphics, mouseX, Math.round(mouseY - offset), delta);
+            guiGraphics.pose().popPose();
         }
         this.tabRail.extractScrollBar(guiGraphics, mouseX, mouseY, delta);
+    }
+
+    private float pageSlideOffset() {
+        Tab<?> tab = this.tabSelection.selectedTab().orElse(null);
+        double now = AnimClock.now();
+        if (tab != this.shownTab) {
+            if (this.shownTab != null && tab != null) {
+                this.slideDirection = Integer.signum(this.tabs.indexOf(tab) - this.tabs.indexOf(this.shownTab));
+                this.slideStart = now;
+            }
+            this.shownTab = tab;
+        }
+        if (Double.isNaN(this.slideStart)) {
+            return 0.0F;
+        }
+        float t = Mth.clamp((float) ((now - this.slideStart) / PAGE_SLIDE_SECONDS), 0.0F, 1.0F);
+        if (t >= 1.0F) {
+            this.slideStart = Double.NaN;
+        }
+        return this.slideDirection * PAGE_SLIDE_DISTANCE * (1.0F - Easing.SPEC_EASE.apply(t));
     }
 
     @Override

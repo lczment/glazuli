@@ -1,7 +1,9 @@
 package com.lczme.liquidglass.cave;
 
+import com.lczme.liquidglass.LiquidGlass;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -50,10 +52,12 @@ final class CreateFactory {
     private static <T extends Comparable<T>> BlockState with(BlockState state, String name, String value) {
         @SuppressWarnings("unchecked")
         Property<T> property = (Property<T>) state.getBlock().getStateDefinition().getProperty(name);
-        if (property == null) {
+        Optional<T> parsed = property != null ? property.getValue(value) : Optional.empty();
+        if (parsed.isEmpty()) {
+            LiquidGlass.LOGGER.warn("Create factory scene: {} has no {}={}", state.getBlock(), name, value);
             return state;
         }
-        return property.getValue(value).map(v -> state.setValue(property, v)).orElse(state);
+        return state.setValue(property, parsed.get());
     }
 
     private static BlockState state(String name, String... properties) {
@@ -246,7 +250,7 @@ final class CreateFactory {
         int length = beltEnd - beltStart + 1;
         for (int x = beltStart; x <= beltEnd; x++) {
             String part = x == beltStart ? "start" : x == beltEnd ? "end" : "middle";
-            CompoundTag belt = kinetic(x, g + 1, 16, state("belt", "horizontal_facing", east, "slope", "horizontal", "part", part), WHEEL_RPM);
+            CompoundTag belt = kinetic(x, g + 1, 16, state("belt", "facing", east, "slope", "horizontal", "part", part), WHEEL_RPM);
             belt.put("Controller", NbtUtils.writeBlockPos(new BlockPos(beltStart + OX, g + 1, 16 + OZ)));
             belt.putBoolean("IsController", x == beltStart);
             belt.putInt("Length", length);
