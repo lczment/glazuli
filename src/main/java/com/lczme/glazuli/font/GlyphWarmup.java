@@ -24,7 +24,8 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
  */
 public final class GlyphWarmup {
     private static final long BUDGET_NANOS = 750_000L;
-    private static final int MAX_GLYPHS = 6000;
+    /** The rarest characters are left to bake on first use: at 4K a glyph sheet holds only a few hundred of them. */
+    private static final int MAX_GLYPHS = 4000;
 
     @Nullable
     private static Language language;
