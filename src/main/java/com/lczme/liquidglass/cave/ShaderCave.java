@@ -272,7 +272,7 @@ public final class ShaderCave {
                     access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(dimension.type),
                     span.viewDistance(), span.viewDistance(), minecraft::getProfiler, minecraft.levelRenderer, false, 0L);
             ((ClientPacketListenerAccessor) listener).liquidglass$setLevel(cave);
-            cave.setDayTime(world.look().dayTime());
+            cave.setDayTime(SceneClock.dayTime(world));
             pendingLevel = cave;
             pendingListener = listener;
             chunkData = CompletableFuture.supplyAsync(() -> chunkPackets(cave, world, span), Util.backgroundExecutor());
@@ -470,6 +470,7 @@ public final class ShaderCave {
                 cave.setGameTime(cave.getGameTime() + 1L);
                 CreateCompat.tickAnimations();
             }
+            cave.setDayTime(SceneClock.dayTime(builtFor));
             // Iris only swaps in the pack's programs while the main target is bound, as it is for a normal world frame.
             minecraft.getMainRenderTarget().bindWrite(true);
             resetGlState();

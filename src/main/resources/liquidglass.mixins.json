@@ -32,6 +32,7 @@
     "MinecraftMixin",
     "NeoForgeLoadingOverlayAccessor",
     "PanoramaRendererMixin",
+    "PauseScreenMixin",
     "ScreenMixin",
     "SinglePoolElementAccessor",
     "StructureTemplateAccessor",

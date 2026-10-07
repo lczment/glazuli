@@ -51,6 +51,11 @@ public record SceneLook(int fogColor, float fogStart, float fogEnd,
                 water, grass, foliage, dayTime, dimension);
     }
 
+    SceneLook at(int fogColor, float skyBrightness) {
+        return new SceneLook(fogColor, fogStart, fogEnd, blockR, blockG, blockB, ambientR, ambientG, ambientB, skyBrightness,
+                water, grass, foliage, dayTime, dimension);
+    }
+
     SceneLook in(Dimension dimension) {
         return new SceneLook(fogColor, fogStart, fogEnd, blockR, blockG, blockB, ambientR, ambientG, ambientB, skyBrightness,
                 water, grass, foliage, dayTime, dimension);

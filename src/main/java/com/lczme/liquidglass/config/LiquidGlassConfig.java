@@ -1,6 +1,11 @@
 package com.lczme.liquidglass.config;
 
+import com.lczme.liquidglass.cave.ShaderCave;
+import java.util.Locale;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.TranslatableEnum;
 
 public final class LiquidGlassConfig {
     public static final ModConfigSpec SPEC;
@@ -11,12 +16,14 @@ public final class LiquidGlassConfig {
     public static final ModConfigSpec.EnumValue<IntroMode> INTRO_MODE;
     public static final ModConfigSpec.BooleanValue STYLE_RELOAD_OVERLAY;
     public static final ModConfigSpec.BooleanValue CLASSIC_UI;
+    public static final ModConfigSpec.EnumValue<InGameUi> IN_GAME_UI;
     public static final ModConfigSpec.BooleanValue CUSTOM_TITLE_SCREEN;
     public static final ModConfigSpec.BooleanValue GLASS_BUTTONS;
     public static final ModConfigSpec.BooleanValue SCREEN_FADE;
     public static final ModConfigSpec.BooleanValue MENU_BLUR_DEFAULTED;
     public static final ModConfigSpec.BooleanValue CAVE_BACKGROUND;
     public static final ModConfigSpec.ConfigValue<String> MENU_SCENE;
+    public static final ModConfigSpec.BooleanValue REAL_TIME_LIGHTING;
     public static final ModConfigSpec.BooleanValue CUSTOM_FONT;
     public static final ModConfigSpec.EnumValue<FontWeight> FONT_WEIGHT;
     public static final ModConfigSpec.BooleanValue GLASS_INVENTORY;
@@ -52,6 +59,10 @@ public final class LiquidGlassConfig {
                 .comment("Classic mode: every screen, the font and the menu transitions go back to vanilla; only the cave background stays.",
                         "Also toggled by the button in the title screen's top-right corner.")
                 .define("classicUi", false);
+        IN_GAME_UI = builder
+                .comment("Style while in a world (pause menu, inventories, chat, hotbar, tooltips): SAME_AS_MENU follows classicUi,",
+                        "LIQUID_GLASS or VANILLA override it. Also toggled by the button in the pause menu's top-right corner.")
+                .defineEnum("inGameUi", InGameUi.SAME_AS_MENU);
         CUSTOM_TITLE_SCREEN = builder
                 .comment("Restyle the title screen: Liquid Glass logo, buttons arranged on a glass card, entrance animation.")
                 .define("customTitleScreen", true);
@@ -65,6 +76,10 @@ public final class LiquidGlassConfig {
                 .comment("The 3D menu scene: cave, lush, deep_dark, ice, nether, ocean, or custom:<name> for a scene saved in a world",
                         "with /menuscene save <name> (stored in config/liquidglass/scenes). Also chosen with the title screen's Scenes button.")
                 .define("scene", "cave");
+        REAL_TIME_LIGHTING = builder
+                .comment("Outdoor menu scenes follow the computer's clock: sunrise at 6:00, noon, sunset at 18:00, night.",
+                        "When off, every scene keeps its own time of day.")
+                .define("realTimeLighting", true);
         GLASS_INVENTORY = builder
                 .comment("Draw inventories, containers (chests, furnaces, modded ones using the vanilla palette) and the hotbar as liquid glass.")
                 .define("glassInventory", true);
@@ -103,8 +118,38 @@ public final class LiquidGlassConfig {
     private LiquidGlassConfig() {
     }
 
+    /** Vanilla look for the current context: {@link #IN_GAME_UI} while in a world, {@link #CLASSIC_UI} in the menus. */
     public static boolean isClassic() {
-        return SPEC.isLoaded() && CLASSIC_UI.get();
+        if (!SPEC.isLoaded()) {
+            return false;
+        }
+        if (inWorld()) {
+            InGameUi inGame = IN_GAME_UI.get();
+            if (inGame != InGameUi.SAME_AS_MENU) {
+                return inGame == InGameUi.VANILLA;
+            }
+        }
+        return CLASSIC_UI.get();
+    }
+
+    private static boolean inWorld() {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft != null && minecraft.level != null && !ShaderCave.isSceneLevel(minecraft.level);
+    }
+
+    public static boolean realTimeLighting() {
+        return !SPEC.isLoaded() || REAL_TIME_LIGHTING.get();
+    }
+
+    public enum InGameUi implements TranslatableEnum {
+        SAME_AS_MENU,
+        LIQUID_GLASS,
+        VANILLA;
+
+        @Override
+        public Component getTranslatedName() {
+            return Component.translatable("liquidglass.configuration.inGameUi." + name().toLowerCase(Locale.ROOT));
+        }
     }
 
     public enum FontWeight {

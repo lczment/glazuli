@@ -4,11 +4,13 @@ import com.lczme.liquidglass.LiquidGlass;
 import com.lczme.liquidglass.anim.AnimClock;
 import com.lczme.liquidglass.cave.CaveBackground;
 import com.lczme.liquidglass.cave.MenuScenes;
+import com.lczme.liquidglass.cave.SceneClock;
 import com.lczme.liquidglass.cave.ScenePickerScreen;
 import com.lczme.liquidglass.compat.sodium.SodiumScreens;
 import com.lczme.liquidglass.config.LiquidGlassConfig;
 import com.lczme.liquidglass.intro.IntroState;
 import com.lczme.liquidglass.intro.ReloadOverlay;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
@@ -19,6 +21,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.TutorialToast;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -154,6 +157,9 @@ public final class DevHooks {
             sceneShot("nether", ""),
             sceneShot("ocean", ""),
             sceneShot("plains_village", ""),
+            clockShot("plains_village", "", LocalTime.of(12, 0)),
+            clockShot("plains_village", "", LocalTime.of(18, 15)),
+            clockShot("plains_village", "", LocalTime.of(23, 0)),
             sceneShot("snowy_village", ""),
             sceneShot("desert_village", ""),
             sceneShot("ancient_city", ""),
@@ -220,6 +226,9 @@ public final class DevHooks {
             sceneShot("nether", "_plain"),
             sceneShot("ocean", "_plain"),
             sceneShot("plains_village", "_plain"),
+            clockShot("plains_village", "_plain", LocalTime.of(12, 0)),
+            clockShot("plains_village", "_plain", LocalTime.of(18, 15)),
+            clockShot("plains_village", "_plain", LocalTime.of(23, 0)),
             sceneShot("create_factory", "_plain"),
             // Without a shader pack's temporal jitter, twice a moment apart once the camera is held still: only the
             // machines may differ.
@@ -244,6 +253,18 @@ public final class DevHooks {
                 if (mc.player != null) {
                     mc.setScreen(new InventoryScreen(mc.player));
                 }
+            }),
+            new Shot("liquidglass_autoshot_ingame_vanilla_inventory.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                LiquidGlassConfig.IN_GAME_UI.set(LiquidGlassConfig.InGameUi.VANILLA);
+                if (mc.player != null) {
+                    mc.setScreen(new InventoryScreen(mc.player));
+                }
+            }),
+            new Shot("liquidglass_autoshot_ingame_vanilla_pause.png", SETTLED, () -> Minecraft.getInstance().setScreen(new PauseScreen(true))),
+            new Shot("liquidglass_autoshot_ingame_glass_pause.png", SETTLED, () -> {
+                LiquidGlassConfig.IN_GAME_UI.set(LiquidGlassConfig.InGameUi.SAME_AS_MENU);
+                Minecraft.getInstance().setScreen(new PauseScreen(true));
             }),
             // Hover the first ingredient of JEI's list (tooltip), then open JEI's crafting recipes.
             new Shot("liquidglass_autoshot_jei_hover.png", SETTLED, () -> {
@@ -660,8 +681,18 @@ public final class DevHooks {
      * {@code ready}, if set, triggers the grab early; {@code settleSeconds} is then only a timeout.
      * {@code waitForOverlay}: only start once no loading overlay is showing.
      */
+    /**
+     * The scene (already showing) with the real-time clock pinned to {@code time}, a few seconds later so the light map
+     * and a shader pack's exposure have caught up; the next scene shot follows the real clock again.
+     */
+    private static Shot clockShot(String id, String suffix, LocalTime time) {
+        String clock = String.format("_%02d%02d", time.getHour(), time.getMinute());
+        return new Shot("liquidglass_autoshot_scene_" + id + suffix + clock + ".png", 3.0, () -> SceneClock.override(time));
+    }
+
     private static Shot sceneShot(String id, String suffix) {
         return new Shot("liquidglass_autoshot_scene_" + id.replace(':', '_') + suffix + ".png", 2.0 * SCENE_TIMEOUT, () -> {
+            SceneClock.override(null);
             CaveBackground.select(id, false);
             if (!(Minecraft.getInstance().screen instanceof BareTitle)) {
                 Minecraft.getInstance().setScreen(new BareTitle());

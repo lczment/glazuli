@@ -57,7 +57,7 @@ public final class CaveBackground {
     @Nullable
     private static DynamicTexture lightmap;
     @Nullable
-    private static CaveWorld lightmapFor;
+    private static SceneLook lightmapFor;
     private static boolean dirty = true;
     private static boolean meshShaded;
     private static boolean failed;
@@ -309,7 +309,7 @@ public final class CaveBackground {
     }
 
     private static void drawScene(Minecraft minecraft, CaveMesh mesh, CaveCamera camera, CaveWorld scene) {
-        SceneLook look = scene.look();
+        SceneLook look = SceneClock.look(scene);
         Window window = minecraft.getWindow();
         float aspect = (float) window.getWidth() / Math.max(1, window.getHeight());
         Matrix4f projection = new Matrix4f().setPerspective(FOV, aspect, 0.05F, 256.0F);
@@ -333,7 +333,7 @@ public final class CaveBackground {
         RenderSystem.clearColor(look.red(), look.green(), look.blue(), 1.0F);
         RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
-        int lightmapId = lightmap(scene).getId();
+        int lightmapId = lightmap(look).getId();
         for (RenderType layer : CaveMesh.LAYERS) {
             // Fabulous graphics routes translucency to a level target that doesn't exist without a world.
             if (layer == RenderType.translucent() && Minecraft.useShaderTransparency()) {
@@ -371,13 +371,13 @@ public final class CaveBackground {
         RenderSystem.disableDepthTest();
     }
 
-    private static DynamicTexture lightmap(CaveWorld scene) {
+    private static DynamicTexture lightmap(SceneLook look) {
         if (lightmap == null) {
             lightmap = new DynamicTexture(16, 16, false);
         }
-        if (lightmapFor != scene) {
-            lightmapFor = scene;
-            scene.look().paintLightmap(lightmap.getPixels());
+        if (!look.equals(lightmapFor)) {
+            lightmapFor = look;
+            look.paintLightmap(lightmap.getPixels());
             lightmap.upload();
             lightmap.setFilter(true, false);
         }
