@@ -41,7 +41,7 @@ Also checked: Sodium Extra, Xaero's Minimap and World Map, AppleSkin, Waystones.
 
 ## Settings
 
-Every feature can be turned off in Mods > Glazuli > Config. On weak GPUs, lower or disable Blur Quality. On first launch, vanilla's Menu Background Blur is set to 0; if you raise it again it stays.
+Every feature can be turned off in Mods > Glazuli > Config. On weak GPUs, lower or disable Blur Quality; with a shader pack loaded, turning off Shader Pack in Menu Scene brings the menu's GPU cost down to almost nothing. On first launch, vanilla's Menu Background Blur is set to 0; if you raise it again it stays.
 
 ## Requirements
 
