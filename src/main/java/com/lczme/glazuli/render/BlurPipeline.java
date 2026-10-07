@@ -67,6 +67,7 @@ public final class BlurPipeline {
         RenderSystem.assertOnRenderThread();
         // GuiGraphics batches draws; without the flush, already "drawn" GUI would be missing from the capture.
         guiGraphics.flush();
+        Perf.noteCapture();
         Perf.begin(Perf.CAPTURE);
         captureFlushed();
         Perf.end(Perf.CAPTURE);

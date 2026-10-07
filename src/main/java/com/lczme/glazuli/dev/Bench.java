@@ -79,6 +79,17 @@ public final class Bench {
                 GlazuliConfig.CUSTOM_TITLE_SCREEN.set(false);
                 show(new TitleScreen());
             }, null),
+            // Picking another scene: fade out, generate, mesh, build the shader level, fade in.
+            new Scenario("menu_scene_switch", () -> {
+                restoreConfig();
+                CaveBackground.select("cave", false);
+                show(new TitleScreen());
+            }, () -> CaveBackground.isShowing("cave", 1.0), t -> {
+                String id = ((int) ((t - 3.0) / 2.5)) % 2 == 0 ? "cave" : "nether";
+                if (t > 3.0 && !id.equals(CaveBackground.scene())) {
+                    CaveBackground.select(id, false);
+                }
+            }, WARMUP),
             sceneScenario("plains_village"),
             sceneScenario("create_factory"),
             sceneScenario("nether"),
@@ -476,6 +487,10 @@ public final class Bench {
                 }
                 line.append(String.format(" x%.1f", Perf.calls[i] / (double) n));
             }
+        }
+        if (!Perf.captureCallers.isEmpty()) {
+            line.append(" | captures");
+            Perf.captureCallers.forEach((k, v) -> line.append(String.format(" %s x%.1f", k, v / (double) n)));
         }
         if (!spikes.isEmpty()) {
             line.append(" | spikes ").append(String.join("; ", spikes));

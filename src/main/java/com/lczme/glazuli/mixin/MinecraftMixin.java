@@ -8,10 +8,13 @@ import com.lczme.glazuli.intro.IntroState;
 import com.lczme.glazuli.render.QuitFade;
 import com.lczme.glazuli.render.ScreenFade;
 import javax.annotation.Nullable;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -52,8 +55,35 @@ public abstract class MinecraftMixin {
         // Called every frame from the start: CaveBackground may only be touched once mod loading is over, as its
         // dependencies (blocks, render types) must not be class-loaded while mods register.
         if (IntroState.isPlaying() || IntroState.isDone() && minecraft.getOverlay() == null && CaveBackground.isActive()) {
-            cir.setReturnValue(minecraft.getWindow().getFramerateLimit());
+            int limit = minecraft.getWindow().getFramerateLimit();
+            // "Unlimited" would draw the menu thousands of times a second without a shader pack. The cap leaves twice
+            // the refresh rate (at least 1.5 times): vanilla's limiter runs a little slow and jittery, and a cap at the
+            // refresh rate itself would repeat a frame every so often. Above that it stays unlimited.
+            if (limit >= Options.UNLIMITED_FRAMERATE_CUTOFF && !Perf.ON) {
+                int refresh = glazuli$refreshRate(minecraft);
+                if (2 * refresh < Options.UNLIMITED_FRAMERATE_CUTOFF) {
+                    limit = 2 * refresh;
+                } else if (3 * refresh / 2 < Options.UNLIMITED_FRAMERATE_CUTOFF) {
+                    limit = Options.UNLIMITED_FRAMERATE_CUTOFF - 1;
+                }
+            }
+            cir.setReturnValue(limit);
         }
+    }
+
+    @Unique
+    private static int glazuli$refreshRate;
+    @Unique
+    private static long glazuli$refreshCheckedAt;
+
+    @Unique
+    private static int glazuli$refreshRate(Minecraft minecraft) {
+        long now = Util.getMillis();
+        if (glazuli$refreshRate == 0 || now - glazuli$refreshCheckedAt > 2000L) {
+            glazuli$refreshCheckedAt = now;
+            glazuli$refreshRate = Math.max(60, minecraft.getWindow().getRefreshRate());
+        }
+        return glazuli$refreshRate;
     }
 
     @Inject(method = "setScreen", at = @At("HEAD"))

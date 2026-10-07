@@ -92,6 +92,21 @@ public final class Perf {
         }
     }
 
+    static final java.util.Map<String, Integer> captureCallers = new java.util.HashMap<>();
+
+    /** Who asked for a backdrop capture: the first caller outside the blur and panel code. */
+    public static void noteCapture() {
+        if (!ON) {
+            return;
+        }
+        String caller = StackWalker.getInstance().walk(frames -> frames
+                .filter(f -> !f.getClassName().endsWith("BlurPipeline") && !f.getClassName().endsWith("GlassRenderer")
+                        && !f.getClassName().endsWith("Perf"))
+                .limit(2).map(f -> f.getClassName().substring(f.getClassName().lastIndexOf('.') + 1) + "." + f.getMethodName())
+                .reduce((a, b) -> a + "<" + b).orElse("?"));
+        captureCallers.merge(caller, 1, Integer::sum);
+    }
+
     static void startFrame() {
         Arrays.fill(cpuFrame, 0L);
     }
@@ -100,5 +115,6 @@ public final class Perf {
         Arrays.fill(cpuTotal, 0L);
         Arrays.fill(gpuTotal, 0L);
         Arrays.fill(calls, 0L);
+        captureCallers.clear();
     }
 }
