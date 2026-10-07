@@ -27,6 +27,7 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.GenericMessageScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
@@ -433,6 +434,17 @@ public final class DevHooks {
             new Shot("glazuli_autoshot_compat_waystone_activate.png", 3.0, () -> useWaystone(true)),
             new Shot("glazuli_autoshot_compat_waystone.png", 5.0, () -> useWaystone(false),
                     () -> screenNameContains("Waystone"), true),
+            // Back to the title: the scene stays dark until the world renderer has meshed it again, then fades in.
+            new Shot("glazuli_autoshot_back_to_title_early.png", WORLD_TIMEOUT, () -> Minecraft.getInstance().tell(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.level != null) {
+                    mc.level.disconnect();
+                    mc.disconnect(new GenericMessageScreen(Component.literal("Saving")));
+                }
+                mc.setScreen(new TitleScreen());
+            }), () -> Minecraft.getInstance().level == null && Minecraft.getInstance().screen instanceof TitleScreen, true),
+            new Shot("glazuli_autoshot_back_to_title_mid.png", 0.3, () -> { }, null, false),
+            new Shot("glazuli_autoshot_back_to_title.png", 4.0, () -> { }, null, false),
     };
 
     @Nullable

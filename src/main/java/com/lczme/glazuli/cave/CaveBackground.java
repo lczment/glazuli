@@ -63,6 +63,7 @@ public final class CaveBackground {
     private static boolean failed;
     private static boolean introDone;
     private static boolean rememberSelection = true;
+    private static boolean leftForWorld;
     private static double meshTime = Double.NaN;
     private static double readyTime = Double.NaN;
     private static double switchStart = Double.NaN;
@@ -171,6 +172,9 @@ public final class CaveBackground {
 
     public static void onFrameStart() {
         ShaderCave.newFrame();
+        if (Minecraft.getInstance().level != null) {
+            leftForWorld = true;
+        }
     }
 
     public static void render(GuiGraphics guiGraphics, int width, int height) {
@@ -187,6 +191,15 @@ public final class CaveBackground {
     private static void renderUnsafe(GuiGraphics guiGraphics, int width, int height) {
         Minecraft minecraft = Minecraft.getInstance();
         double now = AnimClock.now();
+        if (leftForWorld) {
+            // Back from a world: the world renderer meshes the shader level from scratch, so fade in once it has.
+            leftForWorld = false;
+            readyTime = Double.NaN;
+            if (mesh != null) {
+                meshTime = now;
+            }
+            ShaderCave.rewarm();
+        }
         if (nextWorld != null && now - switchStart >= SWITCH_OUT_SECONDS && nextWorld.isDone()) {
             swap(nextWorld);
         }

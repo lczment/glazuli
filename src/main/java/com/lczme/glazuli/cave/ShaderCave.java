@@ -249,6 +249,12 @@ public final class ShaderCave {
         drawnThisFrame = false;
     }
 
+    /** The world renderer showed another level meanwhile; {@link #isWarm} waits for it to mesh this one again. */
+    static void rewarm() {
+        warmFrames = 0;
+        settledSince = Double.NaN;
+    }
+
     /** Drops the level of the previous scene; the world renderer switches to the next one once it is delivered. */
     private static void reset() {
         level = null;
