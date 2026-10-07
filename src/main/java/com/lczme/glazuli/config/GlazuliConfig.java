@@ -55,7 +55,7 @@ public final class GlazuliConfig {
                 .define("styleReloadOverlay", true);
         STARTUP_SOUND = builder
                 .comment("Play a sting when the title screen first appears and start the menu music after it.",
-                        "Uses config/glazuli/startup.ogg (Ogg Vorbis) if present, otherwise a short chord of vanilla sounds.")
+                        "Uses config/glazuli/startup.ogg (Ogg Vorbis) if present, otherwise an orchestral take on the opening of C418's \"Minecraft\".")
                 .define("startupSound", true);
         builder.pop();
 

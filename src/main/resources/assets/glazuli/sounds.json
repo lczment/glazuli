@@ -3,5 +3,10 @@
     "sounds": [
       "glazuli:intro/mojang"
     ]
+  },
+  "startup.epic": {
+    "sounds": [
+      "glazuli:startup/epic"
+    ]
   }
 }

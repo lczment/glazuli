@@ -5,51 +5,34 @@ import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.config.GlazuliConfig;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
-import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.neoforged.fml.loading.FMLPaths;
 
 /**
  * A sting when the title screen first appears, before the menu music: {@code config/glazuli/startup.ogg} if
- * present, otherwise a short chord made of vanilla sounds. The menu music is held back until it has finished.
+ * present, otherwise the built-in one, an orchestral take on the opening of C418's "Minecraft". The menu music is
+ * held back until it has finished.
  */
 public final class StartupSound {
     public static final ResourceLocation CUSTOM = Glazuli.id("startup.custom");
+    private static final ResourceLocation BUILT_IN = Glazuli.id("startup.epic");
     /** Silence between the sting and the music. */
     private static final double MUSIC_GAP_SECONDS = 1.0;
     /** The music starts anyway if the sting is still reported as playing after this long. */
     private static final double LIMIT_SECONDS = 20.0;
 
-    private record Note(double at, SoundEvent sound, float volume, float pitch) {
-        Note(double at, Holder<SoundEvent> sound, float volume, float pitch) {
-            this(at, sound.value(), volume, pitch);
-        }
-    }
-
-    private static final List<Note> CHORD = List.of(
-            new Note(0.00, SoundEvents.BEACON_ACTIVATE, 0.45F, 1.25F),
-            new Note(0.30, SoundEvents.NOTE_BLOCK_HARP, 0.70F, 0.50F),
-            new Note(0.36, SoundEvents.NOTE_BLOCK_HARP, 0.70F, 0.63F),
-            new Note(0.42, SoundEvents.NOTE_BLOCK_HARP, 0.70F, 0.75F),
-            new Note(0.48, SoundEvents.NOTE_BLOCK_HARP, 0.70F, 1.00F),
-            new Note(0.56, SoundEvents.NOTE_BLOCK_BELL, 0.80F, 1.00F),
-            new Note(0.56, SoundEvents.NOTE_BLOCK_CHIME, 0.55F, 1.50F),
-            new Note(0.56, SoundEvents.AMETHYST_BLOCK_RESONATE, 0.60F, 1.00F));
-
     private enum State { WAITING, PLAYING, GAP, DONE }
 
     private static State state = State.WAITING;
     private static double stateStart;
-    private static List<Note> pending = List.of();
-    private static final List<SoundInstance> playing = new ArrayList<>();
+    @Nullable
+    private static SoundInstance playing;
 
     private StartupSound() {
     }
@@ -79,13 +62,8 @@ public final class StartupSound {
                 }
             }
             case PLAYING -> {
-                while (!pending.isEmpty() && now - stateStart >= pending.getFirst().at()) {
-                    Note note = pending.getFirst();
-                    pending = pending.subList(1, pending.size());
-                    play(minecraft, SimpleSoundInstance.forUI(note.sound(), note.pitch(), note.volume()));
-                }
-                playing.removeIf(sound -> !minecraft.getSoundManager().isActive(sound));
-                if (pending.isEmpty() && playing.isEmpty() || now - stateStart > LIMIT_SECONDS) {
+                if (playing == null || !minecraft.getSoundManager().isActive(playing) || now - stateStart > LIMIT_SECONDS) {
+                    playing = null;
                     setState(State.GAP, now);
                 }
             }
@@ -105,19 +83,10 @@ public final class StartupSound {
 
     private static void start(Minecraft minecraft, double now) {
         setState(State.PLAYING, now);
-        if (Files.isRegularFile(customFile())) {
-            Glazuli.LOGGER.info("Startup sound: {}", customFile());
-            pending = List.of();
-            play(minecraft, SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(CUSTOM), 1.0F, 1.0F));
-        } else {
-            Glazuli.LOGGER.info("Startup sound: built-in chord");
-            pending = CHORD;
-        }
-    }
-
-    private static void play(Minecraft minecraft, SoundInstance sound) {
-        minecraft.getSoundManager().play(sound);
-        playing.add(sound);
+        boolean custom = Files.isRegularFile(customFile());
+        Glazuli.LOGGER.info("Startup sound: {}", custom ? customFile() : "built-in");
+        playing = SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(custom ? CUSTOM : BUILT_IN), 1.0F, 1.0F);
+        minecraft.getSoundManager().play(playing);
     }
 
     private static void setState(State next, double now) {
