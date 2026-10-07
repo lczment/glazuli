@@ -195,8 +195,8 @@ publishing {
     }
 }
 
-tasks.named('jar') {
-    from('COPYING', 'COPYING.LESSER') { into 'META-INF/licenses/glazuli' }
+tasks.named('processResources', ProcessResources) {
+    from(layout.projectDirectory.files('COPYING', 'COPYING.LESSER')) { into 'META-INF/licenses/glazuli' }
 }
 
 tasks.withType(JavaCompile).configureEach {
