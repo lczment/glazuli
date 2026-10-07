@@ -6,7 +6,8 @@ import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 
 /**
- * Camera for a captured scene: every menu looks out from where the player stood, turned a little per kind of menu; the
+ * Camera for a captured scene: the title looks out from where the player stood and every other menu swings the camera
+ * a few blocks around the point it was looking at, kept clear of walls; the
  * startup flight glides in from behind and the dive flies on ahead, as far as the terrain lets them.
  */
 final class CustomRig implements CameraRig {
@@ -14,26 +15,57 @@ final class CustomRig implements CameraRig {
     private final float yaw;
     private final float pitch;
     private CaveWorld world;
+    private final Vector3f[] spotEyes = new Vector3f[CaveCamera.Spot.values().length];
+    private final Vector3f[] spotLooks = new Vector3f[CaveCamera.Spot.values().length];
 
     CustomRig(Vector3f eye, float yaw, float pitch) {
         this.eye = eye;
         this.yaw = yaw;
         this.pitch = Mth.clamp(pitch, -40.0F, 40.0F);
+        placeSpots();
     }
 
     void bind(CaveWorld world) {
         this.world = world;
+        placeSpots();
     }
 
-    private static float[] turn(CaveCamera.Spot spot) {
+    /**
+     * Per menu: eye offset from the captured eye and look offset from the focus point, both as (right, up, forward).
+     * Mirrors the cave chamber's spots, where every menu moves the camera several blocks around a shared centre.
+     */
+    private static float[] offsets(CaveCamera.Spot spot) {
         return switch (spot) {
-            case TITLE -> new float[]{0.0F, 0.0F, 0.0F};
-            case WORLDS -> new float[]{-28.0F, 3.0F, 0.0F};
-            case SERVERS -> new float[]{28.0F, 3.0F, 0.0F};
-            case OPTIONS -> new float[]{0.0F, -16.0F, 0.8F};
-            case MODS -> new float[]{50.0F, 0.0F, 0.0F};
-            case OTHER -> new float[]{-50.0F, 6.0F, 0.4F};
+            case TITLE -> new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F};
+            case WORLDS -> new float[]{-8.0F, 0.3F, 4.0F, 5.0F, -0.5F, 2.0F};
+            case SERVERS -> new float[]{8.0F, 1.0F, 5.0F, -5.0F, 0.5F, 3.0F};
+            case OPTIONS -> new float[]{-2.0F, 4.0F, 7.0F, 1.0F, -2.0F, 4.0F};
+            case MODS -> new float[]{5.0F, -0.3F, 9.0F, -6.0F, 1.0F, 6.0F};
+            case OTHER -> new float[]{-6.0F, 2.5F, 7.0F, 6.0F, 0.5F, 4.0F};
         };
+    }
+
+    private void placeSpots() {
+        Vector3f view = direction(yaw, pitch);
+        float focusDist = Mth.clamp(reach(eye, view, 24.0F) - 2.0F, 4.0F, 22.0F);
+        Vector3f focus = new Vector3f(view).mul(focusDist).add(eye);
+        float y = yaw * Mth.DEG_TO_RAD;
+        Vector3f right = new Vector3f(-Mth.cos(y), 0.0F, -Mth.sin(y));
+        Vector3f forward = new Vector3f(-Mth.sin(y), 0.0F, Mth.cos(y));
+        float scale = focusDist / 14.0F;
+        for (CaveCamera.Spot spot : CaveCamera.Spot.values()) {
+            float[] o = offsets(spot);
+            Vector3f move = new Vector3f(right).mul(o[0]).add(0.0F, o[1], 0.0F)
+                .add(new Vector3f(forward).mul(Math.min(o[2], focusDist * 0.6F)));
+            float len = move.length();
+            if (len > 0.0F) {
+                float d = Math.max(0.0F, reach(eye, new Vector3f(move).div(len), len + 1.0F) - 1.0F);
+                move.mul(Math.min(len, d) / len);
+            }
+            spotEyes[spot.ordinal()] = move.add(eye);
+            spotLooks[spot.ordinal()] = new Vector3f(right).mul(o[3] * scale).add(0.0F, o[4] * scale, 0.0F)
+                .add(new Vector3f(forward).mul(o[5] * scale)).add(focus);
+        }
     }
 
     private static Vector3f direction(float yaw, float pitch) {
@@ -44,13 +76,12 @@ final class CustomRig implements CameraRig {
 
     @Override
     public Vector3f spotEye(CaveCamera.Spot spot) {
-        return new Vector3f(eye).add(0.0F, turn(spot)[2], 0.0F);
+        return new Vector3f(spotEyes[spot.ordinal()]);
     }
 
     @Override
     public Vector3f spotLook(CaveCamera.Spot spot) {
-        float[] t = turn(spot);
-        return spotEye(spot).add(direction(yaw + t[0], pitch + t[1]).mul(8.0F));
+        return new Vector3f(spotLooks[spot.ordinal()]);
     }
 
     private boolean free(Vector3f p) {

@@ -167,9 +167,13 @@ public final class DevHooks {
             sceneShot("snowy_village", ""),
             sceneShot("desert_village", ""),
             sceneShot("ancient_city", ""),
+            spotShot("ancient_city", "worlds", () -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(menu)),
+            spotShot("ancient_city", "options", () -> new net.minecraft.client.gui.screens.options.OptionsScreen(menu, Minecraft.getInstance().options)),
             sceneShot("trial_chambers", ""),
             sceneShot("bastion", ""),
             sceneShot("end_city", ""),
+            spotShot("end_city", "worlds", () -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(menu)),
+            spotShot("end_city", "options", () -> new net.minecraft.client.gui.screens.options.OptionsScreen(menu, Minecraft.getInstance().options)),
             sceneShot("create_factory", ""),
             new Shot("glazuli_autoshot_scene_create_factory_rest.png", SCENE_TIMEOUT, () -> { },
                     () -> CaveBackground.isShowing("create_factory", 5.0), true),
@@ -801,6 +805,12 @@ public final class DevHooks {
                 Minecraft.getInstance().setScreen(new BareTitle());
             }
         }, () -> CaveBackground.isShowing(id), true);
+    }
+
+    /** The showing scene from another menu's camera spot, once the camera has flown there. */
+    private static Shot spotShot(String id, String spot, java.util.function.Supplier<Screen> screen) {
+        return new Shot("glazuli_autoshot_scene_" + id + "_" + spot + ".png", 2.5,
+                () -> Minecraft.getInstance().setScreen(screen.get()), null, false);
     }
 
     /** The title screen's camera spot with only the scene drawn, so scene shots show the whole picture. */
