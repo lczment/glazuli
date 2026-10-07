@@ -34,6 +34,10 @@
 - JEI：面板、按钮和搜索框；
 - Jade：方块信息提示框；
 - 机械动力及其附属：界面加入玻璃面板，并加入工厂场景；
+- 饰品栏 (Curios)：物品栏侧边的饰品槽面板；
+- 精妙背包、精妙存储：背包和箱子界面、升级栏、侧边设置标签；
+- Controlling（按键绑定搜索）：搜索建议下拉框；
+- 已测试可正常显示：钠额外选项、Xaero 小地图和世界地图、AppleSkin、传送石碑 (Waystones)；
 - 其他模组添加到主菜单的按钮都会保留。
 
 ## 注意事项
@@ -61,5 +65,5 @@
 - 支持的 MC 版本：1.21.1（NeoForge 21.1）
 - 运行环境：客户端需装，服务端无效
 - 前置 Mod：无
-- 联动的 Mod：钠 (Sodium)、Iris Shaders、JEI、Jade、机械动力 (Create)
+- 联动的 Mod：钠 (Sodium)、Iris Shaders、JEI、Jade、机械动力 (Create)、饰品栏 (Curios)、精妙背包 (Sophisticated Backpacks)、精妙存储 (Sophisticated Storage)、Controlling
 - 开源属性 / 许可证：开源（LGPL-3.0）

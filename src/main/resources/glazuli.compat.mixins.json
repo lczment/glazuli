@@ -10,8 +10,11 @@
     "jade.JadeBoxElementMixin",
     "jei.JeiDrawableSpriteMixin",
     "jei.JeiScalableDrawableMixin",
+    "searchables.AutoCompleteMixin",
     "sodium.SodiumAbstractWidgetMixin",
-    "sodium.SodiumOptionMixin"
+    "sodium.SodiumOptionMixin",
+    "sophisticatedcore.GuiHelperMixin",
+    "sophisticatedcore.StorageScreenBaseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -33,8 +33,11 @@ The font is HarmonyOS Sans, or PingFang if installed. Drop a `.ttf`, `.otf` or `
 - JEI: panels, buttons, search field
 - Jade: HUD tooltip
 - Create and addons: glass screens, factory scene
+- Curios: the side slot panel
+- Sophisticated Backpacks and Storage: windows, upgrade column, side tabs
+- Controlling: key bind search suggestions
 
-Title screen buttons added by other mods are kept.
+Also checked: Sodium Extra, Xaero's Minimap and World Map, AppleSkin, Waystones. Title screen buttons added by other mods are kept.
 
 ## Settings
 
@@ -44,7 +47,7 @@ Every feature can be turned off in Mods > Glazuli > Config. On weak GPUs, lower 
 
 - Minecraft 1.21.1
 - NeoForge 21.1
-- Optional: Sodium 0.8.13 or newer (below 0.9), Iris, JEI, Jade, Create
+- Optional: Sodium 0.8.13 or newer (below 0.9), Iris, JEI, Jade, Create, Curios, Sophisticated Backpacks/Storage, Controlling
 
 ## License
 

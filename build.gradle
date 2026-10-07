@@ -120,6 +120,7 @@ configurations {
 }
 
 def createModrinthVersions = project.create_modrinth_versions.split(',').collectEntries { it.trim().split(':') as List }
+def commonModrinthVersions = project.common_modrinth_versions.split(',').collectEntries { it.trim().split(':') as List }
 
 dependencies {
     // Optional integrations. Sodium's and Jade's APIs are compiled against; the others are only targeted by name.
@@ -130,7 +131,14 @@ dependencies {
     if (project.findProperty('compat_runtime') != 'false') {
         // Sodium ships as a bootstrap service jar that nests the mod; that only works from the mods folder.
         devMods "maven.modrinth:sodium:${sodium_modrinth_version}"
-        localRuntime "maven.modrinth:jei:${jei_modrinth_version}"
+        if (project.findProperty('compat_emi') == 'true') {
+            devMods "maven.modrinth:emi:${emi_modrinth_version}"
+        } else {
+            localRuntime "maven.modrinth:jei:${jei_modrinth_version}"
+        }
+        if (project.findProperty('compat_common') != 'false') {
+            commonModrinthVersions.each { slug, id -> devMods "maven.modrinth:${slug}:${id}" }
+        }
         if (project.findProperty('compat_extra') != 'false') {
             devMods "maven.modrinth:jade:${jade_modrinth_version}"
             devMods "maven.modrinth:appleskin:${appleskin_modrinth_version}"
@@ -151,7 +159,8 @@ def syncDevMods = tasks.register('syncDevMods', Sync) {
     // Only manage our own jars; anything else dropped into run/mods is left alone.
     preserve {
         include '**'
-        (['sodium', 'jade', 'appleskin', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'curios'] + createModrinthVersions.keySet())
+        (['sodium', 'jade', 'appleskin', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'curios', 'emi']
+                + createModrinthVersions.keySet() + commonModrinthVersions.keySet())
                 .each { exclude "${it}-*.jar" }
     }
 }

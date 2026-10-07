@@ -29,6 +29,6 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "renderBackground", at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderBg(Lnet/minecraft/client/gui/GuiGraphics;FII)V"))
     private void glazuli$glassPanelEnd(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        ContainerGlass.endBackground();
+        ContainerGlass.endBackground(guiGraphics);
     }
 }

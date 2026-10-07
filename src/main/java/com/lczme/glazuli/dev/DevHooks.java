@@ -14,8 +14,11 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -388,7 +391,89 @@ public final class DevHooks {
                 openCreate(() -> (Screen) Class.forName("net.createmod.ponder.foundation.ui.PonderUI")
                         .getMethod("of", ItemStack.class).invoke(null, createStack("cogwheel")));
             }),
+            // Other common mods; each shot does nothing when its mod is missing. Controlling replaces the key binds screen.
+            new Shot("glazuli_autoshot_compat_keybinds.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                mc.setScreen(new KeyBindsScreen(new PauseScreen(true), mc.options));
+            }),
+            // AppleSkin's food values in the tooltip of a hotbar item.
+            new Shot("glazuli_autoshot_compat_food_tooltip.png", SETTLED, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player == null) {
+                    return;
+                }
+                mc.player.connection.sendCommand("item replace entity @s hotbar.4 with minecraft:cooked_beef");
+                InventoryScreen inventory = new InventoryScreen(mc.player);
+                mc.setScreen(inventory);
+                hover(inventory.getGuiLeft() + 88.0, inventory.getGuiTop() + 150.0);
+            }),
+            new Shot("glazuli_autoshot_compat_curios.png", 5.0, () -> pressKey("key.keyboard.g"),
+                    () -> screenNameContains("Curios"), true),
+            new Shot("glazuli_autoshot_compat_worldmap.png", 5.0, () -> pressKey("key.keyboard.m"),
+                    () -> isScreen("GuiMap"), true),
+            new Shot("glazuli_autoshot_compat_minimap.png", 2.0, () -> Minecraft.getInstance().setScreen(null)),
+            new Shot("glazuli_autoshot_compat_backpack.png", 5.0, () -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (!ModList.get().isLoaded("sophisticatedbackpacks") || mc.player == null || mc.gameMode == null) {
+                    return;
+                }
+                mc.player.connection.sendCommand("item replace entity @s hotbar.5 with sophisticatedbackpacks:backpack");
+                mc.tell(() -> {
+                    mc.player.getInventory().selected = 5;
+                    mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+                });
+            }, () -> screenNameContains("Backpack"), true),
+            // The first use of a waystone activates it, the second opens its menu.
+            new Shot("glazuli_autoshot_compat_waystone_activate.png", 3.0, () -> useWaystone(true)),
+            new Shot("glazuli_autoshot_compat_waystone.png", 5.0, () -> useWaystone(false),
+                    () -> screenNameContains("Waystone"), true),
     };
+
+    @Nullable
+    private static BlockPos waystonePos;
+
+    private static void useWaystone(boolean place) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.setScreen(null);
+        if (!ModList.get().isLoaded("waystones") || mc.player == null || mc.gameMode == null) {
+            return;
+        }
+        if (place) {
+            // Placed like a player does, so the waystone is registered and gets a name; setblock leaves it invalid.
+            waystonePos = mc.player.blockPosition().relative(mc.player.getDirection(), 2);
+            BlockPos ground = waystonePos.below();
+            mc.player.connection.sendCommand(String.format("fill %d %d %d %d %d %d air", waystonePos.getX(), waystonePos.getY(),
+                    waystonePos.getZ(), waystonePos.getX(), waystonePos.getY() + 1, waystonePos.getZ()));
+            mc.player.connection.sendCommand(String.format("setblock %d %d %d stone", ground.getX(), ground.getY(), ground.getZ()));
+            mc.player.connection.sendCommand("item replace entity @s hotbar.6 with waystones:waystone");
+            mc.tell(() -> {
+                mc.player.getInventory().selected = 6;
+                mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                        new BlockHitResult(Vec3.atCenterOf(ground).add(0.0, 0.5, 0.0), Direction.UP, ground, false));
+            });
+            return;
+        }
+        if (waystonePos == null) {
+            return;
+        }
+        BlockPos pos = waystonePos;
+        mc.tell(() -> {
+            mc.player.connection.sendCommand("item replace entity @s hotbar.6 with air");
+            mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                    new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false));
+        });
+    }
+
+    /** Presses a key as if typed in game, for mods that open their screens from a key mapping. */
+    private static void pressKey(String key) {
+        Minecraft.getInstance().setScreen(null);
+        KeyMapping.click(InputConstants.getKey(key));
+    }
+
+    private static boolean screenNameContains(String part) {
+        Screen screen = Minecraft.getInstance().screen;
+        return screen != null && screen.getClass().getName().contains(part);
+    }
 
     /**
      * Puts the mouse at GUI coordinates. Moving the OS cursor sends no events while the window is in the background,
