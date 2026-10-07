@@ -21,6 +21,7 @@
     "ClientPacketListenerAccessor",
     "CommandSuggestionsListMixin",
     "CommandSuggestionsMixin",
+    "FontManagerAccessor",
     "FontManagerMixin",
     "FontMixin",
     "FontStringRenderOutputMixin",

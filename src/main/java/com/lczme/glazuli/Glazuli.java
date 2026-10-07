@@ -10,6 +10,7 @@ import com.lczme.glazuli.dev.Bench;
 import com.lczme.glazuli.dev.DevHooks;
 import com.lczme.glazuli.font.FontPack;
 import com.lczme.glazuli.font.FontScale;
+import com.lczme.glazuli.font.GlyphWarmup;
 import com.lczme.glazuli.intro.StartupSound;
 import com.lczme.glazuli.render.BlurFade;
 import com.lczme.glazuli.render.BlurPipeline;
@@ -70,6 +71,7 @@ public final class Glazuli {
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePre);
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
+        NeoForge.EVENT_BUS.addListener(GlyphWarmup::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> {
             DarkText.reset();
             BlurFade.onFrameStart();
