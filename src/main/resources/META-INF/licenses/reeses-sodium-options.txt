@@ -1,4 +1,4 @@
-Portions of com.lczme.liquidglass.compat.sodium are derived from Reese's Sodium Options
+Portions of com.lczme.glazuli.compat.sodium are derived from Reese's Sodium Options
 https://github.com/FlashyReese/reeses-sodium-options (1.21.1/stable, 2.2.4), used under the MIT License:
 
 The MIT License (MIT)

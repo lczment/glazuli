@@ -49,7 +49,7 @@ authors="lczme"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-LabyMod-style startup animation and a liquid-glass themed user interface.
+Glazuli (Liuli): a LabyMod-style startup, a liquid-glass user interface and live 3D menu scenes.
 
 This mod uses HarmonyOS Sans Fonts (Copyright 2021 Huawei Device Co., Ltd., HarmonyOS Sans Fonts License Agreement).
 The glass Sodium video settings are based on Reese's Sodium Options (MIT).

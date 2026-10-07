@@ -64,13 +64,13 @@ neoForge {
             jvmArgument '-Dmixin.debug.export=true'
         }
 
-        // Walks through intro, reload, options and Sodium screens, saving run/screenshots/liquidglass_autoshot_*.png, then exits.
+        // Walks through intro, reload, options and Sodium screens, saving run/screenshots/glazuli_autoshot_*.png, then exits.
         clientAutoshot {
             client()
-            systemProperty 'liquidglass.autoshot', 'true'
-            systemProperty 'liquidglass.autoshot.exit', 'true'
+            systemProperty 'glazuli.autoshot', 'true'
+            systemProperty 'glazuli.autoshot.exit', 'true'
             // Comma-separated parts of shot names to take; empty takes them all.
-            systemProperty 'liquidglass.autoshot.only', System.getenv('LG_AUTOSHOT_ONLY') ?: ''
+            systemProperty 'glazuli.autoshot.only', System.getenv('LG_AUTOSHOT_ONLY') ?: ''
             programArguments.addAll '--width', '1280', '--height', '720'
         }
 

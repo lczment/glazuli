@@ -1,0 +1,299 @@
+package com.lczme.glazuli.compat.sodium.gui.frame.option;
+
+import com.lczme.glazuli.compat.sodium.config.ReeseSodiumOptionsConfig;
+import com.lczme.glazuli.compat.sodium.gui.control.ControlGuide;
+import com.lczme.glazuli.compat.sodium.gui.layout.LayoutBounds;
+import com.lczme.glazuli.compat.sodium.gui.state.OptionStateStore;
+import com.lczme.glazuli.render.GlassUi;
+import com.lczme.glazuli.compat.sodium.gui.theme.GuiTheme;
+import com.lczme.glazuli.compat.sodium.gui.widget.BaseWidget;
+import net.caffeinemc.mods.sodium.api.config.option.SteppedValidator;
+import net.caffeinemc.mods.sodium.client.config.structure.IntegerOption;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.List;
+
+final class IntegerSliderOptionRow extends AbstractOptionRow {
+    private static final int SLIDER_WIDTH = 90;
+    private static final int TRACK_HEIGHT = 10;
+    private static final int VALUE_GAP = 6;
+
+    private final IntegerOption option;
+    private double thumbPosition;
+    private boolean sliderHeld;
+    private boolean editMode;
+    private boolean drawSlider;
+    private int contentWidth;
+
+    IntegerSliderOptionRow(LayoutBounds dim, GuiTheme theme, OptionStateStore optionStateStore, IntegerOption option) {
+        super(dim, theme, optionStateStore, option);
+        this.option = option;
+        this.thumbPosition = this.thumbPositionForValue(option.getValidatedValue());
+        this.contentWidth = this.valueWidth();
+    }
+
+    @Override
+    public IntegerOption getOption() {
+        return this.option;
+    }
+
+    @Override
+    protected void prepareRender(int mouseX, int mouseY, float delta) {
+        boolean canDrawSlider = this.option.isEnabled() && this.option.showControl();
+        this.drawSlider = canDrawSlider && (this.isMouseOverRow(mouseX, mouseY) || this.isRowFocused() || this.sliderHeld);
+        int valueWidth = this.valueWidth();
+        this.contentWidth = this.drawSlider ? SLIDER_WIDTH + VALUE_GAP + valueWidth : valueWidth;
+    }
+
+    @Override
+    protected int controlContentWidth() {
+        return this.contentWidth;
+    }
+
+    public List<ControlGuide> controlGuides() {
+        if (!this.canShowControlGuide()) {
+            return List.of();
+        }
+
+        return this.editMode
+                ? List.of(ControlGuide.navigationLeftRight(Component.translatable("rso.controller.guide.adjust_value")), ControlGuide.press(Component.translatable("rso.controller.guide.done")))
+                : List.of(ControlGuide.press(Component.translatable("rso.controller.guide.edit_slider")));
+    }
+
+    @Override
+    protected void renderControl(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
+        if (!this.option.showControl()) {
+            return;
+        }
+
+        Component value = this.displayValue();
+        int valueWidth = this.font.width(value);
+        int sliderX = this.sliderX();
+        int sliderY = this.sliderY();
+
+        if (this.drawSlider) {
+            if (!this.sliderHeld) {
+                this.thumbPosition = this.thumbPositionForValue(this.option.getValidatedValue());
+            }
+
+            boolean active = this.sliderHeld || this.isRowFocused() && this.editMode && BaseWidget.isKeyboardFocusVisible();
+            GlassUi.slider(guiGraphics, sliderX, sliderY + TRACK_HEIGHT / 2.0F, SLIDER_WIDTH, (float) this.thumbPosition, active, 1.0F);
+
+            this.drawString(guiGraphics, value, sliderX - valueWidth - VALUE_GAP, sliderY + (TRACK_HEIGHT / 2) - 4, 0xFFFFFFFF);
+        } else {
+            this.drawString(guiGraphics, value, sliderX + SLIDER_WIDTH - valueWidth, sliderY + (TRACK_HEIGHT / 2) - 4, 0xFFFFFFFF);
+        }
+
+        if (this.isMouseOverSlider(mouseX, mouseY)) {        }
+    }
+
+    @Override
+    protected boolean controlMouseClicked(double mouseX, double mouseY, int button) {
+        this.sliderHeld = false;
+        if (!this.option.isEnabled()
+                || !this.option.showControl()
+                || button != 0
+                || !this.isMouseOverRow(mouseX, mouseY)) {
+            return false;
+        }
+
+        if (this.isMouseOverSlider(mouseX, mouseY)) {
+            this.setValueFromMouse(mouseX);
+            this.sliderHeld = true;
+            this.actionButtons.holdLayout(true);
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (!this.sliderHeld || button != 0 || !this.option.isEnabled()) {
+            return false;
+        }
+
+        this.actionButtons.holdLayout(true);
+        this.setValueFromMouse(mouseX);
+
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button != 0 || !this.sliderHeld) {
+            return false;
+        }
+
+        this.sliderHeld = false;
+        this.actionButtons.releaseLayoutHold();
+        this.playClickSound();
+
+        return true;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (!ReeseSodiumOptionsConfig.config().isShiftScrollSliderAdjustments()
+                || !this.option.isEnabled()
+                || !this.option.showControl()
+                || !Screen.hasShiftDown()
+                || !this.isMouseOverSlider(mouseX, mouseY)) {
+            return false;
+        }
+
+        return this.adjustValue((int) verticalAmount);
+    }
+
+    @Override
+    protected boolean controlKeyPressed(int keyCode, int scanCode, int modifiers) {
+        if (!this.isRowFocused()) {
+            return false;
+        }
+
+        if (isSelectionKey(keyCode)) {
+            this.editMode = !this.editMode;
+            return true;
+        }
+
+        if (this.editMode) {
+            if (keyCode == GLFW.GLFW_KEY_LEFT) {
+                return this.adjustValue(-1);
+            } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+                return this.adjustValue(1);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    protected boolean activateControl() {
+        this.editMode = !this.editMode;
+
+        return true;
+    }
+
+    @Override
+    public boolean handleBackNavigation() {
+        if (!this.editMode) {
+            return false;
+        }
+
+        this.editMode = false;
+        return true;
+    }
+
+    @Override
+    protected void releaseMouseHold() {
+        this.sliderHeld = false;
+    }
+
+    @Override
+    protected void onControlFocusLost() {
+        this.editMode = false;
+    }
+
+    private Component displayValue() {
+        Component value = this.option.formatValue(this.option.getValidatedValue());
+
+        return this.option.isEnabled() ? value : this.formatDisabledControlValue(value);
+    }
+
+    @Override
+    protected Component narrationValue() {
+        return this.option.showControl() ? this.option.formatValue(this.option.getValidatedValue()) : null;
+    }
+
+    @Override
+    protected void updateControlNarration(NarrationElementOutput builder) {
+        if (!this.option.isEnabled()) {
+            builder.add(NarratedElementType.HINT, Component.translatable("rso.narration.option_unavailable"));
+            return;
+        }
+
+        if (!this.option.showControl()) {
+            return;
+        }
+
+        if (this.isFocused()) {
+            builder.add(NarratedElementType.USAGE, Component.translatable(this.editMode
+                    ? "narration.slider.usage.focused"
+                    : "narration.slider.usage.focused.keyboard_cannot_change_value"));
+        } else if (this.isHovered()) {
+            builder.add(NarratedElementType.USAGE, Component.translatable("narration.slider.usage.hovered"));
+        }
+    }
+
+    private int valueWidth() {
+        return this.font.width(this.displayValue());
+    }
+
+    private int sliderX() {
+        return this.rightAlignedControlX(SLIDER_WIDTH);
+    }
+
+    private int sliderY() {
+        return this.getDimensions().getCenterY() - TRACK_HEIGHT / 2;
+    }
+
+    private boolean isMouseOverSlider(double mouseX, double mouseY) {
+        int sliderX = this.sliderX();
+        int sliderY = this.sliderY();
+
+        return mouseX >= sliderX
+                && mouseX < sliderX + SLIDER_WIDTH
+                && mouseY >= sliderY
+                && mouseY < sliderY + TRACK_HEIGHT;
+    }
+
+    private double thumbPositionForValue(int value) {
+        SteppedValidator validator = this.option.getSteppedValidator();
+        int min = validator.min();
+        int max = validator.max();
+
+        if (max == min) {
+            return 0.0D;
+        }
+
+        return Mth.clamp((double) (value - min) / (double) (max - min), 0.0D, 1.0D);
+    }
+
+    private int valueForThumbPosition() {
+        SteppedValidator validator = this.option.getSteppedValidator();
+        int step = validator.step();
+        int min = validator.min();
+        int max = validator.max();
+
+        return Mth.clamp(min + step * (int) Math.round(this.thumbPosition * (max - min) / (double) step), min, max);
+    }
+
+    private void setValueFromMouse(double mouseX) {
+        this.thumbPosition = Mth.clamp((mouseX - this.sliderX()) / (double) SLIDER_WIDTH, 0.0D, 1.0D);
+        this.option.modifyValue(this.valueForThumbPosition());
+    }
+
+    private boolean adjustValue(int direction) {
+        if (direction == 0) {
+            return false;
+        }
+
+        SteppedValidator validator = this.option.getSteppedValidator();
+        int value = this.option.getValidatedValue();
+        int nextValue = Mth.clamp(value + validator.step() * direction, validator.min(), validator.max());
+
+        if (nextValue == value) {
+            return false;
+        }
+
+        this.option.modifyValue(nextValue);
+        this.thumbPosition = this.thumbPositionForValue(this.option.getValidatedValue());
+
+        return true;
+    }
+}

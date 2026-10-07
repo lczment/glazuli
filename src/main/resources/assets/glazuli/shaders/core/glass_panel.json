@@ -1,0 +1,24 @@
+{
+    "vertex": "glazuli:glass_panel",
+    "fragment": "glazuli:glass_panel",
+    "samplers": [
+        { "name": "Sampler0" }
+    ],
+    "uniforms": [
+        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ScreenSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] },
+        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
+        { "name": "RectSize", "type": "float", "count": 2, "values": [ 1.0, 1.0 ] },
+        { "name": "Radius", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "Tint", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 0.0 ] },
+        { "name": "Shift", "type": "float", "count": 1, "values": [ 0.37 ] },
+        { "name": "Falloff", "type": "float", "count": 1, "values": [ 1.9 ] },
+        { "name": "RimFrac", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "Material", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "Shadow", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "Opacity", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "Specular", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "Highlight", "type": "float", "count": 1, "values": [ 0.0 ] }
+    ]
+}

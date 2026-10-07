@@ -1,0 +1,19 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.lczme.glazuli.compat.mixin",
+  "plugin": "com.lczme.glazuli.compat.CompatMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "create.RemovedGuiUtilsMixin",
+    "iris.IrisGuiUtilMixin",
+    "jade.JadeBoxElementMixin",
+    "jei.JeiDrawableSpriteMixin",
+    "jei.JeiScalableDrawableMixin",
+    "sodium.SodiumAbstractWidgetMixin",
+    "sodium.SodiumOptionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
