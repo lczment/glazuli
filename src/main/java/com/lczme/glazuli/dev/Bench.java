@@ -133,6 +133,8 @@ public final class Bench {
             world("world_pause_vanilla", false, () -> show(new PauseScreen(true))),
             world("world_hud_again", true, () -> show(null)),
             world("world_hud_vanilla_again", false, () -> show(null)),
+            world("world_hud_vanilla_rev", false, () -> show(null)),
+            world("world_hud_rev", true, () -> show(null)),
             new Scenario("world_switch", () -> setInGame(true), null, t -> {
                 Minecraft mc = Minecraft.getInstance();
                 boolean open = ((int) (t / 0.5)) % 2 == 1;
