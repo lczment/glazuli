@@ -54,7 +54,7 @@ final class MojangSplash {
 
     MojangSplash(Minecraft minecraft) {
         this.minecraft = minecraft;
-        this.animation = new MojangAnimation(minecraft);
+        this.animation = new MojangAnimation();
     }
 
     static int brandColor(Minecraft minecraft) {
@@ -111,6 +111,7 @@ final class MojangSplash {
     }
 
     void close() {
+        animation.close();
         if (mask != null) {
             mask.destroyBuffers();
             mask = null;

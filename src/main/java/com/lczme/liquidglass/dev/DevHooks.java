@@ -467,14 +467,25 @@ public final class DevHooks {
     }
 
     /** Called by the startup overlay at the end of each of its frames, with seconds since the phase's first frame. */
-    private static final double[] LOGO_SHOT_TIMES = {0.12, 0.9, 2.0, 3.15};
+    private static final double[] LOGO_SHOT_TIMES = {0.05, 0.9, 2.0, 3.0};
     private static final boolean[] logoTaken = new boolean[LOGO_SHOT_TIMES.length];
+    private static double logoLastFrame = Double.NaN;
+    private static double logoMaxGap;
+    private static int logoFrames;
 
-    /** Frames of the Mojang logo animation, by seconds since it started. */
+    /** Frames of the Mojang logo animation, by seconds since it started; logs the worst frame gap at the end. */
     public static void onLogoAnimationFrame(double elapsed) {
         if (!AUTOSHOT) {
             return;
         }
+        if (!Double.isNaN(logoLastFrame) && elapsed < 3.2) {
+            logoMaxGap = Math.max(logoMaxGap, elapsed - logoLastFrame);
+            logoFrames++;
+        } else if (elapsed >= 3.2 && logoFrames > 0) {
+            LiquidGlass.LOGGER.info("[autoshot] logo animation: {} frames, worst gap {} ms", logoFrames, Math.round(logoMaxGap * 1000));
+            logoFrames = 0;
+        }
+        logoLastFrame = elapsed;
         for (int i = 0; i < LOGO_SHOT_TIMES.length; i++) {
             if (!logoTaken[i] && elapsed >= LOGO_SHOT_TIMES[i]) {
                 logoTaken[i] = true;

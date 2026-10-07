@@ -40,6 +40,7 @@ public final class StartupOverlay extends GlassLoadingOverlay {
         this.early = early;
         this.meter = meter;
         this.splash = new MojangSplash(minecraft);
+        splash.animation.load();
         IntroState.setOutroDuration(splash.outro.length());
     }
 
@@ -62,18 +63,18 @@ public final class StartupOverlay extends GlassLoadingOverlay {
                 end();
                 return;
             }
-            splash.animation.preload();
         }
+        splash.animation.tick();
         if (isFinishCalled() && !splash.outro.isStarted()) {
             CaveBackground.prepare();
         }
         double sinceFill = AnimClock.now() - fillStart;
         boolean filled = progress >= 1.0F || sinceFill >= MAX_FILL_SECONDS;
-        if (isFinishCalled() && filled) {
-            splash.animation.update();
-        }
-        // The animation also covers the shader cave's warm-up.
+        // The shader cave's warm-up stalls frames: the first frame holds until it's done, then the animation plays smoothly.
         boolean backdropReady = CaveBackground.isReady() || sinceFill >= CaveBackground.readyWaitLimitSeconds();
+        if (isFinishCalled() && filled && backdropReady) {
+            splash.animation.start();
+        }
         if (isFinishCalled() && !splash.outro.isStarted() && filled && backdropReady && splash.animation.isFinished()) {
             splash.outro.start();
             IntroState.setPhase(IntroState.Phase.OUTRO);
