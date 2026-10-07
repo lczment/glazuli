@@ -16,12 +16,12 @@ import net.neoforged.fml.loading.FMLPaths;
 
 /**
  * A sting when the title screen first appears, before the menu music: {@code config/glazuli/startup.ogg} if
- * present, otherwise the built-in one, an orchestral take on the opening of C418's "Minecraft". The menu music is
- * held back until it has finished.
+ * present, otherwise the built-in one, an ambient take on the opening of C418's "Minecraft". The menu music is held
+ * back until it has finished.
  */
 public final class StartupSound {
     public static final ResourceLocation CUSTOM = Glazuli.id("startup.custom");
-    private static final ResourceLocation BUILT_IN = Glazuli.id("startup.epic");
+    private static final ResourceLocation BUILT_IN = Glazuli.id("startup.theme");
     /** Silence between the sting and the music. */
     private static final double MUSIC_GAP_SECONDS = 1.0;
     /** The music starts anyway if the sting is still reported as playing after this long. */

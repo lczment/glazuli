@@ -4,9 +4,9 @@
       "glazuli:intro/mojang"
     ]
   },
-  "startup.epic": {
+  "startup.theme": {
     "sounds": [
-      "glazuli:startup/epic"
+      "glazuli:startup/theme"
     ]
   }
 }
