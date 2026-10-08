@@ -1,6 +1,5 @@
 package com.lczme.glazuli.cave;
 
-import com.lczme.glazuli.anim.Easing;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -21,7 +20,13 @@ import org.joml.Vector3f;
  */
 final class CaveCamera {
     static final float FOG_END = 60.0F;
-    private static final float INTRO_SECONDS = 3.4F;
+    /** The startup flight eases in and out over these parts of its time and cruises at a steady speed in between. */
+    private static final float INTRO_EASE_IN = 0.25F;
+    private static final float INTRO_EASE_OUT = 0.4F;
+    private static final float INTRO_LOOK_AHEAD = 5.0F;
+    /** Over its last this many blocks the startup flight turns from looking along its way to the title view. */
+    private static final float INTRO_TURN_BLOCKS = 14.0F;
+    private static final float INTRO_TURN_LIFT = 12.0F;
     /**
      * Flights between spots: a lead point travels a smooth path round any walls on an eased schedule (longer flights
      * take a little longer), and the eye follows it on a short critically damped spring. A change of menu mid-flight
@@ -109,6 +114,12 @@ final class CaveCamera {
         return introFlown;
     }
 
+    /** Development screenshots: flies the startup flight again. */
+    void replayIntro() {
+        introFlown = false;
+        mode = Mode.SPOT;
+    }
+
     /** True while the first-launch flight hasn't (nearly) arrived; the title menu waits for it. */
     boolean isIntroArriving() {
         return mode == Mode.INTRO && introProgress < 0.72F;
@@ -141,24 +152,37 @@ final class CaveCamera {
         if (mode != Mode.INTRO) {
             mode = Mode.INTRO;
             introStarted = false;
-            path = rig.introPath();
+            path = sampled(rig.introPath());
         }
         if (!introStarted && mayStart) {
             introStarted = true;
             modeStart = now;
         }
-        float u = introStarted ? Mth.clamp((float) ((now - modeStart) / INTRO_SECONDS), 0.0F, 1.0F) : 0.0F;
+        float u = introStarted ? Mth.clamp((float) ((now - modeStart) / rig.introSeconds()), 0.0F, 1.0F) : 0.0F;
         introProgress = u;
-        float e = Easing.IN_OUT_CUBIC.apply(u);
-        catmullRom(path, e, eye);
-        Vector3f lookAhead = catmullRom(path, Math.min(1.0F, e + 0.08F), new Vector3f());
-        Vector3f titleLook = spotLook(Spot.TITLE, now, new Vector3f());
+        float length = CameraPath.length(path);
+        float s = cruise(u) * length;
+        CameraPath.at(path, s, eye);
+        Vector3f titleDir = spotLook(Spot.TITLE, now, new Vector3f()).sub(eye);
+        float lookYaw = yawOf(titleDir);
+        float lookPitch = pitchOf(titleDir);
         // A flight of a block or two (no room behind the title spot) has no direction worth looking along.
-        float w = path.get(0).distance(path.get(path.size() - 1)) < 3.0F ? 1.0F : smoothstep(0.6F, 1.0F, e);
-        if (e + 0.08F >= 1.0F) {
-            lookAhead.set(titleLook);
+        if (length >= 3.0F) {
+            float reach = Math.min(INTRO_LOOK_AHEAD, length);
+            float from = Math.min(s, length - reach);
+            Vector3f heading = CameraPath.at(path, from + reach, new Vector3f()).sub(CameraPath.at(path, from, new Vector3f()));
+            float headingYaw = yawOf(heading);
+            float swing = Mth.wrapDegrees(lookYaw - headingYaw);
+            float w = smoothstep(Math.max(0.6F * length, length - INTRO_TURN_BLOCKS), length, s);
+            lookYaw = headingYaw + swing * w;
+            // Swinging round, the view lifts towards the roof on the way.
+            lookPitch = Mth.lerp(w, pitchOf(heading), lookPitch) + INTRO_TURN_LIFT * Math.abs(swing) / 180.0F * Mth.sin(Mth.PI * w);
         }
-        target.set(lookAhead).lerp(titleLook, w);
+        float yawRad = lookYaw * Mth.DEG_TO_RAD;
+        float pitchRad = lookPitch * Mth.DEG_TO_RAD;
+        float horizontal = Mth.cos(pitchRad);
+        target.set(Mth.sin(yawRad) * horizontal, Mth.sin(pitchRad), Mth.cos(yawRad) * horizontal)
+                .mul(Math.max(titleDir.length(), 1.0F)).add(eye);
         fogEnd = baseFogEnd;
         if (u >= 1.0F) {
             introFlown = true;
@@ -342,6 +366,44 @@ final class CaveCamera {
     private static float smoothstep(float edge0, float edge1, float x) {
         float t = Mth.clamp((x - edge0) / (edge1 - edge0), 0.0F, 1.0F);
         return t * t * (3.0F - 2.0F * t);
+    }
+
+    /**
+     * Fraction of the way travelled at time fraction {@code u}: speed rises smoothly over {@link #INTRO_EASE_IN}, holds,
+     * and falls smoothly to rest over {@link #INTRO_EASE_OUT}.
+     */
+    private static float cruise(float u) {
+        float a = INTRO_EASE_IN;
+        float b = INTRO_EASE_OUT;
+        float total = 1.0F - 0.5F * a - 0.5F * b;
+        float d;
+        if (u < a) {
+            d = a * rampIntegral(u / a);
+        } else if (u > 1.0F - b) {
+            d = total - b * rampIntegral((1.0F - u) / b);
+        } else {
+            d = 0.5F * a + (u - a);
+        }
+        return Mth.clamp(d / total, 0.0F, 1.0F);
+    }
+
+    /** Integral of smoothstep from 0 to {@code x}. */
+    private static float rampIntegral(float x) {
+        return x * x * x * (1.0F - 0.5F * x);
+    }
+
+    /** Catmull-Rom through {@code points} as a dense polyline, to travel along by distance. */
+    private static List<Vector3f> sampled(List<Vector3f> points) {
+        if (points.size() < 2) {
+            return points.isEmpty() ? List.of(new Vector3f()) : points;
+        }
+        int segments = points.size() - 1;
+        int samples = segments * 24;
+        List<Vector3f> out = new ArrayList<>(samples + 1);
+        for (int i = 0; i <= samples; i++) {
+            out.add(catmullRom(points, (float) i / samples, new Vector3f()));
+        }
+        return out;
     }
 
     /** Uniform Catmull-Rom through {@code points} at {@code u} in [0, 1], end points duplicated. */

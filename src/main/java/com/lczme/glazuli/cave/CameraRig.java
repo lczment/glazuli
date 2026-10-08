@@ -12,6 +12,10 @@ interface CameraRig {
     /** Ends at the title spot's eye. */
     List<Vector3f> introPath();
 
+    default float introSeconds() {
+        return 3.4F;
+    }
+
     /** Starts at {@code start}. */
     List<Vector3f> divePath(Vector3f start);
 }

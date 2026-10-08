@@ -275,6 +275,13 @@ public final class CaveBackground {
         CaveCamera.devSpot = spot == null ? null : CaveCamera.Spot.valueOf(spot);
     }
 
+    /** Development screenshots: the showing scene flies its startup flight again. */
+    public static void devReplayIntro() {
+        if (camera != null) {
+            camera.replayIntro();
+        }
+    }
+
     /** Development screenshots: looks from {@code eye} at {@code look} (scene coordinates); null eye restores the spots. */
     public static void devCamera(@Nullable org.joml.Vector3f eye, @Nullable org.joml.Vector3f look) {
         CaveCamera.devEye = eye;

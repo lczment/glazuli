@@ -18,6 +18,8 @@ final class CustomRig implements CameraRig {
     private final Vector3f[] spotEyes;
     private final Vector3f[] spotLooks;
     private final boolean planned;
+    private List<Vector3f> introWaypoints = List.of();
+    private float introSeconds = 3.4F;
 
     CustomRig(Vector3f eye, float yaw, float pitch) {
         this.eye = eye;
@@ -39,6 +41,18 @@ final class CustomRig implements CameraRig {
         this.spotEyes = eyes;
         this.spotLooks = looks;
         this.planned = true;
+    }
+
+    /** A startup flight planned for the scene: through {@code waypoints} (evenly spaced) on to the title spot. */
+    CustomRig intro(float seconds, Vector3f... waypoints) {
+        this.introSeconds = seconds;
+        this.introWaypoints = List.of(waypoints);
+        return this;
+    }
+
+    @Override
+    public float introSeconds() {
+        return introSeconds;
     }
 
     void bind(CaveWorld world) {
@@ -118,6 +132,12 @@ final class CustomRig implements CameraRig {
 
     @Override
     public List<Vector3f> introPath() {
+        if (!introWaypoints.isEmpty()) {
+            List<Vector3f> points = new ArrayList<>();
+            introWaypoints.forEach(p -> points.add(new Vector3f(p)));
+            points.add(spotEye(CaveCamera.Spot.TITLE));
+            return points;
+        }
         Vector3f back = direction(yaw + 180.0F, 0.0F).add(0.0F, 0.3F, 0.0F);
         float d = Math.max(0.0F, reach(eye, back, 16.0F) - 1.0F);
         List<Vector3f> points = new ArrayList<>();

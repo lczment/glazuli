@@ -92,7 +92,17 @@ final class MineScene {
             eyes[i] = new Vector3f(shots[i][0], shots[i][1], shots[i][2]);
             looks[i] = new Vector3f(shots[i][3], shots[i][4], shots[i][5]);
         }
-        CustomRig rig = new CustomRig(eyes, looks);
+        // Startup: out of the mine tunnel past the miner, over the bridge, low over the pond under the lanterns, then
+        // up and round onto the title view.
+        CustomRig rig = new CustomRig(eyes, looks).intro(7.5F,
+                new Vector3f(40.0F, 8.5F, 8.5F),
+                new Vector3f(33.5F, 8.6F, 9.0F),
+                new Vector3f(27.0F, 9.0F, 12.5F),
+                new Vector3f(21.0F, 9.5F, 16.5F),
+                new Vector3f(19.5F, 7.8F, 24.5F),
+                new Vector3f(18.5F, 7.6F, 33.5F),
+                new Vector3f(19.5F, 7.7F, 42.5F),
+                new Vector3f(20.5F, 8.2F, 50.0F));
         rig.bind(world);
         world.rig = rig;
         return world;
