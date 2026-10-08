@@ -685,9 +685,8 @@ final class MineScene {
             set(x, FLOOR + 3, z1, pane(Direction.Axis.X));
             set(x, FLOOR + 3, z1 - 1, Blocks.SHROOMLIGHT.defaultBlockState());
         }
-        set(x0 + 1, FLOOR + 6, z1, Blocks.SHROOMLIGHT.defaultBlockState());
-        set(x1, FLOOR + 6, z1, Blocks.SHROOMLIGHT.defaultBlockState());
-        set(x1 + 1, FLOOR + 5, z0 + 1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST));
+        millUpperStorey(x0, x1, z0, z1);
+        set(x1 + 1, FLOOR + 4, z0 + 1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST));
         int cx = 8;
         int cy = FLOOR + 1;
         BlockState rim = Blocks.DARK_OAK_PLANKS.defaultBlockState();
@@ -714,6 +713,46 @@ final class MineScene {
         }
         for (int z = z1; z <= z1 + 4; z++) {
             set(cx, cy, z, log(Blocks.DARK_OAK_LOG, Direction.Axis.Z));
+        }
+    }
+
+    /**
+     * The mill's top storey timbered over the stone (a sill beam, posts every third block, planks between, small lit
+     * windows) under an eave of stairs all round.
+     */
+    private void millUpperStorey(int x0, int x1, int z0, int z1) {
+        BlockState planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
+        BlockState post = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
+        for (int z = z0; z <= z1; z++) {
+            for (int x = x0; x <= x1; x++) {
+                boolean east = x == x1;
+                if (!east && z != z0 && z != z1) {
+                    continue;
+                }
+                boolean corner = east && (z == z0 || z == z1);
+                boolean upright = corner || (east ? (z - z0) % 3 == 0 : (x - x0) % 3 == 0);
+                set(x, FLOOR + 5, z, log(Blocks.STRIPPED_SPRUCE_LOG, east && !corner ? Direction.Axis.Z : Direction.Axis.X));
+                for (int y = FLOOR + 6; y <= FLOOR + 7; y++) {
+                    set(x, y, z, upright ? post : planks);
+                }
+            }
+        }
+        for (int z : new int[]{z0 + 2, z1 - 2}) {
+            set(x1, FLOOR + 6, z, pane(Direction.Axis.Z));
+            set(x1 - 1, FLOOR + 6, z, Blocks.SHROOMLIGHT.defaultBlockState());
+        }
+        for (int x : new int[]{x0 + 1, x0 + 4, x0 + 7}) {
+            for (int z : new int[]{z0, z1}) {
+                set(x, FLOOR + 6, z, pane(Direction.Axis.X));
+                set(x, FLOOR + 6, z == z0 ? z + 1 : z - 1, Blocks.SHROOMLIGHT.defaultBlockState());
+            }
+        }
+        for (int z = z0 - 1; z <= z1 + 1; z++) {
+            set(x1 + 1, FLOOR + 8, z, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
+        }
+        for (int x = x0; x <= x1; x++) {
+            set(x, FLOOR + 8, z0 - 1, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, false));
+            set(x, FLOOR + 8, z1 + 1, stairs(Blocks.SPRUCE_STAIRS, Direction.NORTH, false));
         }
     }
 
