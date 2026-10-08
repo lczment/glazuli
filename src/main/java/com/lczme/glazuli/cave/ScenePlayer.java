@@ -34,7 +34,6 @@ final class ScenePlayer extends RemotePlayer {
     private final PlayerSkin fallback;
     private float facing;
     private double lastPose = Double.NaN;
-
     ScenePlayer(ClientLevel level, CaveWorld.Figure figure) {
         super(level, profile(figure));
         this.figure = figure;
@@ -111,8 +110,7 @@ final class ScenePlayer extends RemotePlayer {
         yHeadRotO = yaw;
         setXRot(pitch);
         xRotO = pitch;
-        tickCount = (int) (now * 20.0) + figure.skin() * 7;
-        float swing = 0.0F;
+        tickCount = (int) (now * 20.0) + figure.skin() * 7;        float swing = 0.0F;
         if (figure.swings() && turn < 0.02F) {
             float cycle = (float) ((now * 1.1 + figure.skin() * 0.37) % 1.0);
             swing = cycle < 0.5F ? cycle * 2.0F : 0.0F;
