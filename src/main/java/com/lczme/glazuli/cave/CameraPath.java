@@ -23,6 +23,8 @@ final class CameraPath {
     /** How far before and after a corner the curve round it starts and ends, at most. */
     private static final float CORNER_RADIUS = 7.0F;
     private static final int CORNER_SAMPLES = 16;
+    private static final int BEZIER_SAMPLES = 48;
+    private static final int SPLINE_SAMPLES = 14;
     private static final int[][] STEPS = steps();
 
     private CameraPath() {
@@ -74,6 +76,10 @@ final class CameraPath {
         if (points.size() < 3) {
             return points;
         }
+        List<Vector3f> spline = catmullRom(world, points);
+        if (spline != null) {
+            return spline;
+        }
         List<Vector3f> out = new ArrayList<>();
         out.add(points.get(0));
         for (int i = 1; i < points.size() - 1; i++) {
@@ -112,6 +118,50 @@ final class CameraPath {
         }
         out.add(points.get(points.size() - 1));
         return out;
+    }
+
+    /** A Catmull-Rom spline through all the points as a fine polyline, or null if it passes too close to anything solid. */
+    @Nullable
+    private static List<Vector3f> catmullRom(CaveWorld world, List<Vector3f> points) {
+        List<Vector3f> out = new ArrayList<>();
+        out.add(new Vector3f(points.get(0)));
+        int last = points.size() - 1;
+        for (int i = 0; i < last; i++) {
+            Vector3f a = points.get(i);
+            Vector3f b = points.get(i + 1);
+            Vector3f ta = new Vector3f(points.get(Math.min(i + 1, last))).sub(points.get(Math.max(i - 1, 0))).mul(0.5F);
+            Vector3f tb = new Vector3f(points.get(Math.min(i + 2, last))).sub(points.get(i)).mul(0.5F);
+            Vector3f c1 = new Vector3f(ta).div(3.0F).add(a);
+            Vector3f c2 = new Vector3f(b).sub(new Vector3f(tb).div(3.0F));
+            for (int k = 1; k <= SPLINE_SAMPLES; k++) {
+                float t = (float) k / SPLINE_SAMPLES;
+                float u = 1.0F - t;
+                Vector3f p = new Vector3f(a).mul(u * u * u).add(new Vector3f(c1).mul(3.0F * u * u * t))
+                        .add(new Vector3f(c2).mul(3.0F * u * t * t)).add(new Vector3f(b).mul(t * t * t));
+                if (!clear(world, out.get(out.size() - 1), p)) {
+                    return null;
+                }
+                out.add(p);
+            }
+        }
+        return out;
+    }
+
+    /** The cubic Bézier through the four points as a fine polyline, or null if it passes too close to anything solid. */
+    @Nullable
+    static List<Vector3f> bezier(CaveWorld world, Vector3f p0, Vector3f p1, Vector3f p2, Vector3f p3) {
+        List<Vector3f> points = new ArrayList<>();
+        for (int k = 0; k <= BEZIER_SAMPLES; k++) {
+            float t = (float) k / BEZIER_SAMPLES;
+            float u = 1.0F - t;
+            Vector3f p = new Vector3f(p0).mul(u * u * u).add(new Vector3f(p1).mul(3.0F * u * u * t))
+                    .add(new Vector3f(p2).mul(3.0F * u * t * t)).add(new Vector3f(p3).mul(t * t * t));
+            if (k > 0 && !clear(world, points.get(k - 1), p)) {
+                return null;
+            }
+            points.add(p);
+        }
+        return points;
     }
 
     static float length(List<Vector3f> path) {
