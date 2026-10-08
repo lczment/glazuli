@@ -57,6 +57,6 @@ The code is open source under LGPL-3.0. The bundled font, the Mojang logo animat
 
 - Font: [HarmonyOS Sans](https://developer.huawei.com/consumer/cn/design/resource/), © Huawei Device Co., Ltd., used under the HarmonyOS Sans Fonts License Agreement.
 - Glass Sodium settings based on [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options) by FlashyReese (MIT).
-- Mojang Studios logo animation frames and sound from [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation) by Karasu-Lab. Artwork and sound belong to Mojang.
+- Mojang Studios logo animation frames and sound from [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation) by Karasu-Lab, interpolated from 14 to 57 fps with [RIFE](https://github.com/hzwer/ECCV2022-RIFE). Artwork and sound belong to Mojang.
 - Startup sound based on the opening of "Minecraft" by C418.
 - Not affiliated with Mojang.

@@ -4,10 +4,12 @@ import com.lczme.glazuli.Glazuli;
 import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.dev.DevHooks;
 import com.mojang.blaze3d.platform.NativeImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
@@ -28,16 +30,18 @@ import org.joml.Matrix4f;
  * Frames are read straight from the mod file: the first reload hasn't made the mod's resources available yet.
  */
 final class MojangAnimation {
-    private static final int FRAMES = 39;
-    private static final float FRAME_SECONDS = 0.07F;
-    private static final float HOLD_SECONDS = 0.5F;
+    /** The original 39 frames at 14 fps, interpolated four times over (RIFE) to 57 fps. */
+    private static final int FRAMES = 153;
+    private static final float FRAME_SECONDS = 0.0175F;
+    /** How long the last frame stays, to the end of the sound. */
+    private static final float LAST_FRAME_SECONDS = 0.57F;
+    /** Frames decoded ahead of the one shown; only the shown frame is on the GPU. */
+    private static final int LOOKAHEAD = 12;
     /** Cross-fade from the early window's static logo to the first frame. */
     private static final float INTRO_FADE_SECONDS = 0.4F;
     private static final float BAR_FADE_SECONDS = 0.25F;
     private static final float HANDOVER_SECONDS = 0.2F;
-    /** Uploads per frame, so the loading screen doesn't hitch. */
-    private static final int UPLOADS_PER_FRAME = 4;
-    /** Once loading is done the outro doesn't wait longer than this for the remaining frames. */
+    /** Once loading is done the outro doesn't wait longer than this for the first frames. */
     private static final double LOAD_LIMIT_SECONDS = 4.0;
     private static final ResourceLocation SOUND = Glazuli.id("intro.mojang");
 
@@ -49,9 +53,14 @@ final class MojangAnimation {
     private static final float BOX_Y0 = 31.17F;
     private static final float BOX_Y1 = 281.88F;
 
-    private final List<DynamicTexture> textures = new ArrayList<>();
+    /** Holds the shown frame; later frames replace its pixels as they come up. */
     @Nullable
-    private CompletableFuture<List<NativeImage>> decoding;
+    private DynamicTexture texture;
+    private int shown;
+    /** The frames' PNG files (grey and alpha), read off-thread; decoding all of them up front would take ~180 MB. */
+    @Nullable
+    private CompletableFuture<byte[][]> reading;
+    private final List<CompletableFuture<NativeImage>> decoded = new ArrayList<>(Collections.nCopies(FRAMES, null));
     private double shownAt = Double.NaN;
     private double waitStart = Double.NaN;
     private double start = Double.NaN;
@@ -60,76 +69,121 @@ final class MojangAnimation {
     MojangAnimation() {
     }
 
-    private static NativeImage read(int index) throws IOException {
+    private static byte[] file(int index) throws IOException {
         var file = ModList.get().getModFileById(Glazuli.MODID).getFile();
-        try (InputStream in = Files.newInputStream(file.findResource("assets", Glazuli.MODID, "textures", "gui", "mojang_logo", "frame_" + index + ".png"))) {
-            return NativeImage.read(in);
+        return Files.readAllBytes(file.findResource("assets", Glazuli.MODID, "textures", "gui", "mojang_logo", "frame_" + index + ".png"));
+    }
+
+    private static NativeImage decode(byte[] png) {
+        try {
+            return NativeImage.read(new ByteArrayInputStream(png));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
     private static float length() {
-        return FRAMES * FRAME_SECONDS + HOLD_SECONDS;
+        return (FRAMES - 1) * FRAME_SECONDS + LAST_FRAME_SECONDS;
     }
 
-    /** Shows the first frame right away and decodes the rest off-thread. Render thread; startup only. */
+    /** Shows the first frame right away and reads the rest off-thread. Render thread; startup only. */
     void load() {
-        if (unavailable || !textures.isEmpty()) {
+        if (unavailable || texture != null) {
             return;
         }
         try {
-            upload(read(0));
+            texture = new DynamicTexture(decode(file(0)));
+            texture.setFilter(true, false);
         } catch (IOException | RuntimeException e) {
             Glazuli.LOGGER.warn("Couldn't load the Mojang logo animation, using the static logo", e);
             unavailable = true;
             return;
         }
         shownAt = AnimClock.now();
-        decoding = CompletableFuture.supplyAsync(() -> {
-            List<NativeImage> images = new ArrayList<>();
+        reading = CompletableFuture.supplyAsync(() -> {
+            byte[][] files = new byte[FRAMES][];
             try {
                 for (int i = 1; i < FRAMES; i++) {
-                    images.add(read(i));
+                    files[i] = file(i);
                 }
-                return images;
             } catch (IOException e) {
-                images.forEach(NativeImage::close);
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
+            return files;
         }, Util.backgroundExecutor());
     }
 
-    private void upload(NativeImage image) {
-        DynamicTexture texture = new DynamicTexture(image);
-        texture.setFilter(true, false);
-        textures.add(texture);
+    private int currentFrame() {
+        return isStarted() ? Math.min(FRAMES - 1, (int) (elapsed() / FRAME_SECONDS)) : 0;
     }
 
-    /** Uploads decoded frames a few per call. */
+    /** Keeps the next few frames decoding. */
     void tick() {
-        if (decoding == null || !decoding.isDone() || textures.size() >= FRAMES) {
+        if (reading == null || !reading.isDone()) {
             return;
         }
-        if (decoding.isCompletedExceptionally()) {
-            Glazuli.LOGGER.warn("Couldn't load the Mojang logo animation frames, skipping it", decoding.exceptionNow());
-            decoding = null;
+        if (reading.isCompletedExceptionally()) {
+            Glazuli.LOGGER.warn("Couldn't load the Mojang logo animation frames, skipping it", reading.exceptionNow());
+            reading = null;
             unavailable = true;
             return;
         }
-        List<NativeImage> images = decoding.join();
-        for (int n = 0; n < UPLOADS_PER_FRAME && textures.size() < FRAMES; n++) {
-            upload(images.get(textures.size() - 1));
+        byte[][] files = reading.join();
+        int from = Math.max(currentFrame(), shown + 1);
+        for (int i = from; i <= Math.min(FRAMES - 1, from + LOOKAHEAD); i++) {
+            if (decoded.get(i) == null) {
+                byte[] png = files[i];
+                decoded.set(i, CompletableFuture.supplyAsync(() -> decode(png), Util.backgroundExecutor()));
+            }
         }
     }
 
-    /** Plays once every frame is uploaded; gives up (and is finished) if that takes too long. */
+    private boolean firstFramesReady() {
+        for (int i = 1; i <= LOOKAHEAD; i++) {
+            CompletableFuture<NativeImage> frame = decoded.get(i);
+            if (frame == null || !frame.isDone()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Swaps in the newest decoded frame up to the current one (frames still decoding are skipped, not waited for). */
+    private void advance() {
+        int target = currentFrame();
+        int next = -1;
+        for (int i = target; i > shown; i--) {
+            CompletableFuture<NativeImage> frame = decoded.get(i);
+            if (frame != null && frame.isDone() && !frame.isCompletedExceptionally()) {
+                next = i;
+                break;
+            }
+        }
+        if (next < 0 || texture == null) {
+            return;
+        }
+        for (int i = shown + 1; i < next; i++) {
+            CompletableFuture<NativeImage> skipped = decoded.set(i, null);
+            if (skipped != null) {
+                skipped.thenAccept(NativeImage::close);
+            }
+        }
+        NativeImage image = decoded.set(next, null).join();
+        texture.setPixels(image);
+        texture.bind();
+        image.upload(0, 0, 0, 0, 0, image.getWidth(), image.getHeight(), true, false, false, false);
+        shown = next;
+    }
+
+    /** Plays once the first frames are decoded; gives up (and is finished) if that takes too long. */
     void start() {
-        if (isStarted() || unavailable || textures.isEmpty()) {
-            if (textures.isEmpty()) {
+        if (isStarted() || unavailable || texture == null) {
+            if (texture == null) {
                 unavailable = true;
             }
             return;
         }
-        if (textures.size() >= FRAMES) {
+        if (firstFramesReady()) {
             start = AnimClock.now();
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(SOUND), 1.0F, 1.0F));
             return;
@@ -172,7 +226,7 @@ final class MojangAnimation {
     }
 
     private boolean showsFrame() {
-        return !textures.isEmpty() && !isFinished() && !(isStarted() && DevHooks.forceStaticLogo(elapsed()));
+        return texture != null && !isFinished() && !(isStarted() && DevHooks.forceStaticLogo(elapsed()));
     }
 
     /** How much of vanilla's static logo shows: all of it unless a frame is drawn, except while fading to frame 0. */
@@ -198,27 +252,30 @@ final class MojangAnimation {
         if (!showsFrame()) {
             return;
         }
-        int index = 0;
         float frameAlpha = alpha;
         if (isStarted()) {
-            index = Math.min(Math.min(FRAMES, textures.size()) - 1, (int) ((AnimClock.now() - start) / FRAME_SECONDS));
+            advance();
             frameAlpha *= 1.0F - handoverAlpha();
         } else {
             frameAlpha *= frameZeroAlpha();
         }
         float kx = w / (BOX_X1 - BOX_X0);
         float ky = h / (BOX_Y1 - BOX_Y0);
-        IntroDraw.textureRegion(pose, textures.get(index).getId(), x - BOX_X0 * kx, y - BOX_Y0 * ky, FRAME_W * kx, FRAME_H * ky,
+        IntroDraw.textureRegion(pose, texture.getId(), x - BOX_X0 * kx, y - BOX_Y0 * ky, FRAME_W * kx, FRAME_H * ky,
                 0.0F, 0.0F, 1.0F, 1.0F, frameAlpha);
     }
 
     void close() {
-        int uploaded = Math.max(0, textures.size() - 1);
-        textures.forEach(DynamicTexture::close);
-        textures.clear();
-        if (decoding != null) {
-            decoding.thenAccept(images -> images.subList(uploaded, images.size()).forEach(NativeImage::close));
-            decoding = null;
+        if (texture != null) {
+            texture.close();
+            texture = null;
         }
+        for (int i = 0; i < FRAMES; i++) {
+            CompletableFuture<NativeImage> frame = decoded.set(i, null);
+            if (frame != null) {
+                frame.thenAccept(NativeImage::close);
+            }
+        }
+        reading = null;
     }
 }

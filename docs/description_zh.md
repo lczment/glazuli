@@ -50,7 +50,7 @@
 - 本模组代码以 LGPL-3.0 协议开源。内置的字体、Mojang 标志动画和启动音效不在此列，各自的版权见下；
 - 字体使用[鸿蒙黑体 (HarmonyOS Sans)](https://developer.huawei.com/consumer/cn/design/resource/)，版权归华为终端有限公司所有，按 HarmonyOS Sans 字体许可协议使用；
 - 玻璃风格的钠视频设置界面基于 FlashyReese 的 [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options)（MIT 协议）；
-- Mojang Studios 标志动画的帧图和音效取自 Karasu-Lab 的 [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation)，图像和声音版权归 Mojang 所有；
+- Mojang Studios 标志动画的帧图和音效取自 Karasu-Lab 的 [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation)，并用 [RIFE](https://github.com/hzwer/ECCV2022-RIFE) 从 14 帧/秒补到 57 帧/秒，图像和声音版权归 Mojang 所有；
 - 启动音效改编自 C418《Minecraft》的开头；
 - 本模组与 Mojang 无关联。
 
