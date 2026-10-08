@@ -1,5 +1,7 @@
 package com.lczme.glazuli.cave;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -86,7 +88,7 @@ final class MineScene {
         CaveGenerator.light(world);
         float[][] shots = {
             {20.5F, 9.2F, 56.5F, 20.0F, 7.4F, 20.0F},
-            {32.5F, 9.0F, 11.0F, 38.8F, 8.0F, 8.3F},
+            {31.8F, 9.4F, 12.2F, 38.6F, 8.0F, 8.2F},
             {28.6F, 9.3F, 36.5F, 34.0F, 7.5F, 30.0F},
             {29.0F, 9.0F, 41.5F, 35.5F, 7.8F, 42.5F},
             {13.0F, 8.8F, 25.5F, 2.5F, 7.8F, 25.5F},
@@ -259,6 +261,91 @@ final class MineScene {
         flowers(noise);
         sporeBlossoms();
         geode();
+        rockWindows();
+    }
+
+    /**
+     * Lit windows of rooms dug into the rock, up the hall walls where they face open air, timber framed with the
+     * shutters open; spread out, never two close together.
+     */
+    private void rockWindows() {
+        int y = FLOOR + 4;
+        List<int[]> chosen = new ArrayList<>();
+        for (int z = 1; z < SZ - 1; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                for (Direction face : Direction.Plane.HORIZONTAL) {
+                    if (!windowFits(x, y, z, face) || random.nextFloat() > 0.3F) {
+                        continue;
+                    }
+                    boolean spaced = true;
+                    for (int[] c : chosen) {
+                        spaced &= Math.abs(c[0] - x) + Math.abs(c[1] - z) >= 12;
+                    }
+                    if (!spaced) {
+                        continue;
+                    }
+                    chosen.add(new int[]{x, z});
+                    Direction side = face.getClockWise();
+                    BlockState frame = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
+                    BlockState beam = log(Blocks.STRIPPED_SPRUCE_LOG, side.getAxis());
+                    for (int dy = 0; dy <= 1; dy++) {
+                        set(x, y + dy, z, pane(side.getAxis()));
+                        set(x - face.getStepX(), y + dy, z - face.getStepZ(), Blocks.SHROOMLIGHT.defaultBlockState());
+                        for (int s = -1; s <= 1; s += 2) {
+                            set(x + s * side.getStepX(), y + dy, z + s * side.getStepZ(), frame);
+                            set(x + s * side.getStepX() + face.getStepX(), y + dy, z + s * side.getStepZ() + face.getStepZ(), shutter(face));
+                        }
+                    }
+                    for (int s = -1; s <= 1; s++) {
+                        set(x + s * side.getStepX(), y + 2, z + s * side.getStepZ(), beam);
+                        set(x + s * side.getStepX(), y - 1, z + s * side.getStepZ(), beam);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether a window fits in the wall at {@code (x, y, z)} looking out {@code face}: rock round it and behind, the
+     * hall open in front, clear of the rooms already built into the walls.
+     */
+    private boolean windowFits(int x, int y, int z, Direction face) {
+        int fx = face.getStepX();
+        int fz = face.getStepZ();
+        Direction side = face.getClockWise();
+        if (x >= 33 && z <= 15 || x >= 29 && z >= 36 && z <= 48 || x <= 13 && (z <= 13 || z >= 20 && z <= 39)) {
+            return false;
+        }
+        for (int dy = -1; dy <= 2; dy++) {
+            for (int s = -1; s <= 1; s++) {
+                if (air(x + s * side.getStepX(), y + dy, z + s * side.getStepZ())) {
+                    return false;
+                }
+            }
+        }
+        for (int dy = 0; dy <= 1; dy++) {
+            if (!rock(get(x, y + dy, z)) || !rock(get(x - fx, y + dy, z - fz))) {
+                return false;
+            }
+            for (int s = -1; s <= 1; s++) {
+                if (!loose(x + fx + s * side.getStepX(), y + dy, z + fz + s * side.getStepZ())) {
+                    return false;
+                }
+            }
+            for (int k = 2; k <= 4; k++) {
+                if (!loose(x + k * fx, y + dy, z + k * fz)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Air or something growing there that a block can take the place of. */
+    private boolean loose(int x, int y, int z) {
+        BlockState state = get(x, y, z);
+        return state.isAir() || state.canBeReplaced() && state.getFluidState().isEmpty();
     }
 
     /** Stone with patches of andesite, tuff and cobble, going to deepslate low down. */
