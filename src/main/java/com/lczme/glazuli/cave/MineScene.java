@@ -233,6 +233,8 @@ final class MineScene {
         paths();
         cherry(36, 28, 7, 4.2F);
         cherry(6, 50, 6, 3.8F);
+        canopyLantern(34, 28);
+        canopyLantern(7, 48);
         greenery();
         roof(noise);
         hangingLanterns();
@@ -595,6 +597,13 @@ final class MineScene {
         set(x1 + 2, FLOOR + 1, z0 + 4, Blocks.COMPOSTER.defaultBlockState());
         set(x1 + 2, FLOOR + 1, z0 + 5, Blocks.BARREL.defaultBlockState());
         set(x1 + 2, FLOOR + 2, z0 + 5, Blocks.LANTERN.defaultBlockState());
+        int crowX = 23;
+        int crowZ = z0 + 1;
+        set(crowX, FLOOR + 1, crowZ, fence(false, false, false, false));
+        set(crowX, FLOOR + 2, crowZ, Blocks.HAY_BLOCK.defaultBlockState());
+        set(crowX, FLOOR + 3, crowZ, facing(Blocks.CARVED_PUMPKIN, Direction.SOUTH));
+        set(crowX - 1, FLOOR + 2, crowZ, fence(false, true, false, false));
+        set(crowX + 1, FLOOR + 2, crowZ, fence(false, false, false, true));
         set(19, FLOOR + 1, 9, AIR);
         world.figures.add(new CaveWorld.Figure(19.5F, FLOOR + 0.9375F, 9.5F, 20.0F, false, 5,
                 new ItemStack(Items.IRON_HOE), ItemStack.EMPTY, true));
@@ -741,6 +750,9 @@ final class MineScene {
         set(x0 + 5, FLOOR + 3, z0, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH));
         set(x1 - 1, FLOOR + 3, z1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.NORTH));
         set(x0 + 2, FLOOR + 1, z1, Blocks.LANTERN.defaultBlockState());
+        for (int[] web : new int[][]{{x1, z0}, {x1, z1}, {x1 - 1, z1}, {x0 + 2, z0}}) {
+            set(web[0], FLOOR + 4, web[1], Blocks.COBWEB.defaultBlockState());
+        }
         set(x1, FLOOR + 1, z0, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
         set(x1, FLOOR + 1, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
         set(x1, FLOOR + 2, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
@@ -771,6 +783,24 @@ final class MineScene {
             float yaw = (float) Math.toDegrees(Mth.atan2(-(fx + 0.5F - friends[i][0]), fz + 0.5F - friends[i][1]));
             world.figures.add(new CaveWorld.Figure(friends[i][0], FLOOR + 1, friends[i][1], yaw, false, skins[i], hands[i],
                     ItemStack.EMPTY, false));
+        }
+        for (int[] wood : new int[][]{{fx + 4, FLOOR + 1, fz}, {fx + 4, FLOOR + 1, fz + 1}, {fx + 4, FLOOR + 2, fz}}) {
+            if (air(wood[0], wood[1], wood[2]) && !air(wood[0], wood[1] - 1, wood[2])) {
+                set(wood[0], wood[1], wood[2], log(Blocks.SPRUCE_LOG, Direction.Axis.Z));
+            }
+        }
+    }
+
+    /** A lantern hung from the underside of a blossom canopy, if there is one overhead. */
+    private void canopyLantern(int x, int z) {
+        for (int y = FLOOR + 4; y < SY - 1; y++) {
+            if (get(x, y, z).is(Blocks.CHERRY_LEAVES)) {
+                set(x, y - 1, z, hangingLantern());
+                return;
+            }
+            if (!air(x, y, z)) {
+                return;
+            }
         }
     }
 
@@ -810,6 +840,50 @@ final class MineScene {
         set(35, FLOOR + 5, 42, Blocks.CHAIN.defaultBlockState());
         world.figures.add(new CaveWorld.Figure(35.5F, FLOOR + 1, 42.5F, 45.0F, false, 11,
                 new ItemStack(Items.IRON_INGOT), ItemStack.EMPTY, true));
+        workshopFittings(x0, x1, z0, z1);
+    }
+
+    /**
+     * The workshop fitted out the way cave builders do it: the back wall timber-framed with a lamp set into the middle
+     * post, beams across the roof braced off the wall, a shelf over the work blocks, pots and candles on the books,
+     * and a rug with a lamp under it.
+     */
+    private void workshopFittings(int x0, int x1, int z0, int z1) {
+        int mid = (z0 + z1) / 2;
+        BlockState planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
+        BlockState post = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
+        for (int z = z0; z <= z1; z++) {
+            for (int y = FLOOR + 1; y <= FLOOR + 4; y++) {
+                set(x1 + 1, y, z, z == z0 || z == mid || z == z1 ? post : planks);
+            }
+            set(x1 + 1, FLOOR + 5, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
+            set(x0, FLOOR, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
+        }
+        set(x1 + 1, FLOOR + 3, mid, Blocks.SHROOMLIGHT.defaultBlockState());
+        for (int z : new int[]{mid - 2, mid + 2}) {
+            for (int x = x0 + 1; x <= x1; x++) {
+                set(x, FLOOR + 5, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.X));
+            }
+            set(x1, FLOOR + 4, z, stairs(Blocks.SPRUCE_STAIRS, Direction.EAST, true));
+        }
+        for (int z = z0 + 1; z <= mid; z++) {
+            if (z != mid - 2) {
+                set(x1, FLOOR + 3, z, slab(Blocks.SPRUCE_SLAB, SlabType.TOP));
+            }
+        }
+        set(x1, FLOOR + 4, z0 + 1, Blocks.POTTED_FERN.defaultBlockState());
+        set(x1, FLOOR + 4, mid - 1, candle(Blocks.WHITE_CANDLE, 3));
+        set(x1, FLOOR + 3, mid + 1, Blocks.POTTED_AZALEA.defaultBlockState());
+        set(x1, FLOOR + 3, z1 - 1, candle(Blocks.CANDLE, 2));
+        for (int z = mid - 3; z <= mid + 1; z++) {
+            for (int x = x0 + 1; x <= x0 + 3; x++) {
+                boolean border = x != x0 + 2 || z == mid - 3 || z == mid + 1;
+                if (air(x, FLOOR + 1, z)) {
+                    set(x, FLOOR + 1, z, (border ? Blocks.RED_CARPET : Blocks.YELLOW_CARPET).defaultBlockState());
+                }
+            }
+        }
+        set(x0 + 2, FLOOR, mid - 1, Blocks.SHROOMLIGHT.defaultBlockState());
     }
 
     /** Stone paths round the north end and down the west bank, three wide, a lamp set into the ground every few steps. */
