@@ -763,6 +763,48 @@ final class MineScene {
         }
         world.figures.add(new CaveWorld.Figure(41.6F, FLOOR + 1, mid + 0.5F, -90.0F, true, 0,
                 new ItemStack(Items.IRON_PICKAXE), new ItemStack(Items.TORCH), true));
+        tunnelMouth(x0, z0, z1);
+    }
+
+    /**
+     * A timber portal round the tunnel mouth, braced at the top corners, a lamp post either side and a heap of what's
+     * come out of it.
+     */
+    private void tunnelMouth(int x0, int z0, int z1) {
+        BlockState post = log(Blocks.SPRUCE_LOG, Direction.Axis.Y);
+        for (int y = FLOOR + 1; y <= FLOOR + 4; y++) {
+            set(x0, y, z0 - 1, post);
+            set(x0, y, z1 + 1, post);
+        }
+        for (int z = z0 - 1; z <= z1 + 1; z++) {
+            set(x0, FLOOR + 5, z, log(Blocks.SPRUCE_LOG, Direction.Axis.Z));
+        }
+        set(x0, FLOOR + 4, z0, stairs(Blocks.SPRUCE_STAIRS, Direction.NORTH, true));
+        set(x0, FLOOR + 4, z1, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, true));
+        for (int z : new int[]{z0 - 1, z1 + 1}) {
+            if (standable(x0 - 1, z)) {
+                set(x0 - 1, FLOOR + 1, z, fence(false, false, false, false));
+                set(x0 - 1, FLOOR + 2, z, fence(false, false, false, false));
+                set(x0 - 1, FLOOR + 3, z, Blocks.LANTERN.defaultBlockState());
+            }
+        }
+        BlockState[] spoil = {Blocks.GRAVEL.defaultBlockState(), Blocks.COBBLED_DEEPSLATE.defaultBlockState(),
+            Blocks.COAL_ORE.defaultBlockState(), Blocks.RAW_IRON_BLOCK.defaultBlockState(), Blocks.GRAVEL.defaultBlockState()};
+        int[][] heap = {{x0 - 2, z1 + 2}, {x0 - 1, z1 + 2}, {x0 - 2, z1 + 3}, {x0 - 3, z1 + 2}};
+        for (int i = 0; i < heap.length; i++) {
+            if (standable(heap[i][0], heap[i][1])) {
+                set(heap[i][0], FLOOR + 1, heap[i][1], spoil[i % spoil.length]);
+            }
+        }
+        if (get(x0 - 2, FLOOR + 1, z1 + 2).is(Blocks.GRAVEL)) {
+            set(x0 - 2, FLOOR + 2, z1 + 2, slab(Blocks.COBBLED_DEEPSLATE_SLAB, SlabType.BOTTOM));
+        }
+    }
+
+    /** Open ground at {@code (x, z)}: air on top of something solid and dry. */
+    private boolean standable(int x, int z) {
+        BlockState under = get(x, FLOOR, z);
+        return air(x, FLOOR + 1, z) && air(x, FLOOR + 2, z) && !under.isAir() && under.getFluidState().isEmpty();
     }
 
     /** East of the boardwalk under the cherry tree: friends round a campfire on stair benches, supplies behind. */
