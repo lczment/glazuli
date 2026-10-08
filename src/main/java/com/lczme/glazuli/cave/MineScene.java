@@ -41,7 +41,8 @@ import org.joml.Vector3f;
  * A lantern-lit grotto round a long pond (title: looking down the water from just above it). A boardwalk runs down the
  * east side, a waterwheel stands in a bay of the west wall, a bridge crosses the far end, and glow berries and leaves
  * hang thick from a low roof with lamps set into it; lily pads, petals and floating lanterns on the water, kelp and
- * coral under it. Round the edge: the player digging out a diamond vein at the end of a mine tunnel (singleplayer),
+ * coral under it, candles on the railings and the stones, drifts of flowers on the moss. Round the edge: the player
+ * digging out a diamond vein in an amethyst pocket at the end of a mine tunnel (singleplayer),
  * friends at a campfire under a cherry tree (multiplayer), a workshop off the boardwalk (options), an enchanting room
  * behind an amethyst arch (mods) and a cottage with a farm beyond the bridge (everything else).
  */
@@ -64,6 +65,8 @@ final class MineScene {
     private static final int DOCK_Z0 = 14;
     private static final int BRIDGE_Z = 18;
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+    private static final Block[] CANDLES = {Blocks.WHITE_CANDLE, Blocks.PINK_CANDLE, Blocks.LIGHT_BLUE_CANDLE, Blocks.PURPLE_CANDLE,
+        Blocks.MAGENTA_CANDLE};
 
     private final CaveWorld world;
     private final RandomSource random;
@@ -92,17 +95,12 @@ final class MineScene {
             eyes[i] = new Vector3f(shots[i][0], shots[i][1], shots[i][2]);
             looks[i] = new Vector3f(shots[i][3], shots[i][4], shots[i][5]);
         }
-        // Startup: out of the mine tunnel past the miner, over the bridge, low over the pond under the lanterns, then
-        // up and round onto the title view.
-        CustomRig rig = new CustomRig(eyes, looks).intro(7.5F,
-                new Vector3f(40.0F, 8.5F, 8.5F),
-                new Vector3f(33.5F, 8.6F, 9.0F),
-                new Vector3f(27.0F, 9.0F, 12.5F),
-                new Vector3f(21.0F, 9.5F, 16.5F),
-                new Vector3f(19.5F, 7.8F, 24.5F),
-                new Vector3f(18.5F, 7.6F, 33.5F),
-                new Vector3f(19.5F, 7.7F, 42.5F),
-                new Vector3f(20.5F, 8.2F, 50.0F));
+        // Startup: from low over the middle of the pond, looking up into the lanterns, drawing back and up along the
+        // water while the view settles down onto the title.
+        CustomRig rig = new CustomRig(eyes, looks).intro(6.5F,
+                new Vector3f(19.5F, 12.0F, 21.0F),
+                new Vector3f(23.0F, 7.6F, 31.5F),
+                new Vector3f(22.2F, 8.6F, 43.0F));
         rig.bind(world);
         world.rig = rig;
         return world;
@@ -197,6 +195,19 @@ final class MineScene {
         return block.defaultBlockState().setValue(LeavesBlock.PERSISTENT, true);
     }
 
+    private static BlockState candle(Block block, int count) {
+        return block.defaultBlockState().setValue(CandleBlock.CANDLES, count).setValue(BlockStateProperties.LIT, true);
+    }
+
+    private boolean nearFigure(int x, int z) {
+        for (CaveWorld.Figure figure : world.figures) {
+            if (Math.abs(figure.x() - x - 0.5F) < 2.0F && Math.abs(figure.z() - z - 0.5F) < 2.0F) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private BlockState warmLamp() {
         return (random.nextFloat() < 0.75F ? Blocks.SHROOMLIGHT : Blocks.OCHRE_FROGLIGHT).defaultBlockState();
     }
@@ -228,6 +239,11 @@ final class MineScene {
         wallLights();
         wallGreenery();
         glowLichen(noise);
+        railCandles();
+        stoneCandles();
+        flowers(noise);
+        sporeBlossoms();
+        geode();
     }
 
     /** Stone with patches of andesite, tuff and cobble, going to deepslate low down. */
@@ -312,7 +328,7 @@ final class MineScene {
                 set(x, bottom, z, (b < 0.45F ? Blocks.SAND : b < 0.75F ? Blocks.CLAY : Blocks.GRAVEL).defaultBlockState());
                 float r = random.nextFloat();
                 if (r < 0.03F) {
-                    Block glow = r < 0.012F ? Blocks.SEA_LANTERN : r < 0.022F ? Blocks.PEARLESCENT_FROGLIGHT : Blocks.VERDANT_FROGLIGHT;
+                    Block glow = r < 0.022F ? Blocks.SEA_LANTERN : Blocks.VERDANT_FROGLIGHT;
                     set(x, bottom, z, glow.defaultBlockState());
                 } else if (depth >= 3 && r < 0.2F) {
                     int top = WATER - random.nextInt(2);
@@ -338,9 +354,7 @@ final class MineScene {
                 } else if (s < 0.107F) {
                     set(x, FLOOR, z, Blocks.LANTERN.defaultBlockState());
                 } else if (s < 0.125F) {
-                    Block[] candles = {Blocks.WHITE_CANDLE, Blocks.PINK_CANDLE, Blocks.LIGHT_BLUE_CANDLE, Blocks.PURPLE_CANDLE, Blocks.MAGENTA_CANDLE};
-                    set(x, FLOOR, z, candles[random.nextInt(candles.length)].defaultBlockState()
-                            .setValue(CandleBlock.CANDLES, 1 + random.nextInt(3)).setValue(BlockStateProperties.LIT, true));
+                    set(x, FLOOR, z, candle(CANDLES[random.nextInt(CANDLES.length)], 1 + random.nextInt(3)));
                 }
             }
         }
@@ -826,7 +840,7 @@ final class MineScene {
         }
         set(x, FLOOR + 1, z, AIR);
         if (lamp) {
-            set(x, FLOOR, z, Blocks.OCHRE_FROGLIGHT.defaultBlockState());
+            set(x, FLOOR, z, Blocks.SHROOMLIGHT.defaultBlockState());
             return;
         }
         float r = random.nextFloat();
@@ -880,11 +894,7 @@ final class MineScene {
                 if (!get(x, FLOOR, z).is(Blocks.MOSS_BLOCK) || !(air(x, FLOOR + 1, z) || get(x, FLOOR + 1, z).is(Blocks.MOSS_CARPET))) {
                     continue;
                 }
-                boolean nearFigure = false;
-                for (CaveWorld.Figure figure : world.figures) {
-                    nearFigure |= Math.abs(figure.x() - x - 0.5F) < 2.0F && Math.abs(figure.z() - z - 0.5F) < 2.0F;
-                }
-                if (nearFigure) {
+                if (nearFigure(x, z)) {
                     continue;
                 }
                 float r = random.nextFloat();
@@ -1021,6 +1031,123 @@ final class MineScene {
                             }
                         }
                         break;
+                    }
+                }
+            }
+        }
+    }
+
+    /** A candle on every few posts of the railings of the boardwalk and the bridge. */
+    private void railCandles() {
+        for (int z = DOCK_Z0; z < SZ; z++) {
+            if (z % 4 == 1 && get(DOCK_X0, FLOOR + 1, z).is(Blocks.SPRUCE_FENCE) && air(DOCK_X0, FLOOR + 2, z)) {
+                set(DOCK_X0, FLOOR + 2, z, railCandle());
+            }
+        }
+        int x0 = Math.round(westShore(BRIDGE_Z)) - 2;
+        for (int x = x0 + 2; x < DOCK_X0 - 1; x += 4) {
+            for (int z : new int[]{BRIDGE_Z - 1, BRIDGE_Z + 1}) {
+                if (get(x, FLOOR + 1, z).is(Blocks.SPRUCE_FENCE) && air(x, FLOOR + 2, z)) {
+                    set(x, FLOOR + 2, z, railCandle());
+                }
+            }
+        }
+    }
+
+    private BlockState railCandle() {
+        return candle(random.nextFloat() < 0.8F ? Blocks.CANDLE : Blocks.PINK_CANDLE, 1);
+    }
+
+    /** Candles on the stones standing out of the pond. */
+    private void stoneCandles() {
+        for (int z = POND_Z0; z < SZ - 1; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                int wet = 0;
+                for (Direction side : Direction.Plane.HORIZONTAL) {
+                    wet += get(x + side.getStepX(), WATER, z + side.getStepZ()).is(Blocks.WATER) ? 1 : 0;
+                }
+                if (wet < 3) {
+                    continue;
+                }
+                for (int y = FLOOR + 2; y >= FLOOR; y--) {
+                    BlockState state = get(x, y, z);
+                    if (state.isAir()) {
+                        continue;
+                    }
+                    if ((rock(state) || state.is(Blocks.MOSSY_COBBLESTONE) || state.is(Blocks.MOSS_BLOCK)) && random.nextFloat() < 0.6F) {
+                        set(x, y + 1, z, candle(CANDLES[random.nextInt(CANDLES.length)], 1 + random.nextInt(3)));
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Drifts of small pale flowers over the open moss, each mostly of one kind, kept clear of where people stand. */
+    private void flowers(ImprovedNoise noise) {
+        Block[] kinds = {Blocks.LILY_OF_THE_VALLEY, Blocks.AZURE_BLUET, Blocks.ALLIUM, Blocks.PINK_TULIP, Blocks.WHITE_TULIP,
+            Blocks.OXEYE_DAISY, Blocks.CORNFLOWER};
+        for (int z = 1; z < SZ - 1; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                BlockState above = get(x, FLOOR + 1, z);
+                if (!get(x, FLOOR, z).is(Blocks.MOSS_BLOCK) || !(above.isAir() || above.is(Blocks.MOSS_CARPET) || above.is(Blocks.SHORT_GRASS))
+                        || noise.noise(x * 0.21, 120.0, z * 0.21) < 0.2 || nearFigure(x, z) || random.nextFloat() > 0.5F) {
+                    continue;
+                }
+                int drift = Math.floorMod((int) Math.floor(noise.noise(x * 0.08, 140.0, z * 0.08) * 10.0), kinds.length);
+                Block kind = random.nextFloat() < 0.25F ? kinds[random.nextInt(kinds.length)] : kinds[drift];
+                set(x, FLOOR + 1, z, kind.defaultBlockState());
+            }
+        }
+    }
+
+    /** A few more spore blossoms in the roof over the water. */
+    private void sporeBlossoms() {
+        for (int z = POND_Z0; z < SZ; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                if (!get(x, WATER, z).is(Blocks.WATER) || random.nextFloat() > 0.03F) {
+                    continue;
+                }
+                int top = ceiling(x, FLOOR + 1, z);
+                BlockState roof = get(x, top + 1, z);
+                if (top >= FLOOR + 7 && (rock(roof) || roof.is(Blocks.MOSS_BLOCK))) {
+                    set(x, top, z, Blocks.SPORE_BLOSSOM.defaultBlockState());
+                }
+            }
+        }
+    }
+
+    /**
+     * An amethyst pocket the miner has broken into round the diamonds at the end of the tunnel, crystals growing off it
+     * into the tunnel but not where the miner stands and swings.
+     */
+    private void geode() {
+        for (int z = 5; z <= 11; z++) {
+            for (int y = FLOOR + 1; y <= FLOOR + 5; y++) {
+                for (int x = 41; x <= 44; x++) {
+                    BlockState state = get(x, y, z);
+                    if (!(state.is(Blocks.DEEPSLATE) || state.is(Blocks.COBBLED_DEEPSLATE) || state.is(Blocks.DEEPSLATE_IRON_ORE))
+                            || random.nextFloat() > 0.5F) {
+                        continue;
+                    }
+                    Direction open = null;
+                    for (Direction side : Direction.values()) {
+                        int ax = x + side.getStepX();
+                        int ay = y + side.getStepY();
+                        int az = z + side.getStepZ();
+                        if (side != Direction.UP && ax >= 42 && ax <= 43 && air(ax, ay, az) && (Math.abs(az - 8) >= 2 || ay >= FLOOR + 4)) {
+                            open = side;
+                        }
+                    }
+                    if (open == null) {
+                        continue;
+                    }
+                    set(x, y, z, (random.nextFloat() < 0.25F ? Blocks.BUDDING_AMETHYST : Blocks.AMETHYST_BLOCK).defaultBlockState());
+                    if (random.nextFloat() < 0.6F) {
+                        Block crystal = random.nextFloat() < 0.5F ? Blocks.AMETHYST_CLUSTER
+                                : random.nextFloat() < 0.5F ? Blocks.LARGE_AMETHYST_BUD : Blocks.MEDIUM_AMETHYST_BUD;
+                        set(x + open.getStepX(), y + open.getStepY(), z + open.getStepZ(),
+                                crystal.defaultBlockState().setValue(AmethystClusterBlock.FACING, open));
                     }
                 }
             }

@@ -2,6 +2,7 @@ package com.lczme.glazuli.cave;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 
@@ -20,6 +21,8 @@ final class CustomRig implements CameraRig {
     private final boolean planned;
     private List<Vector3f> introWaypoints = List.of();
     private float introSeconds = 3.4F;
+    @Nullable
+    private Vector3f introLook;
 
     CustomRig(Vector3f eye, float yaw, float pitch) {
         this.eye = eye;
@@ -43,9 +46,13 @@ final class CustomRig implements CameraRig {
         this.planned = true;
     }
 
-    /** A startup flight planned for the scene: through {@code waypoints} (evenly spaced) on to the title spot. */
-    CustomRig intro(float seconds, Vector3f... waypoints) {
+    /**
+     * A startup flight planned for the scene: through {@code waypoints} (evenly spaced) on to the title spot, looking at
+     * {@code look} at first.
+     */
+    CustomRig intro(float seconds, Vector3f look, Vector3f... waypoints) {
         this.introSeconds = seconds;
+        this.introLook = look;
         this.introWaypoints = List.of(waypoints);
         return this;
     }
@@ -53,6 +60,12 @@ final class CustomRig implements CameraRig {
     @Override
     public float introSeconds() {
         return introSeconds;
+    }
+
+    @Nullable
+    @Override
+    public Vector3f introLook() {
+        return introLook == null ? null : new Vector3f(introLook);
     }
 
     void bind(CaveWorld world) {

@@ -22,11 +22,12 @@ final class CaveCamera {
     static final float FOG_END = 60.0F;
     /** The startup flight eases in and out over these parts of its time and cruises at a steady speed in between. */
     private static final float INTRO_EASE_IN = 0.25F;
-    private static final float INTRO_EASE_OUT = 0.4F;
+    private static final float INTRO_EASE_OUT = 0.5F;
     private static final float INTRO_LOOK_AHEAD = 5.0F;
     /** Over its last this many blocks the startup flight turns from looking along its way to the title view. */
     private static final float INTRO_TURN_BLOCKS = 14.0F;
-    private static final float INTRO_TURN_LIFT = 12.0F;
+    /** A flight with a first look holds it over this part of the way before tilting onto the title view. */
+    private static final float INTRO_LOOK_HOLD = 0.1F;
     /**
      * Flights between spots: a lead point travels a smooth path round any walls on an eased schedule (longer flights
      * take a little longer), and the eye follows it on a short critically damped spring. A change of menu mid-flight
@@ -162,27 +163,32 @@ final class CaveCamera {
         introProgress = u;
         float length = CameraPath.length(path);
         float s = cruise(u) * length;
-        CameraPath.at(path, s, eye);
-        Vector3f titleDir = spotLook(Spot.TITLE, now, new Vector3f()).sub(eye);
-        float lookYaw = yawOf(titleDir);
-        float lookPitch = pitchOf(titleDir);
-        // A flight of a block or two (no room behind the title spot) has no direction worth looking along.
-        if (length >= 3.0F) {
+        float along = length > 0.0F ? s / length : 1.0F;
+        // The way ends on the drifting title spot, so the spot's own motion takes over without a jump.
+        Vector3f drift = spotEye(Spot.TITLE, now, new Vector3f()).sub(rig.spotEye(Spot.TITLE));
+        CameraPath.at(path, s, eye).add(drift.mul(along));
+        Vector3f titleLook = spotLook(Spot.TITLE, now, new Vector3f());
+        Vector3f firstLook = rig.introLook();
+        if (firstLook != null) {
+            target.set(firstLook).lerp(titleLook, smoothstep(INTRO_LOOK_HOLD, 1.0F, along));
+        } else if (length >= 3.0F) {
+            Vector3f titleDir = new Vector3f(titleLook).sub(eye);
             float reach = Math.min(INTRO_LOOK_AHEAD, length);
             float from = Math.min(s, length - reach);
             Vector3f heading = CameraPath.at(path, from + reach, new Vector3f()).sub(CameraPath.at(path, from, new Vector3f()));
             float headingYaw = yawOf(heading);
-            float swing = Mth.wrapDegrees(lookYaw - headingYaw);
             float w = smoothstep(Math.max(0.6F * length, length - INTRO_TURN_BLOCKS), length, s);
-            lookYaw = headingYaw + swing * w;
-            // Swinging round, the view lifts towards the roof on the way.
-            lookPitch = Mth.lerp(w, pitchOf(heading), lookPitch) + INTRO_TURN_LIFT * Math.abs(swing) / 180.0F * Mth.sin(Mth.PI * w);
+            float lookYaw = headingYaw + Mth.wrapDegrees(yawOf(titleDir) - headingYaw) * w;
+            float lookPitch = Mth.lerp(w, pitchOf(heading), pitchOf(titleDir));
+            float yawRad = lookYaw * Mth.DEG_TO_RAD;
+            float pitchRad = lookPitch * Mth.DEG_TO_RAD;
+            float horizontal = Mth.cos(pitchRad);
+            target.set(Mth.sin(yawRad) * horizontal, Mth.sin(pitchRad), Mth.cos(yawRad) * horizontal)
+                    .mul(Math.max(titleDir.length(), 1.0F)).add(eye);
+        } else {
+            // A flight of a block or two (no room behind the title spot) has no direction worth looking along.
+            target.set(titleLook);
         }
-        float yawRad = lookYaw * Mth.DEG_TO_RAD;
-        float pitchRad = lookPitch * Mth.DEG_TO_RAD;
-        float horizontal = Mth.cos(pitchRad);
-        target.set(Mth.sin(yawRad) * horizontal, Mth.sin(pitchRad), Mth.cos(yawRad) * horizontal)
-                .mul(Math.max(titleDir.length(), 1.0F)).add(eye);
         fogEnd = baseFogEnd;
         if (u >= 1.0F) {
             introFlown = true;
