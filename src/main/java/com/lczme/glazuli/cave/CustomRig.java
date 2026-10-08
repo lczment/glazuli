@@ -41,21 +41,6 @@ final class CustomRig implements CameraRig {
         this.planned = true;
     }
 
-    private final List<List<Vector3f>> approaches = new ArrayList<>();
-
-    /** The camera reaches {@code spot} through {@code points} (from the shared hall), see {@link #approach}. */
-    void route(CaveCamera.Spot spot, Vector3f... points) {
-        while (approaches.size() <= spot.ordinal()) {
-            approaches.add(List.of());
-        }
-        approaches.set(spot.ordinal(), List.of(points));
-    }
-
-    @Override
-    public List<Vector3f> approach(CaveCamera.Spot spot) {
-        return spot.ordinal() < approaches.size() ? approaches.get(spot.ordinal()) : List.of();
-    }
-
     void bind(CaveWorld world) {
         this.world = world;
         if (!planned) {
