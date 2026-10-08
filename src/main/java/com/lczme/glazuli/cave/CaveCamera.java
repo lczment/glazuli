@@ -30,6 +30,8 @@ final class CaveCamera {
     private static final float CRUISE_SPEED = 22.0F;
     private static final float ACCELERATION = 36.0F;
     private static final float FOLLOW_SECONDS = 0.06F;
+    /** A camera redirected mid-flight first carries on this long along its old heading, curving onto the new path. */
+    private static final float CARRY_SECONDS = 0.25F;
     private static final float TURN_SMOOTH_SECONDS = 0.3F;
     private static final float DIVE_TIME_CONSTANT = 2.4F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
@@ -195,11 +197,21 @@ final class CaveCamera {
                 eyeVelocity.zero();
                 speed = 0.0F;
             }
+            Vector3f via = null;
+            if (!cut && world != null && eyeVelocity.length() > 1.0F) {
+                for (float ahead = CARRY_SECONDS; ahead > 0.05F && via == null; ahead *= 0.5F) {
+                    Vector3f p = new Vector3f(eyeVelocity).mul(ahead).add(eye);
+                    if (CameraPath.clear(world, eye, p)) {
+                        via = p;
+                    }
+                }
+            }
             flight = new ArrayList<>(cut || world == null ? List.of(new Vector3f(goalEye), new Vector3f(goalEye))
-                    : CameraPath.find(world, eye, goalEye));
+                    : CameraPath.find(world, eye, via, goalEye));
             flight.set(0, new Vector3f(eye));
             Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
-            speed = heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
+            speed = via != null ? eyeVelocity.length()
+                    : heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
             travelled = 0.0F;
             mode = Mode.SPOT;
             spot = next;

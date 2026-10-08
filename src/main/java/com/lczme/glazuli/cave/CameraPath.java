@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
+import javax.annotation.Nullable;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,13 +20,29 @@ final class CameraPath {
     /** Moving through a cell with something solid next to it costs this much more, so paths keep to the middle. */
     private static final float CRAMPED_COST = 4.0F;
     private static final int MAX_EXPANDED = 400_000;
+    /** How far before and after a corner the curve round it starts and ends, at most. */
+    private static final float CORNER_RADIUS = 5.0F;
+    private static final int CORNER_SAMPLES = 12;
     private static final int[][] STEPS = steps();
 
     private CameraPath() {
     }
 
+    /**
+     * From {@code from} to {@code to} with its corners rounded, passing first through {@code via} (if not null): where
+     * a camera already on the move would carry on to, so it curves round onto the new path without a kink.
+     */
+    static List<Vector3f> find(CaveWorld world, Vector3f from, @Nullable Vector3f via, Vector3f to) {
+        List<Vector3f> points = new ArrayList<>();
+        if (via != null) {
+            points.add(new Vector3f(from));
+        }
+        points.addAll(route(world, via != null ? via : from, to));
+        return rounded(world, points);
+    }
+
     /** From {@code from} to {@code to}; just the two points if the straight line is clear or no way round is found. */
-    static List<Vector3f> find(CaveWorld world, Vector3f from, Vector3f to) {
+    private static List<Vector3f> route(CaveWorld world, Vector3f from, Vector3f to) {
         List<Vector3f> straight = List.of(new Vector3f(from), new Vector3f(to));
         if (clear(world, from, to)) {
             return straight;
@@ -46,6 +63,53 @@ final class CameraPath {
         }
         points.add(new Vector3f(to));
         return taut(world, points);
+    }
+
+    /**
+     * Replaces every corner with a curve that leaves the straight a few blocks before it and joins the next straight as
+     * far after, so the camera turns smoothly instead of changing direction at once; a curve that would come too close
+     * to a wall is drawn tighter.
+     */
+    private static List<Vector3f> rounded(CaveWorld world, List<Vector3f> points) {
+        if (points.size() < 3) {
+            return points;
+        }
+        List<Vector3f> out = new ArrayList<>();
+        out.add(points.get(0));
+        for (int i = 1; i < points.size() - 1; i++) {
+            Vector3f prev = points.get(i - 1);
+            Vector3f corner = points.get(i);
+            Vector3f next = points.get(i + 1);
+            float in = prev.distance(corner);
+            float outLength = corner.distance(next);
+            Vector3f dirIn = new Vector3f(corner).sub(prev).div(Math.max(in, 1.0E-4F));
+            Vector3f dirOut = new Vector3f(next).sub(corner).div(Math.max(outLength, 1.0E-4F));
+            List<Vector3f> curve = null;
+            for (float r = Math.min(CORNER_RADIUS, 0.5F * Math.min(in, outLength)); r >= 0.3F && curve == null; r *= 0.6F) {
+                Vector3f a = new Vector3f(dirIn).mul(-r).add(corner);
+                Vector3f b = new Vector3f(dirOut).mul(r).add(corner);
+                List<Vector3f> candidate = new ArrayList<>();
+                for (int k = 0; k <= CORNER_SAMPLES; k++) {
+                    float t = (float) k / CORNER_SAMPLES;
+                    float u = 1.0F - t;
+                    candidate.add(new Vector3f(a).mul(u * u).add(new Vector3f(corner).mul(2.0F * u * t)).add(new Vector3f(b).mul(t * t)));
+                }
+                boolean ok = true;
+                for (int k = 1; k < candidate.size() && ok; k++) {
+                    ok = clear(world, candidate.get(k - 1), candidate.get(k));
+                }
+                if (ok) {
+                    curve = candidate;
+                }
+            }
+            if (curve == null) {
+                out.add(corner);
+            } else {
+                out.addAll(curve);
+            }
+        }
+        out.add(points.get(points.size() - 1));
+        return out;
     }
 
     static float length(List<Vector3f> path) {
