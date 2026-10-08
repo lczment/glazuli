@@ -163,8 +163,11 @@ public final class DevHooks {
             sceneShot("mine", ""),
             spotShot("mine", "WORLDS"), spotShot("mine", "SERVERS"), spotShot("mine", "OPTIONS"),
             spotShot("mine", "MODS"), spotShot("mine", "OTHER"),
-            new Shot("glazuli_autoshot_scene_mine_flight.png", 0.9, () -> CaveBackground.devSpot("WORLDS"), null, false),
-            new Shot("glazuli_autoshot_scene_mine_turned.png", 2.0, () -> { }, null, false),
+            new Shot("glazuli_autoshot_scene_mine_flight1.png", 0.7, () -> CaveBackground.devSpot("WORLDS"), null, false),
+            new Shot("glazuli_autoshot_scene_mine_flight2.png", 0.7, () -> { }, null, false),
+            new Shot("glazuli_autoshot_scene_mine_flight3.png", 0.7, () -> { }, null, false),
+            new Shot("glazuli_autoshot_scene_mine_flight4.png", 0.7, () -> { }, null, false),
+            new Shot("glazuli_autoshot_scene_mine_turned.png", 2.5, () -> { }, null, false),
             sceneShot("plains_village", ""),
             spotShot("plains_village", "WORLDS"), spotShot("plains_village", "SERVERS"), spotShot("plains_village", "OPTIONS"),
             spotShot("plains_village", "MODS"), spotShot("plains_village", "OTHER"),
@@ -832,7 +835,7 @@ public final class DevHooks {
 
     /** The showing scene from another menu's camera spot (no menu drawn), once the camera has flown there. */
     private static Shot spotShot(String id, String spot) {
-        return new Shot("glazuli_autoshot_scene_" + id + "_spot_" + spot.toLowerCase(java.util.Locale.ROOT) + ".png", 2.2,
+        return new Shot("glazuli_autoshot_scene_" + id + "_spot_" + spot.toLowerCase(java.util.Locale.ROOT) + ".png", 4.3,
                 () -> CaveBackground.devSpot(spot), null, false);
     }
 

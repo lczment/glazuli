@@ -67,10 +67,10 @@ final class MineScene {
             looks[i] = new Vector3f(shots[i][3], shots[i][4], shots[i][5]);
         }
         CustomRig rig = new CustomRig(eyes, looks);
-        rig.route(CaveCamera.Spot.WORLDS, new Vector3f(31.0F, 11.0F, 25.0F), new Vector3f(24.0F, 10.6F, 25.0F));
-        rig.route(CaveCamera.Spot.SERVERS, new Vector3f(31.0F, 11.0F, 36.0F), new Vector3f(37.5F, 10.6F, 36.0F));
-        rig.route(CaveCamera.Spot.OPTIONS, new Vector3f(31.0F, 11.0F, 15.0F), new Vector3f(33.5F, 11.0F, 15.0F));
-        rig.route(CaveCamera.Spot.MODS, new Vector3f(31.0F, 11.0F, 47.0F), new Vector3f(24.0F, 10.6F, 47.0F));
+        rig.route(CaveCamera.Spot.WORLDS, new Vector3f(31.5F, 11.0F, 27.5F), new Vector3f(24.0F, 10.8F, 27.5F));
+        rig.route(CaveCamera.Spot.SERVERS, new Vector3f(31.5F, 11.0F, 39.5F), new Vector3f(37.5F, 10.8F, 39.5F));
+        rig.route(CaveCamera.Spot.OPTIONS, new Vector3f(31.5F, 11.0F, 15.5F), new Vector3f(33.5F, 11.0F, 15.5F));
+        rig.route(CaveCamera.Spot.MODS, new Vector3f(31.5F, 11.0F, 45.5F), new Vector3f(24.0F, 10.8F, 45.5F));
         rig.route(CaveCamera.Spot.OTHER, new Vector3f(31.0F, 11.0F, 57.0F), new Vector3f(31.0F, 12.5F, 62.0F));
         rig.bind(world);
         return rig;
@@ -216,9 +216,9 @@ final class MineScene {
         set(29, FLOOR + 1, 21, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.EAST));
         blockEntity(29, FLOOR + 1, 21, "minecraft:chest");
         set(29, FLOOR + 1, 22, Blocks.BARREL.defaultBlockState());
-        set(33, FLOOR + 1, 40, Blocks.BARREL.defaultBlockState());
-        set(33, FLOOR + 2, 40, Blocks.BARREL.defaultBlockState());
-        set(33, FLOOR + 1, 41, Blocks.COBBLESTONE.defaultBlockState());
+        set(33, FLOOR + 1, 44, Blocks.BARREL.defaultBlockState());
+        set(33, FLOOR + 2, 44, Blocks.BARREL.defaultBlockState());
+        set(33, FLOOR + 1, 45, Blocks.COBBLESTONE.defaultBlockState());
     }
 
     private void blockEntity(int x, int y, int z, String id) {
@@ -229,7 +229,7 @@ final class MineScene {
 
     /** West of the gallery: the room where the player is digging out a diamond vein. */
     private void diamondFace() {
-        air(20, FLOOR + 1, 24, 27, FLOOR + 4, 26);
+        air(20, FLOOR + 1, 26, 27, FLOOR + 4, 28);
         air(10, FLOOR + 1, 20, 20, FLOOR + 6, 31);
         roughen(11, FLOOR + 1, 21, 20, FLOOR + 6, 31);
         for (int z = 21; z <= 30; z++) {
@@ -258,7 +258,7 @@ final class MineScene {
 
     /** East of the gallery: miners round a campfire. */
     private void camp() {
-        air(35, FLOOR + 1, 35, 38, FLOOR + 4, 37);
+        air(35, FLOOR + 1, 38, 38, FLOOR + 4, 40);
         air(39, FLOOR + 1, 29, 52, FLOOR + 6, 44);
         roughen(39, FLOOR + 1, 29, 52, FLOOR + 6, 44);
         set(45, FLOOR + 1, 37, Blocks.CAMPFIRE.defaultBlockState());
@@ -329,7 +329,7 @@ final class MineScene {
                 }
             }
         }
-        air(20, FLOOR + 1, 46, 27, FLOOR + 4, 48);
+        air(20, FLOOR + 1, 44, 27, FLOOR + 4, 46);
         Block[] crystals = {Blocks.AMETHYST_CLUSTER, Blocks.LARGE_AMETHYST_BUD, Blocks.MEDIUM_AMETHYST_BUD, Blocks.SMALL_AMETHYST_BUD};
         for (int z = 42; z <= 52; z++) {
             for (int y = 9; y <= 19; y++) {
