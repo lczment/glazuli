@@ -19,6 +19,9 @@ final class CameraPath {
     private static final float CLEARANCE = 0.4F;
     /** Moving through a cell with something solid next to it costs this much more, so paths keep to the middle. */
     private static final float CRAMPED_COST = 4.0F;
+    /** Moving up or down a cell costs this much more, so paths go round what's in the way rather than hop over it. */
+    private static final float CLIMB_COST = 2.5F;
+    private static final int LEVEL_PASSES = 3;
     private static final int MAX_EXPANDED = 400_000;
     private static final float WIDE_CLEARANCE = 1.2F;
     /** How far before and after a corner the curve round it starts and ends, at most. */
@@ -70,7 +73,50 @@ final class CameraPath {
             points.add(new Vector3f(c[0] + 0.5F, c[1] + 0.5F, c[2] + 0.5F));
         }
         points.add(new Vector3f(to));
-        return taut(world, points);
+        return level(world, taut(world, points));
+    }
+
+    /**
+     * Moves every corner up or down toward a steady climb from the first point to the last, as far as the straights
+     * either side stay clear, so the camera doesn't rise over something only to drop again.
+     */
+    private static List<Vector3f> level(CaveWorld world, List<Vector3f> points) {
+        int n = points.size();
+        if (n < 3) {
+            return points;
+        }
+        float[] along = new float[n];
+        for (int i = 1; i < n; i++) {
+            along[i] = along[i - 1] + points.get(i - 1).distance(points.get(i));
+        }
+        float y0 = points.get(0).y;
+        float y1 = points.get(n - 1).y;
+        List<Vector3f> out = new ArrayList<>(points);
+        Vector3f p = new Vector3f();
+        for (int pass = 0; pass < LEVEL_PASSES; pass++) {
+            for (int i = 1; i < n - 1; i++) {
+                Vector3f corner = out.get(i);
+                float goal = Mth.lerp(along[i] / along[n - 1], y0, y1);
+                float lo = 0.0F;
+                float hi = 1.0F;
+                for (int k = 0; k < 8 && Math.abs(corner.y - goal) * (hi - lo) > 0.02F; k++) {
+                    float t = k == 0 ? 1.0F : 0.5F * (lo + hi);
+                    p.set(corner.x, Mth.lerp(t, corner.y, goal), corner.z);
+                    if (clear(world, out.get(i - 1), p) && clear(world, p, out.get(i + 1))) {
+                        lo = t;
+                        if (k == 0) {
+                            break;
+                        }
+                    } else {
+                        hi = t;
+                    }
+                }
+                if (lo > 0.0F) {
+                    out.set(i, new Vector3f(corner.x, Mth.lerp(lo, corner.y, goal), corner.z));
+                }
+            }
+        }
+        return out;
     }
 
     /**
@@ -433,7 +479,7 @@ final class CameraPath {
                 if (room[next] == 0) {
                     room[next] = (byte) (roomy(world, nx, ny, nz) ? 1 : 2);
                 }
-                float c = cost[index] + Mth.sqrt(step[3]) * (room[next] == 1 ? 1.0F : CRAMPED_COST);
+                float c = cost[index] + Mth.sqrt(step[3]) * (room[next] == 1 ? 1.0F : CRAMPED_COST) * (step[1] != 0 ? CLIMB_COST : 1.0F);
                 if (c < cost[next]) {
                     cost[next] = c;
                     from[next] = index;
