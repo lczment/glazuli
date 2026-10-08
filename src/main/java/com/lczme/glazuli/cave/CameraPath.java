@@ -21,8 +21,10 @@ final class CameraPath {
     private static final float CRAMPED_COST = 4.0F;
     private static final int MAX_EXPANDED = 400_000;
     /** How far before and after a corner the curve round it starts and ends, at most. */
-    private static final float CORNER_RADIUS = 7.0F;
+    private static final float WIDE_CLEARANCE = 1.2F;
+    private static final float CORNER_RADIUS = 9.0F;
     private static final int CORNER_SAMPLES = 16;
+    private static final float ARC_HANDLE = 0.55F;
     private static final int[][] STEPS = steps();
 
     private CameraPath() {
@@ -88,13 +90,15 @@ final class CameraPath {
             for (float r = Math.min(CORNER_RADIUS, 0.5F * Math.min(in, outLength)); r >= 0.3F && curve == null; r *= 0.6F) {
                 Vector3f a = new Vector3f(dirIn).mul(-r).add(corner);
                 Vector3f b = new Vector3f(dirOut).mul(r).add(corner);
+                // Control points part-way to the corner spread the turn evenly over the curve, close to a circular arc.
+                Vector3f c1 = new Vector3f(a).lerp(corner, ARC_HANDLE);
+                Vector3f c2 = new Vector3f(b).lerp(corner, ARC_HANDLE);
                 List<Vector3f> candidate = new ArrayList<>();
                 for (int k = 0; k <= CORNER_SAMPLES; k++) {
                     float t = (float) k / CORNER_SAMPLES;
                     float u = 1.0F - t;
-                    // Cubic with both inner control points on the corner: no curvature where it meets the straights.
-                    candidate.add(new Vector3f(a).mul(u * u * u).add(new Vector3f(corner).mul(3.0F * u * t))
-                            .add(new Vector3f(b).mul(t * t * t)));
+                    candidate.add(new Vector3f(a).mul(u * u * u).add(new Vector3f(c1).mul(3.0F * u * u * t))
+                            .add(new Vector3f(c2).mul(3.0F * u * t * t)).add(new Vector3f(b).mul(t * t * t)));
                 }
                 boolean ok = true;
                 for (int k = 1; k < candidate.size() && ok; k++) {
@@ -164,10 +168,13 @@ final class CameraPath {
 
     /** Whether a camera can fly straight from {@code a} to {@code b} keeping {@link #CLEARANCE} from anything solid. */
     static boolean clear(CaveWorld world, Vector3f a, Vector3f b) {
+        return clear(world, a, b, CLEARANCE);
+    }
+
+    private static boolean clear(CaveWorld world, Vector3f a, Vector3f b, float r) {
         float d = a.distance(b);
         int samples = Math.max(1, Mth.ceil(d / 0.25F));
         Vector3f p = new Vector3f();
-        float r = CLEARANCE;
         for (int i = 0; i <= samples; i++) {
             a.lerp(b, (float) i / samples, p);
             if (!open(world, p.x, p.y, p.z) || !open(world, p.x + r, p.y, p.z) || !open(world, p.x - r, p.y, p.z)
@@ -263,14 +270,18 @@ final class CameraPath {
         return Mth.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    /** Drops every point the path can skip by flying straight past it. */
+    /**
+     * Drops every point the path can skip by flying straight past it, keeping {@link #WIDE_CLEARANCE} from the walls
+     * where there's room for it so the corners have space to be rounded generously.
+     */
     private static List<Vector3f> taut(CaveWorld world, List<Vector3f> points) {
         List<Vector3f> out = new ArrayList<>();
         int i = 0;
         out.add(points.get(0));
         while (i < points.size() - 1) {
             int j = i + 1;
-            while (j + 1 < points.size() && clear(world, points.get(i), points.get(j + 1))) {
+            float r = clear(world, points.get(i), points.get(j), WIDE_CLEARANCE) ? WIDE_CLEARANCE : CLEARANCE;
+            while (j + 1 < points.size() && clear(world, points.get(i), points.get(j + 1), r)) {
                 j++;
             }
             out.add(points.get(j));
