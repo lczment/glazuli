@@ -210,6 +210,11 @@ final class MineScene {
         return false;
     }
 
+    /** In front of the enchanting room's arch, which the plants leave clear. */
+    private static boolean doorway(int x, int z) {
+        return x >= 7 && x <= 8 && z >= 24 && z <= 26;
+    }
+
     private BlockState warmLamp() {
         return (random.nextFloat() < 0.75F ? Blocks.SHROOMLIGHT : Blocks.OCHRE_FROGLIGHT).defaultBlockState();
     }
@@ -674,6 +679,12 @@ final class MineScene {
                 }
             }
         }
+        set(x1, FLOOR + 4, mid, Blocks.CHISELED_STONE_BRICKS.defaultBlockState());
+        for (int z : new int[]{mid - 2, mid + 2}) {
+            set(x1 + 1, FLOOR + 1, z, Blocks.STONE_BRICK_WALL.defaultBlockState());
+            set(x1 + 1, FLOOR + 2, z, Blocks.STONE_BRICK_WALL.defaultBlockState());
+            set(x1 + 1, FLOOR + 3, z, Blocks.SOUL_LANTERN.defaultBlockState());
+        }
     }
 
     /**
@@ -1075,7 +1086,7 @@ final class MineScene {
                 float r = random.nextFloat();
                 Block plant = r < 0.03F ? Blocks.AZALEA : r < 0.045F ? Blocks.FLOWERING_AZALEA : r < 0.1F ? Blocks.FERN
                         : r < 0.19F ? Blocks.SHORT_GRASS : r < 0.196F ? Blocks.LANTERN : null;
-                if (plant != null) {
+                if (plant != null && !doorway(x, z)) {
                     set(x, FLOOR + 1, z, plant.defaultBlockState());
                 }
             }
@@ -1271,7 +1282,9 @@ final class MineScene {
                 }
                 int drift = Math.floorMod((int) Math.floor(noise.noise(x * 0.08, 140.0, z * 0.08) * 10.0), kinds.length);
                 Block kind = random.nextFloat() < 0.25F ? kinds[random.nextInt(kinds.length)] : kinds[drift];
-                set(x, FLOOR + 1, z, kind.defaultBlockState());
+                if (!doorway(x, z)) {
+                    set(x, FLOOR + 1, z, kind.defaultBlockState());
+                }
             }
         }
     }
