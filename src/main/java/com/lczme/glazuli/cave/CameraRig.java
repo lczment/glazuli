@@ -14,4 +14,12 @@ interface CameraRig {
 
     /** Starts at {@code start}. */
     List<Vector3f> divePath(Vector3f start);
+
+    /**
+     * Points the camera passes on its way from a shared hall to {@code spot} (hall first), for scenes where a straight
+     * flight between spots would cut through rock; empty when it can fly straight.
+     */
+    default List<Vector3f> approach(CaveCamera.Spot spot) {
+        return List.of();
+    }
 }

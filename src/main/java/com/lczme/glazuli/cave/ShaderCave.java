@@ -132,6 +132,7 @@ public final class ShaderCave {
     private static ClientLevel level;
     @Nullable
     private static LocalPlayer player;
+    private static List<ScenePlayer> figures = List.of();
     /** The scene {@link #level} (or the pending one) shows; another scene rebuilds the level. */
     @Nullable
     private static CaveWorld builtFor;
@@ -259,6 +260,7 @@ public final class ShaderCave {
     private static void reset() {
         level = null;
         player = null;
+        figures = List.of();
         gameMode = null;
         pendingLevel = null;
         pendingListener = null;
@@ -325,6 +327,13 @@ public final class ShaderCave {
             return;
         }
         LocalPlayer stand = new LocalPlayer(minecraft, cave, listener, new StatsCounter(), new ClientRecipeBook(), false, false);
+        List<ScenePlayer> people = new java.util.ArrayList<>();
+        for (CaveWorld.Figure figure : builtFor.figures) {
+            ScenePlayer person = new ScenePlayer(cave, figure);
+            cave.addEntity(person);
+            people.add(person);
+        }
+        figures = people;
         level = cave;
         player = stand;
         gameMode = new MultiPlayerGameMode(minecraft, listener);
@@ -507,6 +516,10 @@ public final class ShaderCave {
                 CreateCompat.tickAnimations();
             }
             cave.setDayTime(SceneClock.dayTime(builtFor));
+            double now = AnimClock.now();
+            for (ScenePlayer person : figures) {
+                person.pose(eye, now);
+            }
             // Iris only swaps in the pack's programs while the main target is bound, as it is for a normal world frame.
             minecraft.getMainRenderTarget().bindWrite(true);
             resetGlState();

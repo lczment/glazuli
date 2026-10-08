@@ -22,6 +22,9 @@ final class CaveCamera {
     static final float FOG_END = 60.0F;
     private static final float INTRO_SECONDS = 3.4F;
     private static final float TRANSITION_SECONDS = 1.6F;
+    /** Blocks per second along a routed flight, which takes longer than a straight one when the way is long. */
+    private static final float ROUTE_SPEED = 22.0F;
+    private static final float MAX_ROUTE_SECONDS = 3.2F;
     private static final float DIVE_TIME_CONSTANT = 2.4F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
@@ -70,6 +73,10 @@ final class CaveCamera {
     private boolean introStarted;
     private float introProgress;
     private List<Vector3f> path = List.of();
+    @Nullable
+    private List<Vector3f> route;
+    private float routeLength;
+    private float transitionSeconds = TRANSITION_SECONDS;
 
     /** {@code introFlown}: a scene switched to later starts at its spot instead of replaying the startup flight. */
     CaveCamera(CameraRig rig, float fogEnd, boolean introFlown) {
@@ -122,7 +129,8 @@ final class CaveCamera {
         catmullRom(path, e, eye);
         Vector3f lookAhead = catmullRom(path, Math.min(1.0F, e + 0.08F), new Vector3f());
         Vector3f titleLook = spotLook(Spot.TITLE, now, new Vector3f());
-        float w = smoothstep(0.6F, 1.0F, e);
+        // A flight of a block or two (no room behind the title spot) has no direction worth looking along.
+        float w = path.get(0).distance(path.get(path.size() - 1)) < 3.0F ? 1.0F : smoothstep(0.6F, 1.0F, e);
         if (e + 0.08F >= 1.0F) {
             lookAhead.set(titleLook);
         }
@@ -150,18 +158,76 @@ final class CaveCamera {
     private void updateSpot(Spot next, double now, boolean gap) {
         if (mode != Mode.SPOT || spot != next) {
             boolean cut = mode == Mode.DIVE || mode == null || gap;
+            Spot previous = mode == Mode.SPOT && spot != null ? spot : Spot.TITLE;
             mode = Mode.SPOT;
             spot = next;
-            modeStart = cut ? now - TRANSITION_SECONDS : now;
             fromEye.set(eye);
             fromTarget.set(target);
+            route = routeBetween(previous, next);
+            transitionSeconds = route == null ? TRANSITION_SECONDS
+                    : Mth.clamp(routeLength / ROUTE_SPEED, TRANSITION_SECONDS, MAX_ROUTE_SECONDS);
+            modeStart = cut ? now - transitionSeconds : now;
         }
-        float k = Easing.IN_OUT_CUBIC.apply(Mth.clamp((float) ((now - modeStart) / TRANSITION_SECONDS), 0.0F, 1.0F));
+        float k = Easing.IN_OUT_CUBIC.apply(Mth.clamp((float) ((now - modeStart) / transitionSeconds), 0.0F, 1.0F));
         Vector3f spotEye = spotEye(next, now, new Vector3f());
         Vector3f spotLook = spotLook(next, now, new Vector3f());
-        eye.set(fromEye).lerp(spotEye, k);
-        target.set(fromTarget).lerp(spotLook, k);
+        if (route == null) {
+            eye.set(fromEye).lerp(spotEye, k);
+            target.set(fromTarget).lerp(spotLook, k);
+        } else {
+            route.get(route.size() - 1).set(spotEye);
+            alongRoute(k, eye);
+            Vector3f ahead = alongRoute(Math.min(1.0F, k + 0.06F), new Vector3f());
+            target.set(fromTarget).lerp(ahead, smoothstep(0.0F, 0.3F, k)).lerp(spotLook, smoothstep(0.6F, 1.0F, k));
+        }
         fogEnd = baseFogEnd;
+    }
+
+    /** Flight through the rig's approach points (out of {@code from}'s, into {@code to}'s), or null to fly straight. */
+    @Nullable
+    private List<Vector3f> routeBetween(Spot from, Spot to) {
+        List<Vector3f> out = rig.approach(from);
+        List<Vector3f> in = rig.approach(to);
+        if (out.isEmpty() && in.isEmpty() || from == to) {
+            return null;
+        }
+        List<Vector3f> points = new java.util.ArrayList<>();
+        points.add(new Vector3f(fromEye));
+        for (int i = out.size() - 1; i >= 0; i--) {
+            points.add(new Vector3f(out.get(i)));
+        }
+        for (Vector3f p : in) {
+            points.add(new Vector3f(p));
+        }
+        points.add(rig.spotEye(to));
+        routeLength = 0.0F;
+        for (int i = 1; i < points.size(); i++) {
+            routeLength += points.get(i - 1).distance(points.get(i));
+        }
+        return points;
+    }
+
+    /** Catmull-Rom through the route at constant speed: {@code u} is the fraction of its length. */
+    private Vector3f alongRoute(float u, Vector3f out) {
+        List<Vector3f> points = route;
+        float want = Mth.clamp(u, 0.0F, 1.0F) * routeLength;
+        int last = points.size() - 1;
+        for (int i = 0; i < last; i++) {
+            float length = points.get(i).distance(points.get(i + 1));
+            if (want <= length || i == last - 1) {
+                float t = length > 0.0F ? Mth.clamp(want / length, 0.0F, 1.0F) : 1.0F;
+                Vector3f p0 = points.get(Math.max(i - 1, 0));
+                Vector3f p1 = points.get(i);
+                Vector3f p2 = points.get(i + 1);
+                Vector3f p3 = points.get(Math.min(i + 2, last));
+                float t2 = t * t;
+                float t3 = t2 * t;
+                return out.set(catmull(p0.x, p1.x, p2.x, p3.x, t, t2, t3), catmull(p0.y, p1.y, p2.y, p3.y, t, t2, t3),
+                        catmull(p0.z, p1.z, p2.z, p3.z, t, t2, t3));
+            }
+            want -= length;
+        }
+        return out.set(points.get(last));
     }
 
     /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */

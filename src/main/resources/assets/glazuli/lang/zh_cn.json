@@ -41,6 +41,7 @@
   "glazuli.scene.trial_chambers": "试炼密室",
   "glazuli.scene.bastion": "堡垒遗迹",
   "glazuli.scene.end_city": "末地城",
+  "glazuli.scene.mine": "矿洞",
   "glazuli.scene.create_factory": "机械动力工厂",
   "glazuli.scene.saved": "已保存场景「%s」，并设为主菜单背景",
   "glazuli.scene.save_failed": "保存场景失败：%s",

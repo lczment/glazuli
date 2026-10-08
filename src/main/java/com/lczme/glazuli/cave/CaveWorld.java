@@ -1,6 +1,8 @@
 package com.lczme.glazuli.cave;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
@@ -9,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.LightLayer;
@@ -46,6 +49,17 @@ public final class CaveWorld implements BlockAndTintGetter {
     final Map<BlockPos, CompoundTag> blockEntities = new HashMap<>();
     /** Open scenes: nothing past the edges (floating end islands) instead of the edge columns continuing. */
     boolean voidOutside;
+    /** People in the scene; like block entities, only the world renderer draws them. */
+    final List<Figure> figures = new ArrayList<>();
+
+    /**
+     * A person standing at {@code x, y, z} (feet) facing {@code yaw}: the player themself (their skin) or a miner with
+     * one of the default skins picked by {@code skin}. {@code swings}: works with the main hand item, and turns to face
+     * the camera when it comes close.
+     */
+    record Figure(float x, float y, float z, float yaw, boolean self, int skin, ItemStack mainHand, ItemStack offHand,
+                  boolean swings) {
+    }
 
     CaveWorld(int sizeX, int sizeY, int sizeZ, @Nullable byte[] sky, boolean open, CameraRig rig, SceneLook look) {
         this.sizeX = sizeX;
@@ -60,7 +74,7 @@ public final class CaveWorld implements BlockAndTintGetter {
     }
 
     boolean needsWorld() {
-        return !blockEntities.isEmpty();
+        return !blockEntities.isEmpty() || !figures.isEmpty();
     }
 
     CameraRig rig() {

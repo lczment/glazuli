@@ -35,7 +35,8 @@ final class BuiltScenes {
     static final String BASTION = "bastion";
     static final String END_CITY = "end_city";
     static final String CREATE_FACTORY = "create_factory";
-    private static final List<String> STRUCTURES = List.of(PLAINS_VILLAGE, SNOWY_VILLAGE, DESERT_VILLAGE, ANCIENT_CITY,
+    static final String MINE = "mine";
+    private static final List<String> STRUCTURES = List.of(MINE, PLAINS_VILLAGE, SNOWY_VILLAGE, DESERT_VILLAGE, ANCIENT_CITY,
             TRIAL_CHAMBERS, BASTION, END_CITY);
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
@@ -66,6 +67,7 @@ final class BuiltScenes {
             case BASTION -> bastion(seed);
             case END_CITY -> endCity(seed);
             case CREATE_FACTORY -> CreateFactory.build(seed);
+            case MINE -> MineScene.build(seed);
             default -> throw new IllegalArgumentException("Unknown built scene " + id);
         };
     }

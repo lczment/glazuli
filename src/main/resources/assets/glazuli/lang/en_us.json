@@ -41,6 +41,7 @@
   "glazuli.scene.trial_chambers": "Trial Chambers",
   "glazuli.scene.bastion": "Bastion Remnant",
   "glazuli.scene.end_city": "End City",
+  "glazuli.scene.mine": "Mine",
   "glazuli.scene.create_factory": "Create Factory",
   "glazuli.scene.saved": "Saved scene \"%s\" and set it as the menu background",
   "glazuli.scene.save_failed": "Couldn't save the scene: %s",
