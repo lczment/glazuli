@@ -6,8 +6,8 @@ import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 
 /**
- * Camera for a captured scene: the title looks out from where the player stood and every other menu swings the camera
- * a few blocks around the point it was looking at, kept clear of walls; the
+ * Camera for a scene: either a shot per menu planned for it, or (captured scenes) the title looking out from where the
+ * player stood and every other menu swinging the camera a few blocks around the point it was looking at; the
  * startup flight glides in from behind and the dive flies on ahead, as far as the terrain lets them.
  */
 final class CustomRig implements CameraRig {
@@ -15,19 +15,37 @@ final class CustomRig implements CameraRig {
     private final float yaw;
     private final float pitch;
     private CaveWorld world;
-    private final Vector3f[] spotEyes = new Vector3f[CaveCamera.Spot.values().length];
-    private final Vector3f[] spotLooks = new Vector3f[CaveCamera.Spot.values().length];
+    private final Vector3f[] spotEyes;
+    private final Vector3f[] spotLooks;
+    private final boolean planned;
 
     CustomRig(Vector3f eye, float yaw, float pitch) {
         this.eye = eye;
         this.yaw = yaw;
         this.pitch = Mth.clamp(pitch, -40.0F, 40.0F);
+        this.spotEyes = new Vector3f[CaveCamera.Spot.values().length];
+        this.spotLooks = new Vector3f[CaveCamera.Spot.values().length];
+        this.planned = false;
         placeSpots();
+    }
+
+    /** A camera per menu chosen for the scene, indexed by {@link CaveCamera.Spot#ordinal()}. */
+    CustomRig(Vector3f[] eyes, Vector3f[] looks) {
+        Vector3f title = eyes[CaveCamera.Spot.TITLE.ordinal()];
+        Vector3f d = new Vector3f(looks[CaveCamera.Spot.TITLE.ordinal()]).sub(title);
+        this.eye = title;
+        this.yaw = (float) Math.toDegrees(Math.atan2(-d.x, d.z));
+        this.pitch = Mth.clamp((float) -Math.toDegrees(Math.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z))), -40.0F, 40.0F);
+        this.spotEyes = eyes;
+        this.spotLooks = looks;
+        this.planned = true;
     }
 
     void bind(CaveWorld world) {
         this.world = world;
-        placeSpots();
+        if (!planned) {
+            placeSpots();
+        }
     }
 
     /**

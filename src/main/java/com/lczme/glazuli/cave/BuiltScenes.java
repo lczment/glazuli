@@ -260,7 +260,7 @@ final class BuiltScenes {
 
     // ---- camera ----------------------------------------------------------------------------------------------------
 
-    private static boolean roomy(CaveWorld world, Vector3f eye) {
+    static boolean roomy(CaveWorld world, Vector3f eye) {
         int ex = Mth.floor(eye.x);
         int ey = Mth.floor(eye.y);
         int ez = Mth.floor(eye.z);
@@ -295,10 +295,11 @@ final class BuiltScenes {
     }
 
     /**
-     * Places the camera {@code distance} away from {@code target} and {@code height} above it, looking at it from the
-     * first direction (starting at {@code yaw}, then fanning out) with a clear view and room around the eye.
+     * The title camera {@code distance} away from {@code target} and {@code height} above it, looking at it from the
+     * first direction (starting at {@code yaw}, then fanning out) with a clear view and room around the eye; returns
+     * the eye and the target.
      */
-    private static void aim(CaveWorld world, Vector3f target, float distance, float height, float yaw) {
+    private static Vector3f[] aim(CaveWorld world, Vector3f target, float distance, float height, float yaw) {
         Vector3f bestEye = null;
         float best = Float.MAX_VALUE;
         for (int i = 0; i < 24 && best > 0.0F; i++) {
@@ -321,14 +322,14 @@ final class BuiltScenes {
         if (bestEye == null) {
             bestEye = new Vector3f(target).add(0.0F, 2.0F, 0.0F);
         }
-        float dx = target.x - bestEye.x;
-        float dy = target.y - bestEye.y;
-        float dz = target.z - bestEye.z;
-        float lookYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        float lookPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
-        CustomRig rig = new CustomRig(bestEye, lookYaw, lookPitch);
-        rig.bind(world);
-        world.rig = rig;
+        return new Vector3f[]{bestEye, new Vector3f(target)};
+    }
+
+    /** Title shot from {@link #aim} or {@link #aimDeepest}, every other menu framing another piece of the structure. */
+    private static void shoot(CaveWorld world, StructureBuilder builder, BoundingBox area, Vector3f[] title,
+                              int minBlocks, float spacing, float[] distances, float[] heights) {
+        ShotPlanner.plan(world, builder, area, ShotPlanner.subjects(builder, area, minBlocks, spacing, 16),
+                title[0], title[1], distances, heights);
     }
 
     /** A floor 2 to 4 blocks below: eye height of someone standing or on a low ledge. */
@@ -362,9 +363,9 @@ final class BuiltScenes {
     /**
      * For enclosed scenes without one obvious subject: tries eyes on a grid through {@code region} (scene
      * coordinates) and keeps the eye and heading that see deepest across a fan of rays, so the camera ends up looking
-     * down the longest hall rather than at a wall.
+     * down the longest hall rather than at a wall. Returns the eye and a point it looks at.
      */
-    private static void aimDeepest(CaveWorld world, BoundingBox region, float pitch) {
+    private static Vector3f[] aimDeepest(CaveWorld world, BoundingBox region, float pitch) {
         Vector3f best = null;
         float bestYaw = 0.0F;
         float bestScore = -1.0F;
@@ -395,9 +396,10 @@ final class BuiltScenes {
         if (best == null) {
             best = new Vector3f(region.getCenter().getX(), region.getCenter().getY(), region.getCenter().getZ());
         }
-        CustomRig rig = new CustomRig(best, bestYaw, pitch);
-        rig.bind(world);
-        world.rig = rig;
+        float y = bestYaw * Mth.DEG_TO_RAD;
+        float p = pitch * Mth.DEG_TO_RAD;
+        Vector3f look = new Vector3f(-Mth.sin(y) * Mth.cos(p), -Mth.sin(p), Mth.cos(y) * Mth.cos(p)).mul(8.0F).add(best);
+        return new Vector3f[]{best, look};
     }
 
     private static Vector3f center(BoundingBox box, BoundingBox area, float y) {
@@ -486,7 +488,8 @@ final class BuiltScenes {
             snowOver(world);
         }
         finish(world);
-        aim(world, center(builder.startBox(), area, ground + 3.0F), 24.0F, 9.0F, 0.0F);
+        shoot(world, builder, area, aim(world, center(builder.startBox(), area, ground + 3.0F), 24.0F, 9.0F, 0.0F),
+                40, 9.0F, new float[]{12.0F, 18.0F, 26.0F, 34.0F}, new float[]{4.0F, 9.0F});
         return world;
     }
 
@@ -610,7 +613,8 @@ final class BuiltScenes {
         }
         fillLight(world, random, 8, 7, f + 2, f + 16);
         finish(world);
-        aim(world, new Vector3f(ccx, f + 9.0F, ccz), 30.0F, 3.0F, 0.0F);
+        shoot(world, builder, area, aim(world, new Vector3f(ccx, f + 9.0F, ccz), 30.0F, 3.0F, 0.0F),
+                80, 12.0F, new float[]{10.0F, 16.0F, 24.0F}, new float[]{2.0F, 6.0F});
         return world;
     }
 
@@ -632,7 +636,8 @@ final class BuiltScenes {
         CaveWorld world = builder.toWorld(area, false, look,
                 (x, y, z) -> noise.noise(x * 0.06, y * 0.06, z * 0.06) > 0.1 ? deepslate : tuff);
         finish(world);
-        aimDeepest(world, new BoundingBox(4, 4, 4, world.sizeX - 5, world.sizeY - 5, world.sizeZ - 5), 12.0F);
+        shoot(world, builder, area, aimDeepest(world, new BoundingBox(4, 4, 4, world.sizeX - 5, world.sizeY - 5, world.sizeZ - 5), 12.0F),
+                60, 8.0F, new float[]{5.0F, 8.0F, 12.0F}, new float[]{0.0F, 2.5F});
         return world;
     }
 
@@ -687,7 +692,9 @@ final class BuiltScenes {
         }
         finish(world);
         float target = s.minY() - area.minY() + s.getYSpan() * 0.45F;
-        aim(world, center(s, area, target), Math.max(s.getXSpan(), s.getZSpan()) * 0.62F, s.getYSpan() * 0.35F + 4.0F, 0.0F);
+        shoot(world, builder, area,
+                aim(world, center(s, area, target), Math.max(s.getXSpan(), s.getZSpan()) * 0.62F, s.getYSpan() * 0.35F + 4.0F, 0.0F),
+                60, 10.0F, new float[]{14.0F, 22.0F, 32.0F}, new float[]{3.0F, 10.0F});
         return world;
     }
 
@@ -756,7 +763,9 @@ final class BuiltScenes {
         }
         finish(world);
         float targetY = (s.minY() + s.maxY()) * 0.5F - area.minY();
-        aim(world, center(s, area, targetY), Math.max(s.getXSpan(), s.getZSpan()) * 0.35F + s.getYSpan() * 0.6F, 0.0F, 0.0F);
+        shoot(world, builder, area,
+                aim(world, center(s, area, targetY), Math.max(s.getXSpan(), s.getZSpan()) * 0.35F + s.getYSpan() * 0.6F, 0.0F, 0.0F),
+                40, 8.0F, new float[]{16.0F, 26.0F, 38.0F}, new float[]{2.0F, 8.0F, 14.0F});
         return world;
     }
 

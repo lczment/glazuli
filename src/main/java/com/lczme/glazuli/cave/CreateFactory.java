@@ -118,13 +118,24 @@ final class CreateFactory {
         new CreateFactory(world).fill(seed);
         CaveGenerator.skyLight(world);
         CaveGenerator.light(world);
-        Vector3f eye = new Vector3f(OX + 21.5F, GROUND + 7.5F, OZ + 22.0F);
-        Vector3f target = new Vector3f(OX + 17.5F, GROUND + 0.5F, OZ + 6.0F);
-        float dx = target.x - eye.x;
-        float dy = target.y - eye.y;
-        float dz = target.z - eye.z;
-        CustomRig rig = new CustomRig(eye, (float) Math.toDegrees(Math.atan2(-dx, dz)),
-                (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))));
+        // Per menu, in Spot order: the whole workshop, the water wheels from across the river, the presses over the
+        // belt, high over the east end, the mixer, and the drill from the west.
+        float[][] shots = {
+            {21.5F, 7.5F, 22.0F, 17.5F, 0.5F, 6.0F},
+            {17.0F, 4.5F, -4.0F, 17.0F, 1.5F, 6.0F},
+            {10.5F, 5.5F, 21.5F, 10.5F, 2.0F, 16.0F},
+            {40.0F, 12.0F, 26.0F, 18.0F, 1.0F, 12.0F},
+            {35.5F, 5.0F, 20.5F, 32.0F, 4.0F, 16.0F},
+            {-1.0F, 3.5F, 19.0F, 8.0F, 3.0F, 15.0F},
+        };
+        Vector3f[] eyes = new Vector3f[shots.length];
+        Vector3f[] looks = new Vector3f[shots.length];
+        for (int i = 0; i < shots.length; i++) {
+            float[] s = shots[i];
+            eyes[i] = new Vector3f(OX + s[0], GROUND + s[1], OZ + s[2]);
+            looks[i] = new Vector3f(OX + s[3], GROUND + s[4], OZ + s[5]);
+        }
+        CustomRig rig = new CustomRig(eyes, looks);
         rig.bind(world);
         world.rig = rig;
         return world;
@@ -278,7 +289,7 @@ final class CreateFactory {
                 if (world.get(x, h, z) != grass || !world.get(x, h + 1, z).isAir()) {
                     continue;
                 }
-                boolean workshop = x >= OX - 4 && x <= OX + 42 && z >= OZ - 1 && z <= OZ + 30;
+                boolean workshop = x >= OX - 4 && x <= OX + 42 && z >= OZ - 10 && z <= OZ + 30;
                 float roll = random.nextFloat();
                 if (!workshop && roll < 0.025F) {
                     boolean birch = random.nextInt(4) == 0;

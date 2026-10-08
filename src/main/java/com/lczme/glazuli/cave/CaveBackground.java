@@ -270,6 +270,11 @@ public final class CaveBackground {
         CaveCamera.freezeDrift = freeze;
     }
 
+    /** Development screenshots: the camera goes to the named menu spot whatever screen is open; null restores it. */
+    public static void devSpot(@Nullable String spot) {
+        CaveCamera.devSpot = spot == null ? null : CaveCamera.Spot.valueOf(spot);
+    }
+
     /** Development screenshots: looks from {@code eye} at {@code look} (scene coordinates); null eye restores the spots. */
     public static void devCamera(@Nullable org.joml.Vector3f eye, @Nullable org.joml.Vector3f look) {
         CaveCamera.devEye = eye;

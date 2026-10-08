@@ -97,6 +97,8 @@ final class CaveCamera {
             fogEnd = baseFogEnd;
         } else if (isDiveScreen(screen)) {
             updateDive(now);
+        } else if (devSpot != null) {
+            updateSpot(devSpot, now, gap);
         } else if (!introFlown && screen instanceof TitleScreen) {
             updateIntro(now, introMayStart);
         } else {
@@ -164,6 +166,9 @@ final class CaveCamera {
 
     /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */
     static boolean freezeDrift;
+    /** Development screenshots: this spot instead of the screen's, null for the normal one. */
+    @Nullable
+    static Spot devSpot;
     /** Development screenshots: a fixed camera instead of the screen's spot, null for the normal one. */
     @Nullable
     static Vector3f devEye;

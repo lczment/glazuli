@@ -161,19 +161,29 @@ public final class DevHooks {
             sceneShot("nether", ""),
             sceneShot("ocean", ""),
             sceneShot("plains_village", ""),
+            spotShot("plains_village", "WORLDS"), spotShot("plains_village", "SERVERS"), spotShot("plains_village", "OPTIONS"),
+            spotShot("plains_village", "MODS"), spotShot("plains_village", "OTHER"),
             clockShot("plains_village", "", LocalTime.of(12, 0)),
             clockShot("plains_village", "", LocalTime.of(18, 15)),
             clockShot("plains_village", "", LocalTime.of(23, 0)),
             sceneShot("snowy_village", ""),
+            spotShot("snowy_village", "WORLDS"), spotShot("snowy_village", "SERVERS"), spotShot("snowy_village", "OPTIONS"),
+            spotShot("snowy_village", "MODS"), spotShot("snowy_village", "OTHER"),
             sceneShot("desert_village", ""),
+            spotShot("desert_village", "WORLDS"), spotShot("desert_village", "SERVERS"), spotShot("desert_village", "OPTIONS"),
+            spotShot("desert_village", "MODS"), spotShot("desert_village", "OTHER"),
             sceneShot("ancient_city", ""),
-            spotShot("ancient_city", "worlds", () -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(menu)),
-            spotShot("ancient_city", "options", () -> new net.minecraft.client.gui.screens.options.OptionsScreen(menu, Minecraft.getInstance().options)),
+            spotShot("ancient_city", "WORLDS"), spotShot("ancient_city", "SERVERS"), spotShot("ancient_city", "OPTIONS"),
+            spotShot("ancient_city", "MODS"), spotShot("ancient_city", "OTHER"),
             sceneShot("trial_chambers", ""),
+            spotShot("trial_chambers", "WORLDS"), spotShot("trial_chambers", "SERVERS"), spotShot("trial_chambers", "OPTIONS"),
+            spotShot("trial_chambers", "MODS"), spotShot("trial_chambers", "OTHER"),
             sceneShot("bastion", ""),
+            spotShot("bastion", "WORLDS"), spotShot("bastion", "SERVERS"), spotShot("bastion", "OPTIONS"),
+            spotShot("bastion", "MODS"), spotShot("bastion", "OTHER"),
             sceneShot("end_city", ""),
-            spotShot("end_city", "worlds", () -> new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(menu)),
-            spotShot("end_city", "options", () -> new net.minecraft.client.gui.screens.options.OptionsScreen(menu, Minecraft.getInstance().options)),
+            spotShot("end_city", "WORLDS"), spotShot("end_city", "SERVERS"), spotShot("end_city", "OPTIONS"),
+            spotShot("end_city", "MODS"), spotShot("end_city", "OTHER"),
             sceneShot("create_factory", ""),
             new Shot("glazuli_autoshot_scene_create_factory_rest.png", SCENE_TIMEOUT, () -> { },
                     () -> CaveBackground.isShowing("create_factory", 5.0), true),
@@ -183,9 +193,13 @@ public final class DevHooks {
                     new org.joml.Vector3f(50.5F, 7.0F, 45.5F), new org.joml.Vector3f(47.5F, 4.0F, 42.5F))),
             new Shot("glazuli_autoshot_scene_create_factory_belt_end2.png", 0.4, () -> { }, null, false),
             new Shot("glazuli_autoshot_scene_create_factory_belt_done.png", 0.1, () -> CaveBackground.devCamera(null, null)),
-            new Shot("glazuli_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> MenuScenes.list().stream()
-                    .filter(entry -> entry.id().startsWith("custom:")).findFirst()
-                    .ifPresent(entry -> CaveBackground.select(entry.id(), false)),
+            spotShot("create_factory", "WORLDS"), spotShot("create_factory", "SERVERS"), spotShot("create_factory", "OPTIONS"),
+            spotShot("create_factory", "MODS"), spotShot("create_factory", "OTHER"),
+            new Shot("glazuli_autoshot_scene_custom.png", SCENE_TIMEOUT, () -> {
+                CaveBackground.devSpot(null);
+                MenuScenes.list().stream().filter(entry -> entry.id().startsWith("custom:")).findFirst()
+                        .ifPresent(entry -> CaveBackground.select(entry.id(), false));
+            },
                     () -> !CaveBackground.scene().startsWith("custom:") || CaveBackground.isShowing(CaveBackground.scene()), true),
             new Shot("glazuli_autoshot_scene_back.png", SCENE_TIMEOUT, () -> {
                 CaveBackground.select("cave", false);
@@ -794,12 +808,16 @@ public final class DevHooks {
      */
     private static Shot clockShot(String id, String suffix, LocalTime time) {
         String clock = String.format("_%02d%02d", time.getHour(), time.getMinute());
-        return new Shot("glazuli_autoshot_scene_" + id + suffix + clock + ".png", 3.0, () -> SceneClock.override(time));
+        return new Shot("glazuli_autoshot_scene_" + id + suffix + clock + ".png", 3.0, () -> {
+            CaveBackground.devSpot(null);
+            SceneClock.override(time);
+        });
     }
 
     private static Shot sceneShot(String id, String suffix) {
         return new Shot("glazuli_autoshot_scene_" + id.replace(':', '_') + suffix + ".png", 2.0 * SCENE_TIMEOUT, () -> {
             SceneClock.override(null);
+            CaveBackground.devSpot(null);
             CaveBackground.select(id, false);
             if (!(Minecraft.getInstance().screen instanceof BareTitle)) {
                 Minecraft.getInstance().setScreen(new BareTitle());
@@ -807,10 +825,10 @@ public final class DevHooks {
         }, () -> CaveBackground.isShowing(id), true);
     }
 
-    /** The showing scene from another menu's camera spot, once the camera has flown there. */
-    private static Shot spotShot(String id, String spot, java.util.function.Supplier<Screen> screen) {
-        return new Shot("glazuli_autoshot_scene_" + id + "_" + spot + ".png", 2.5,
-                () -> Minecraft.getInstance().setScreen(screen.get()), null, false);
+    /** The showing scene from another menu's camera spot (no menu drawn), once the camera has flown there. */
+    private static Shot spotShot(String id, String spot) {
+        return new Shot("glazuli_autoshot_scene_" + id + "_spot_" + spot.toLowerCase(java.util.Locale.ROOT) + ".png", 2.2,
+                () -> CaveBackground.devSpot(spot), null, false);
     }
 
     /** The title screen's camera spot with only the scene drawn, so scene shots show the whole picture. */
