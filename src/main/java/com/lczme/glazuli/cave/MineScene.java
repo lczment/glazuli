@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.SweetBerryBushBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -191,6 +192,11 @@ final class MineScene {
 
     private static BlockState facing(Block block, Direction direction) {
         return block.defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, direction);
+    }
+
+    /** An open spruce trapdoor standing against the side of its block opposite {@code facing}. */
+    private static BlockState shutter(Direction facing) {
+        return Blocks.SPRUCE_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.FACING, facing).setValue(TrapDoorBlock.OPEN, true);
     }
 
     private static BlockState leaves(Block block) {
@@ -544,7 +550,11 @@ final class MineScene {
             set(x1 + 1, FLOOR + 1, z, Blocks.MOSS_BLOCK.defaultBlockState());
             Block flower = z % 3 == 0 ? Blocks.CORNFLOWER : z % 3 == 1 ? Blocks.POPPY : Blocks.AZURE_BLUET;
             set(x1 + 1, FLOOR + 2, z, flower.defaultBlockState());
+            set(x1 + 2, FLOOR + 1, z, shutter(Direction.EAST));
         }
+        set(x1 + 1, FLOOR + 1, z0, shutter(Direction.NORTH));
+        set(x1 + 1, FLOOR + 1, z0 + 3, shutter(Direction.SOUTH));
+        set(x1 + 1, FLOOR + 1, z1, shutter(Direction.SOUTH));
         set(x1 - 1, FLOOR + 1, z0 + 2, Blocks.BARREL.defaultBlockState());
         set(x1 - 1, FLOOR + 2, z0 + 2, Blocks.LANTERN.defaultBlockState());
         set(x1 - 1, FLOOR + 1, z1 - 2, Blocks.CRAFTING_TABLE.defaultBlockState());
