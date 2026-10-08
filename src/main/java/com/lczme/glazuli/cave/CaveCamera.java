@@ -23,13 +23,15 @@ final class CaveCamera {
     static final float FOG_END = 60.0F;
     private static final float INTRO_SECONDS = 3.4F;
     /**
-     * Flights between spots: a lead point travels a path round any walls, speeding up to a cruise and braking to
-     * arrive, and the eye follows it on a short critically damped spring, rounding the corners. A change of menu
-     * mid-flight starts the new path from where the camera is at the speed it already has.
+     * Flights between spots: a lead point travels a smooth path round any walls on an eased schedule (longer flights
+     * take a little longer), and the eye follows it on a short critically damped spring. A change of menu mid-flight
+     * starts the new path from where the camera is, along its heading, at the speed it already has.
      */
-    private static final float CRUISE_SPEED = 22.0F;
-    private static final float ACCELERATION = 36.0F;
-    private static final float FOLLOW_SECONDS = 0.06F;
+    private static final float FLIGHT_BASE_SECONDS = 0.9F;
+    private static final float FLIGHT_BLOCKS_PER_SECOND = 22.0F;
+    private static final float MIN_FLIGHT_SECONDS = 1.2F;
+    private static final float MAX_FLIGHT_SECONDS = 2.6F;
+    private static final float FOLLOW_SECONDS = 0.05F;
     /** A camera redirected mid-flight first carries on this long along its old heading, curving onto the new path. */
     private static final float CARRY_SECONDS = 0.25F;
     private static final float TURN_SMOOTH_SECONDS = 0.3F;
@@ -75,8 +77,9 @@ final class CaveCamera {
     private final Vector3f lead = new Vector3f();
     /** The flight to the current spot (its last point kept on the drifting spot), how far along and how fast. */
     private List<Vector3f> flight = List.of();
-    private float travelled;
-    private float speed;
+    private double flightStart;
+    private float flightSeconds = 1.0F;
+    private float startSpeed;
     /** Look direction as yaw/pitch in degrees (unwrapped), each with a lead angle and velocities. */
     private final float[] yaw = new float[4];
     private final float[] pitch = new float[4];
@@ -195,7 +198,6 @@ final class CaveCamera {
             }
             if (cut || mode != Mode.SPOT) {
                 eyeVelocity.zero();
-                speed = 0.0F;
             }
             Vector3f via = null;
             if (!cut && world != null && eyeVelocity.length() > 1.0F) {
@@ -210,19 +212,24 @@ final class CaveCamera {
                     : CameraPath.find(world, eye, via, goalEye));
             flight.set(0, new Vector3f(eye));
             Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
-            speed = via != null ? eyeVelocity.length()
+            startSpeed = via != null ? eyeVelocity.length()
                     : heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
-            travelled = 0.0F;
+            float length = CameraPath.length(flight);
+            flightSeconds = Mth.clamp(FLIGHT_BASE_SECONDS + length / FLIGHT_BLOCKS_PER_SECOND, MIN_FLIGHT_SECONDS, MAX_FLIGHT_SECONDS);
+            if (startSpeed * flightSeconds > 2.0F * length) {
+                flightSeconds = Math.max(0.4F, 2.0F * length / startSpeed);
+            }
+            flightStart = now;
             mode = Mode.SPOT;
             spot = next;
         }
         flight.get(flight.size() - 1).set(goalEye);
         float length = CameraPath.length(flight);
-        float braking = Mth.sqrt(2.0F * ACCELERATION * Math.max(0.0F, length - travelled));
-        float wanted = Math.min(CRUISE_SPEED, braking);
-        speed = speed < wanted ? Math.min(wanted, speed + ACCELERATION * dt) : wanted;
-        travelled = Math.min(length, travelled + speed * dt);
-        CameraPath.at(flight, travelled, lead);
+        float t = Mth.clamp((float) (now - flightStart) / flightSeconds, 0.0F, 1.0F);
+        float carry = length > 1.0E-3F ? startSpeed * flightSeconds / length : 0.0F;
+        // Quintic easing: starts at the speed the camera already has, ends at rest, no jolt in acceleration at either end.
+        float eased = t * t * t * (10.0F - 15.0F * t + 6.0F * t * t) + carry * (t - 6.0F * t * t * t + 8.0F * t * t * t * t - 3.0F * t * t * t * t * t);
+        CameraPath.at(flight, eased * length, lead);
         smoothDamp(eye, lead, eyeVelocity, FOLLOW_SECONDS, dt);
         turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
         turn(pitch, goalPitch);

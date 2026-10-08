@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.PinkPetalsBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SeaPickleBlock;
@@ -210,10 +211,13 @@ final class MineScene {
         workshop();
         paths();
         cherry(36, 28, 7, 4.2F);
+        cherry(6, 50, 6, 3.8F);
         greenery();
         roof(noise);
+        hangingLanterns();
         wallLights();
         wallGreenery();
+        glowLichen(noise);
     }
 
     /** Stone with patches of andesite, tuff and cobble, going to deepslate low down. */
@@ -297,8 +301,9 @@ final class MineScene {
                 float b = random.nextFloat();
                 set(x, bottom, z, (b < 0.45F ? Blocks.SAND : b < 0.75F ? Blocks.CLAY : Blocks.GRAVEL).defaultBlockState());
                 float r = random.nextFloat();
-                if (r < 0.015F) {
-                    set(x, bottom, z, Blocks.SEA_LANTERN.defaultBlockState());
+                if (r < 0.03F) {
+                    Block glow = r < 0.012F ? Blocks.SEA_LANTERN : r < 0.022F ? Blocks.PEARLESCENT_FROGLIGHT : Blocks.VERDANT_FROGLIGHT;
+                    set(x, bottom, z, glow.defaultBlockState());
                 } else if (depth >= 3 && r < 0.2F) {
                     int top = WATER - random.nextInt(2);
                     for (int y = bottom + 1; y < top; y++) {
@@ -322,6 +327,10 @@ final class MineScene {
                             .setValue(PinkPetalsBlock.FACING, Direction.from2DDataValue(random.nextInt(4))));
                 } else if (s < 0.107F) {
                     set(x, FLOOR, z, Blocks.LANTERN.defaultBlockState());
+                } else if (s < 0.125F) {
+                    Block[] candles = {Blocks.WHITE_CANDLE, Blocks.PINK_CANDLE, Blocks.LIGHT_BLUE_CANDLE, Blocks.PURPLE_CANDLE, Blocks.MAGENTA_CANDLE};
+                    set(x, FLOOR, z, candles[random.nextInt(candles.length)].defaultBlockState()
+                            .setValue(CandleBlock.CANDLES, 1 + random.nextInt(3)).setValue(BlockStateProperties.LIT, true));
                 }
             }
         }
@@ -912,8 +921,50 @@ final class MineScene {
                     if (random.nextFloat() < 0.5F && top - 1 > FLOOR + 6) {
                         set(x, top - 1, z, leaves(leaf));
                     }
-                } else if (r < 0.18F) {
+                } else if (r < 0.185F) {
                     set(x, top, z, Blocks.SPORE_BLOSSOM.defaultBlockState());
+                } else if (r < 0.195F) {
+                    set(x, y, z, Blocks.AMETHYST_BLOCK.defaultBlockState());
+                    Block crystal = random.nextFloat() < 0.6F ? Blocks.AMETHYST_CLUSTER : Blocks.LARGE_AMETHYST_BUD;
+                    set(x, top, z, crystal.defaultBlockState().setValue(AmethystClusterBlock.FACING, Direction.DOWN));
+                }
+            }
+        }
+    }
+
+    /** Lanterns, soul and ordinary, hung on chains from the roof over the pond, all well above head height. */
+    private void hangingLanterns() {
+        for (int placed = 0, tries = 0; placed < 14 && tries < 400; tries++) {
+            int z = 20 + random.nextInt(SZ - 24);
+            int x = Mth.ceil(westShore(z)) + random.nextInt(Math.max(1, DOCK_X1 - Mth.ceil(westShore(z))));
+            int top = ceiling(x, FLOOR + 1, z);
+            int lantern = FLOOR + 7 + random.nextInt(2);
+            if (top < lantern + 2 || !get(x, WATER, z).is(Blocks.WATER)) {
+                continue;
+            }
+            for (int y = lantern + 1; y <= top; y++) {
+                set(x, y, z, Blocks.CHAIN.defaultBlockState());
+            }
+            Block block = random.nextFloat() < 0.5F ? Blocks.SOUL_LANTERN : Blocks.LANTERN;
+            set(x, lantern, z, block.defaultBlockState().setValue(LanternBlock.HANGING, true));
+            placed++;
+        }
+    }
+
+    /** Patches of glow lichen over the rock, a soft green light up the walls and across the roof. */
+    private void glowLichen(ImprovedNoise noise) {
+        for (int z = 1; z < SZ - 1; z++) {
+            for (int y = FLOOR + 2; y < SY - 1; y++) {
+                for (int x = 1; x < SX - 1; x++) {
+                    if (!air(x, y, z) || noise.noise(x * 0.15, y * 0.15 + 90.0, z * 0.15) < 0.22 || random.nextFloat() > 0.45F) {
+                        continue;
+                    }
+                    for (Direction side : Direction.values()) {
+                        if (side != Direction.DOWN && rock(get(x + side.getStepX(), y + side.getStepY(), z + side.getStepZ()))) {
+                            set(x, y, z, Blocks.GLOW_LICHEN.defaultBlockState().setValue(MultifaceBlock.getFaceProperty(side), true));
+                            break;
+                        }
+                    }
                 }
             }
         }

@@ -21,8 +21,8 @@ final class CameraPath {
     private static final float CRAMPED_COST = 4.0F;
     private static final int MAX_EXPANDED = 400_000;
     /** How far before and after a corner the curve round it starts and ends, at most. */
-    private static final float CORNER_RADIUS = 5.0F;
-    private static final int CORNER_SAMPLES = 12;
+    private static final float CORNER_RADIUS = 7.0F;
+    private static final int CORNER_SAMPLES = 16;
     private static final int[][] STEPS = steps();
 
     private CameraPath() {
@@ -92,7 +92,9 @@ final class CameraPath {
                 for (int k = 0; k <= CORNER_SAMPLES; k++) {
                     float t = (float) k / CORNER_SAMPLES;
                     float u = 1.0F - t;
-                    candidate.add(new Vector3f(a).mul(u * u).add(new Vector3f(corner).mul(2.0F * u * t)).add(new Vector3f(b).mul(t * t)));
+                    // Cubic with both inner control points on the corner: no curvature where it meets the straights.
+                    candidate.add(new Vector3f(a).mul(u * u * u).add(new Vector3f(corner).mul(3.0F * u * t))
+                            .add(new Vector3f(b).mul(t * t * t)));
                 }
                 boolean ok = true;
                 for (int k = 1; k < candidate.size() && ok; k++) {
