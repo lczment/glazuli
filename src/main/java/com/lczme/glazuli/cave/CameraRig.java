@@ -14,7 +14,7 @@ interface CameraRig {
     List<Vector3f> introPath();
 
     default float introSeconds() {
-        return 3.4F;
+        return 2.5F;
     }
 
     /** Where the startup flight looks at first, turning onto the title view on the way; null to look along its way. */

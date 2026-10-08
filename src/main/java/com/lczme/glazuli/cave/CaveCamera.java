@@ -36,12 +36,14 @@ final class CaveCamera {
     private static final float FLIGHT_BASE_SECONDS = 0.9F;
     private static final float FLIGHT_BLOCKS_PER_SECOND = 22.0F;
     private static final float MIN_FLIGHT_SECONDS = 1.2F;
-    private static final float MAX_FLIGHT_SECONDS = 2.6F;
+    private static final float MAX_FLIGHT_SECONDS = 2.5F;
+    /** Flights speed up and slow down over this part of their time and cruise in between, keeping the top speed low. */
+    private static final float FLIGHT_EASE = 0.35F;
     private static final float FOLLOW_SECONDS = 0.05F;
     /** A camera redirected mid-flight first carries on this long along its old heading, curving onto the new path. */
     private static final float CARRY_SECONDS = 0.25F;
     private static final float TURN_SMOOTH_SECONDS = 0.3F;
-    private static final float DIVE_TIME_CONSTANT = 2.4F;
+    private static final float DIVE_TIME_CONSTANT = 0.85F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
 
@@ -83,6 +85,7 @@ final class CaveCamera {
     private final Vector3f lead = new Vector3f();
     /** The flight to the current spot (its last point kept on the drifting spot), how far along and how fast. */
     private List<Vector3f> flight = List.of();
+    private float[] flightPace = new float[0];
     private double flightStart;
     private float flightSeconds = 1.0F;
     private float startSpeed;
@@ -162,7 +165,7 @@ final class CaveCamera {
         float u = introStarted ? Mth.clamp((float) ((now - modeStart) / rig.introSeconds()), 0.0F, 1.0F) : 0.0F;
         introProgress = u;
         float length = CameraPath.length(path);
-        float s = cruise(u) * length;
+        float s = cruise(u, INTRO_EASE_IN, INTRO_EASE_OUT) * length;
         float along = length > 0.0F ? s / length : 1.0F;
         // The way ends on the drifting title spot, so the spot's own motion takes over without a jump.
         Vector3f drift = spotEye(Spot.TITLE, now, new Vector3f()).sub(rig.spotEye(Spot.TITLE));
@@ -241,6 +244,7 @@ final class CaveCamera {
             flight = new ArrayList<>(cut || world == null ? List.of(new Vector3f(goalEye), new Vector3f(goalEye))
                     : CameraPath.find(world, eye, via, goalEye));
             flight.set(0, new Vector3f(eye));
+            flightPace = CameraPath.pace(flight);
             Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
             startSpeed = via != null ? eyeVelocity.length()
                     : heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
@@ -254,12 +258,12 @@ final class CaveCamera {
             spot = next;
         }
         flight.get(flight.size() - 1).set(goalEye);
-        float length = CameraPath.length(flight);
+        float paced = CameraPath.pacedLength(flight, flightPace);
         float t = Mth.clamp((float) (now - flightStart) / flightSeconds, 0.0F, 1.0F);
-        float carry = length > 1.0E-3F ? startSpeed * flightSeconds / length : 0.0F;
-        // Quintic easing: starts at the speed the camera already has, ends at rest, no jolt in acceleration at either end.
-        float eased = t * t * t * (10.0F - 15.0F * t + 6.0F * t * t) + carry * (t - 6.0F * t * t * t + 8.0F * t * t * t * t - 3.0F * t * t * t * t * t);
-        CameraPath.at(flight, eased * length, lead);
+        float carry = paced > 1.0E-3F ? startSpeed * flightSeconds * flightPace[0] / paced : 0.0F;
+        // Starts at the speed the camera already has, ends at rest, no jolt in acceleration at either end.
+        float eased = cruise(t, FLIGHT_EASE, FLIGHT_EASE) + carry * (t - 6.0F * t * t * t + 8.0F * t * t * t * t - 3.0F * t * t * t * t * t);
+        CameraPath.atPaced(flight, flightPace, eased * paced, lead);
         smoothDamp(eye, lead, eyeVelocity, FOLLOW_SECONDS, dt);
         turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
         turn(pitch, goalPitch);
@@ -375,12 +379,10 @@ final class CaveCamera {
     }
 
     /**
-     * Fraction of the way travelled at time fraction {@code u}: speed rises smoothly over {@link #INTRO_EASE_IN}, holds,
-     * and falls smoothly to rest over {@link #INTRO_EASE_OUT}.
+     * Fraction of the way travelled at time fraction {@code u}: speed rises smoothly from rest over the first {@code a}
+     * of the time, holds, and falls smoothly to rest over the last {@code b}.
      */
-    private static float cruise(float u) {
-        float a = INTRO_EASE_IN;
-        float b = INTRO_EASE_OUT;
+    private static float cruise(float u, float a, float b) {
         float total = 1.0F - 0.5F * a - 0.5F * b;
         float d;
         if (u < a) {

@@ -97,7 +97,7 @@ final class MineScene {
         }
         // Startup: from low over the middle of the pond, looking up into the lanterns, drawing back and up along the
         // water while the view settles down onto the title.
-        CustomRig rig = new CustomRig(eyes, looks).intro(6.5F,
+        CustomRig rig = new CustomRig(eyes, looks).intro(2.5F,
                 new Vector3f(19.5F, 12.0F, 21.0F),
                 new Vector3f(23.0F, 7.6F, 31.5F),
                 new Vector3f(22.2F, 8.6F, 43.0F));

@@ -20,7 +20,7 @@ final class CustomRig implements CameraRig {
     private final Vector3f[] spotLooks;
     private final boolean planned;
     private List<Vector3f> introWaypoints = List.of();
-    private float introSeconds = 3.4F;
+    private float introSeconds = 2.5F;
     @Nullable
     private Vector3f introLook;
 
