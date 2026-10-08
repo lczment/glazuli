@@ -21,11 +21,13 @@ import org.joml.Vector3f;
 final class CaveCamera {
     static final float FOG_END = 60.0F;
     private static final float INTRO_SECONDS = 3.4F;
-    private static final float TRANSITION_SECONDS = 1.6F;
-    /** Flights between spots cruise at this many blocks per second, so a long way takes longer (up to a limit). */
-    private static final float CRUISE_SPEED = 24.0F;
-    private static final float MAX_TRANSITION_SECONDS = 2.4F;
-    private static final float ACCELERATION_SECONDS = 0.6F;
+    /**
+     * Flights between spots follow a lead point through two critically damped springs, so the camera eases in and out
+     * and a change of menu mid-flight bends the path instead of stopping it dead.
+     */
+    private static final float SMOOTH_SECONDS = 0.32F;
+    private static final float TURN_SMOOTH_SECONDS = 0.3F;
+    private static final float MAX_SPEED = 32.0F;
     private static final float DIVE_TIME_CONSTANT = 2.4F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
@@ -62,8 +64,13 @@ final class CaveCamera {
     final Vector3f target = new Vector3f();
     float fogEnd;
 
-    private final Vector3f fromEye = new Vector3f();
-    private final Vector3f fromTarget = new Vector3f();
+    private final Vector3f eyeVelocity = new Vector3f();
+    private final Vector3f lead = new Vector3f();
+    private final Vector3f leadVelocity = new Vector3f();
+    /** Look direction as yaw/pitch in degrees (unwrapped), each with a lead angle and velocities. */
+    private final float[] yaw = new float[4];
+    private final float[] pitch = new float[4];
+    private float lookDistance = 8.0F;
     @Nullable
     private Mode mode;
     @Nullable
@@ -74,9 +81,7 @@ final class CaveCamera {
     private boolean introStarted;
     private float introProgress;
     private List<Vector3f> path = List.of();
-    /** Length of the flight to the current spot and how long it takes. */
-    private float routeLength;
-    private float transitionSeconds = TRANSITION_SECONDS;
+    private float dt;
 
     /** {@code introFlown}: a scene switched to later starts at its spot instead of replaying the startup flight. */
     CaveCamera(CameraRig rig, float fogEnd, boolean introFlown) {
@@ -97,6 +102,7 @@ final class CaveCamera {
 
     void update(@Nullable Screen screen, double now, boolean introMayStart) {
         boolean gap = now - lastUpdate > CUT_GAP_SECONDS;
+        dt = (float) Mth.clamp(now - lastUpdate, 0.0, 0.1);
         lastUpdate = now;
         if (devEye != null && devLook != null) {
             eye.set(devEye);
@@ -109,7 +115,11 @@ final class CaveCamera {
         } else if (!introFlown && screen instanceof TitleScreen) {
             updateIntro(now, introMayStart);
         } else {
-            updateSpot(spotFor(screen), now, gap);
+            Spot next = spotFor(screen);
+            if (next == null) {
+                next = spot == null || spot == Spot.TITLE || mode != Mode.SPOT ? Spot.OTHER : spot;
+            }
+            updateSpot(next, now, gap);
         }
     }
 
@@ -156,57 +166,90 @@ final class CaveCamera {
     }
 
     private void updateSpot(Spot next, double now, boolean gap) {
+        Vector3f goalEye = spotEye(next, now, new Vector3f());
+        Vector3f goalDir = spotLook(next, now, new Vector3f()).sub(goalEye);
+        float goalDistance = Math.max(goalDir.length(), 0.01F);
+        float goalYaw = yawOf(goalDir);
+        float goalPitch = pitchOf(goalDir);
         if (mode != Mode.SPOT || spot != next) {
             boolean cut = mode == Mode.DIVE || mode == null || gap;
+            if (cut) {
+                eye.set(goalEye);
+                start(goalYaw, goalPitch);
+                lookDistance = goalDistance;
+            } else if (mode != Mode.SPOT) {
+                Vector3f dir = new Vector3f(target).sub(eye);
+                start(yawOf(dir), pitchOf(dir));
+                lookDistance = Math.max(dir.length(), 0.01F);
+            }
+            if (cut || mode != Mode.SPOT) {
+                lead.set(eye);
+                eyeVelocity.zero();
+                leadVelocity.zero();
+            }
             mode = Mode.SPOT;
             spot = next;
-            fromEye.set(eye);
-            fromTarget.set(target);
-            routeLength = fromEye.distance(rig.spotEye(next));
-            transitionSeconds = Mth.clamp(routeLength / CRUISE_SPEED + 0.9F, TRANSITION_SECONDS, MAX_TRANSITION_SECONDS);
-            modeStart = cut ? now - transitionSeconds : now;
         }
-        float s = travelled((float) (now - modeStart));
-        float u = routeLength > 0.0F ? s / routeLength : 1.0F;
-        Vector3f spotEye = spotEye(next, now, new Vector3f());
-        Vector3f spotLook = spotLook(next, now, new Vector3f());
-        eye.set(fromEye).lerp(spotEye, u);
-        Vector3f fromDir = new Vector3f(fromTarget).sub(fromEye);
-        float fromDistance = Math.max(fromDir.length(), 0.01F);
-        fromDir.div(fromDistance);
-        Vector3f toDir = new Vector3f(spotLook).sub(eye);
-        float toDistance = Math.max(toDir.length(), 0.01F);
-        toDir.div(toDistance);
-        float w = smoothstep(0.0F, 1.0F, u);
-        target.set(blend(fromDir, toDir, w)).mul(Mth.lerp(w, fromDistance, toDistance)).add(eye);
+        smoothDamp(lead, goalEye, leadVelocity, SMOOTH_SECONDS, MAX_SPEED, dt);
+        smoothDamp(eye, lead, eyeVelocity, SMOOTH_SECONDS, Float.MAX_VALUE, dt);
+        turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
+        turn(pitch, goalPitch);
+        lookDistance = Mth.lerp(1.0F - (float) Math.exp(-dt * 4.0F), lookDistance, goalDistance);
+        float yawRad = yaw[0] * Mth.DEG_TO_RAD;
+        float pitchRad = pitch[0] * Mth.DEG_TO_RAD;
+        float horizontal = Mth.cos(pitchRad);
+        target.set(Mth.sin(yawRad) * horizontal, Mth.sin(pitchRad), Mth.cos(yawRad) * horizontal).mul(lookDistance).add(eye);
         fogEnd = baseFogEnd;
     }
 
-    /** Normalised blend of two unit directions, turning at an even rate (falls back to {@code b} when opposite). */
-    private static Vector3f blend(Vector3f a, Vector3f b, float w) {
-        Vector3f out = new Vector3f(a).mul(1.0F - w).add(b.x * w, b.y * w, b.z * w);
-        return out.lengthSquared() < 1.0E-6F ? new Vector3f(b) : out.normalize();
+    /** Angle state: {@code [value, velocity, lead, lead velocity]}. */
+    private void start(float yawValue, float pitchValue) {
+        yaw[0] = yaw[2] = yawValue;
+        pitch[0] = pitch[2] = pitchValue;
+        yaw[1] = yaw[3] = pitch[1] = pitch[3] = 0.0F;
     }
 
-    /**
-     * Distance along the route after {@code t} seconds: speeds up, cruises, slows down, arriving after
-     * {@link #transitionSeconds}.
-     */
-    private float travelled(float t) {
-        float total = transitionSeconds;
-        if (t >= total || routeLength <= 0.0F) {
-            return routeLength;
+    private void turn(float[] angle, float goal) {
+        float[] v = {angle[3]};
+        angle[2] = smoothDamp(angle[2], goal, v, TURN_SMOOTH_SECONDS, dt);
+        angle[3] = v[0];
+        v[0] = angle[1];
+        angle[0] = smoothDamp(angle[0], angle[2], v, TURN_SMOOTH_SECONDS, dt);
+        angle[1] = v[0];
+    }
+
+    private static float yawOf(Vector3f dir) {
+        return (float) Math.toDegrees(Math.atan2(dir.x, dir.z));
+    }
+
+    private static float pitchOf(Vector3f dir) {
+        return (float) Math.toDegrees(Math.atan2(dir.y, Math.sqrt(dir.x * dir.x + dir.z * dir.z)));
+    }
+
+    /** Critically damped approach of {@code value} to {@code goal} (Game Programming Gems 4, 1.10). */
+    private static float smoothDamp(float value, float goal, float[] velocity, float smoothTime, float dt) {
+        float omega = 2.0F / smoothTime;
+        float x = omega * dt;
+        float decay = 1.0F / (1.0F + x + 0.48F * x * x + 0.235F * x * x * x);
+        float change = value - goal;
+        float temp = (velocity[0] + omega * change) * dt;
+        velocity[0] = (velocity[0] - omega * temp) * decay;
+        return goal + (change + temp) * decay;
+    }
+
+    private static void smoothDamp(Vector3f value, Vector3f goal, Vector3f velocity, float smoothTime, float maxSpeed, float dt) {
+        float omega = 2.0F / smoothTime;
+        float x = omega * dt;
+        float decay = 1.0F / (1.0F + x + 0.48F * x * x + 0.235F * x * x * x);
+        Vector3f change = new Vector3f(value).sub(goal);
+        float maxChange = maxSpeed * smoothTime;
+        if (change.lengthSquared() > maxChange * maxChange) {
+            change.normalize(maxChange);
         }
-        float ramp = Math.min(ACCELERATION_SECONDS, total * 0.4F);
-        float cruise = routeLength / (total - ramp);
-        if (t < ramp) {
-            return 0.5F * cruise / ramp * t * t;
-        }
-        if (t > total - ramp) {
-            float left = total - t;
-            return routeLength - 0.5F * cruise / ramp * left * left;
-        }
-        return cruise * (t - 0.5F * ramp);
+        Vector3f clampedGoal = new Vector3f(value).sub(change);
+        Vector3f temp = new Vector3f(change).mul(omega).add(velocity).mul(dt);
+        velocity.sub(temp.x * omega, temp.y * omega, temp.z * omega).mul(decay);
+        value.set(change).add(temp).mul(decay).add(clampedGoal);
     }
 
     /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */
@@ -233,6 +276,8 @@ final class CaveCamera {
                 .add(0.5F * Mth.sin(t * 0.17F + 2.0F), 0.25F * Mth.sin(t * 0.27F), 0.5F * Mth.cos(t * 0.21F + 1.0F));
     }
 
+    /** The spot for a kind of menu, or null for a screen of no known kind (a dialog keeps the spot it opened over). */
+    @Nullable
     private static Spot spotFor(@Nullable Screen screen) {
         if (screen == null || screen instanceof TitleScreen || screen instanceof ScenePickerScreen) {
             return Spot.TITLE;
@@ -245,13 +290,14 @@ final class CaveCamera {
                 || name.endsWith("ManageServerScreen") || name.endsWith("DirectJoinServerScreen")) {
             return Spot.SERVERS;
         }
-        if (name.startsWith("net.minecraft.client.gui.screens.options.") || name.startsWith("net.minecraft.client.gui.screens.packs.")) {
+        if (name.startsWith("net.minecraft.client.gui.screens.options.") || name.startsWith("net.minecraft.client.gui.screens.packs.")
+                || name.contains("sodium") || name.startsWith("net.irisshaders.")) {
             return Spot.OPTIONS;
         }
         if (name.startsWith("net.neoforged.neoforge.client.gui.")) {
             return Spot.MODS;
         }
-        return Spot.OTHER;
+        return null;
     }
 
     private static boolean isDiveScreen(@Nullable Screen screen) {

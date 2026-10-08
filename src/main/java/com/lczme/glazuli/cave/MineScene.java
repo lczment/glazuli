@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.PinkPetalsBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.SlabBlock;
@@ -30,33 +31,37 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
 import org.joml.Vector3f;
 
 /**
- * A tall lush cavern seen from high up (title): warm lights set into the rock, timber bridges spanning the shaft hung
- * with glow berries, glass strands falling to a pond, cherry trees, and at the bottom a cottage with a farm and lit
- * stone paths. Round the floor: the player digging out a diamond vein in a side tunnel (singleplayer), friends at a
- * campfire (multiplayer), a workshop dug into the wall (options), an enchanting room behind an amethyst arch (mods)
- * and the farm by the pond (everything else).
+ * A lantern-lit grotto round a long pond (title: looking down the water from just above it). A boardwalk runs down the
+ * east side, a waterwheel stands in a bay of the west wall, a bridge crosses the far end, and glow berries and leaves
+ * hang thick from a low roof with lamps set into it; lily pads, petals and floating lanterns on the water, kelp and
+ * coral under it. Round the edge: the player digging out a diamond vein at the end of a mine tunnel (singleplayer),
+ * friends at a campfire under a cherry tree (multiplayer), a workshop off the boardwalk (options), an enchanting room
+ * behind an amethyst arch (mods) and a cottage with a farm beyond the bridge (everything else).
  */
 final class MineScene {
-    private static final int SX = 48;
-    private static final int SY = 56;
-    private static final int SZ = 48;
-    /** Top of the floor; the air starts one above. */
+    private static final int SX = 46;
+    private static final int SY = 26;
+    private static final int SZ = 62;
+    /** Top of the ground; the air starts one above. The pond's surface is a block lower. */
     private static final int FLOOR = 6;
-    private static final float CX = 24.0F;
-    private static final float CZ = 24.0F;
-    private static final float RX = 17.0F;
-    private static final float RZ = 16.0F;
-    /** Where the shaft starts closing into its roof, and how far up the roof goes. */
-    private static final int DOME = 44;
-    private static final int ROOF = 9;
-    private static final float POND_X = 29.0F;
-    private static final float POND_Z = 23.0F;
-    private static final float POND_R = 6.0F;
+    private static final int WATER = FLOOR - 1;
+    /** The hall: a rounded rectangle centred here. */
+    private static final float CX = 20.5F;
+    private static final float CZ = 30.5F;
+    private static final float HX = 17.5F;
+    private static final float HZ = 29.0F;
+    /** The pond runs from just south of the farm to the south wall; its east side lies under the boardwalk. */
+    private static final int POND_Z0 = 13;
+    private static final int DOCK_X0 = 27;
+    private static final int DOCK_X1 = 30;
+    private static final int DOCK_Z0 = 14;
+    private static final int BRIDGE_Z = 18;
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 
     private final CaveWorld world;
@@ -73,12 +78,12 @@ final class MineScene {
         new MineScene(world, seed).fill(seed);
         CaveGenerator.light(world);
         float[][] shots = {
-            {34.0F, 32.0F, 32.0F, 14.0F, 8.0F, 20.0F},
-            {31.4F, 8.6F, 6.4F, 30.5F, 8.1F, 2.7F},
-            {32.5F, 9.5F, 20.0F, 38.5F, 7.8F, 25.5F},
-            {16.0F, 9.0F, 15.0F, 6.0F, 7.8F, 14.5F},
-            {19.5F, 9.0F, 14.0F, 19.0F, 7.8F, 4.0F},
-            {27.0F, 10.0F, 36.0F, 14.0F, 7.5F, 27.0F},
+            {20.5F, 9.2F, 56.5F, 20.0F, 7.4F, 20.0F},
+            {38.4F, 8.6F, 9.3F, 41.8F, 8.1F, 8.5F},
+            {28.6F, 9.3F, 36.5F, 34.0F, 7.5F, 30.0F},
+            {29.0F, 9.0F, 41.5F, 35.5F, 7.8F, 42.5F},
+            {13.0F, 8.8F, 25.5F, 2.5F, 7.8F, 25.5F},
+            {19.5F, 10.0F, 21.0F, 19.5F, 7.0F, 7.0F},
         };
         Vector3f[] eyes = new Vector3f[shots.length];
         Vector3f[] looks = new Vector3f[shots.length];
@@ -181,38 +186,44 @@ final class MineScene {
         return block.defaultBlockState().setValue(LeavesBlock.PERSISTENT, true);
     }
 
+    private BlockState warmLamp() {
+        return (random.nextFloat() < 0.75F ? Blocks.SHROOMLIGHT : Blocks.OCHRE_FROGLIGHT).defaultBlockState();
+    }
+
     // ---------------------------------------------------------------- layout
 
     private void fill(long seed) {
         ImprovedNoise noise = new ImprovedNoise(RandomSource.create(seed ^ 0x3A1EL));
         stone(noise);
-        shaft(noise);
-        floor(noise);
+        hall(noise);
+        ground(noise);
         pond();
+        banks();
+        dock();
+        bridge();
         cottage();
         farm();
-        workshop();
         enchantingRoom();
+        waterwheel();
         mineTunnel();
         camp();
+        workshop();
         paths();
-        cherry(16, 36, 6, 3.6F);
-        cherry(31, 32, 9, 4.2F);
-        bridges();
-        amethyst(-0.75F, -0.45F, 22);
+        cherry(36, 28, 7, 4.2F);
+        greenery();
+        roof(noise);
         wallLights();
         wallGreenery();
-        ceilingVines();
     }
 
-    /** Stone with patches of andesite, tuff and cobble, going to deepslate at the foot of the walls. */
+    /** Stone with patches of andesite, tuff and cobble, going to deepslate low down. */
     private void stone(ImprovedNoise noise) {
         for (int z = 0; z < SZ; z++) {
             for (int y = 0; y < SY; y++) {
                 for (int x = 0; x < SX; x++) {
                     double n = noise.noise(x * 0.13, y * 0.13, z * 0.13);
                     double m = noise.noise(x * 0.31 + 40.0, y * 0.31, z * 0.31);
-                    Block block = y < FLOOR + 2 + n * 3.0 ? m > 0.25 ? Blocks.COBBLED_DEEPSLATE : Blocks.DEEPSLATE
+                    Block block = y < FLOOR - 1 + n * 3.0 ? m > 0.25 ? Blocks.COBBLED_DEEPSLATE : Blocks.DEEPSLATE
                             : n > 0.33 ? Blocks.ANDESITE : n < -0.33 ? Blocks.TUFF : m > 0.3 ? Blocks.COBBLESTONE : Blocks.STONE;
                     world.set(x, y, z, block.defaultBlockState());
                 }
@@ -220,94 +231,211 @@ final class MineScene {
         }
     }
 
-    /** The shaft: a rough oval well, bulging and narrowing with height, closing into a domed roof. */
-    private void shaft(ImprovedNoise noise) {
-        for (int y = FLOOR + 1; y < SY - 1; y++) {
-            float closing = y < DOME ? 1.0F : 1.0F - (float) (y - DOME) * (y - DOME) / (ROOF * ROOF);
-            if (closing <= 0.0F) {
-                break;
-            }
-            float scale = Mth.sqrt(closing) * (1.0F + 0.06F * Mth.sin(y * 0.21F));
-            for (int z = 0; z < SZ; z++) {
-                for (int x = 0; x < SX; x++) {
-                    float u = (x + 0.5F - CX) / (RX * scale);
-                    float v = (z + 0.5F - CZ) / (RZ * scale);
-                    double r2 = u * u + v * v + noise.noise(x * 0.1, y * 0.1, z * 0.1) * 0.22;
-                    if (r2 < 1.0) {
-                        world.set(x, y, z, AIR);
-                    }
+    /** The hall: a long rounded room, its roof highest along the middle and coming down towards the walls. */
+    private void hall(ImprovedNoise noise) {
+        for (int z = 0; z < SZ; z++) {
+            for (int x = 0; x < SX; x++) {
+                float u = (x + 0.5F - CX) / HX;
+                float v = (z + 0.5F - CZ) / HZ;
+                double r = u * u * u * u + v * v * v * v + noise.noise(x * 0.12, 7.0, z * 0.12) * 0.18;
+                if (r >= 1.0) {
+                    continue;
+                }
+                int top = FLOOR + 8 + Math.round(5.0F * Mth.sqrt((float) (1.0 - r)) + (float) noise.noise(x * 0.18, 20.0, z * 0.18) * 3.0F);
+                for (int y = FLOOR + 1; y <= Math.min(top, SY - 2); y++) {
+                    world.set(x, y, z, AIR);
                 }
             }
         }
     }
 
-    /** Moss over most of the floor, gravel and coarse dirt where it wears through, rooted moss near the walls. */
-    private void floor(ImprovedNoise noise) {
+    /** Moss underfoot, a little gravel showing through, moss carpet. */
+    private void ground(ImprovedNoise noise) {
         for (int z = 0; z < SZ; z++) {
             for (int x = 0; x < SX; x++) {
                 if (!air(x, FLOOR + 1, z)) {
                     continue;
                 }
-                double n = noise.noise(x * 0.17, 3.0, z * 0.17);
-                Block block = n > 0.32 ? Blocks.GRAVEL : n < -0.4 ? Blocks.COARSE_DIRT : Blocks.MOSS_BLOCK;
-                set(x, FLOOR, z, block.defaultBlockState());
-                if (block == Blocks.MOSS_BLOCK && random.nextFloat() < 0.18F) {
+                boolean gravel = noise.noise(x * 0.17, 3.0, z * 0.17) > 0.42;
+                set(x, FLOOR, z, (gravel ? Blocks.GRAVEL : Blocks.MOSS_BLOCK).defaultBlockState());
+                if (!gravel && random.nextFloat() < 0.12F) {
                     set(x, FLOOR + 1, z, Blocks.MOSS_CARPET.defaultBlockState());
                 }
             }
         }
     }
 
-    /** The pond: three deep, a stony rim, seagrass and kelp, sea pickles glowing on the bottom, lily pads. */
+    /** West edge of the pond at {@code z}: wandering, bowing out round the waterwheel, closing in at the north end. */
+    private static float westShore(int z) {
+        float w = 13.0F + 2.0F * Mth.sin(z * 0.19F) + 1.2F * Mth.sin(z * 0.43F + 2.0F);
+        w = Math.min(w, 5.0F + Math.max(0.0F, Math.abs(z - 40) - 2.5F) * 2.0F);
+        if (z < POND_Z0 + 3) {
+            w += (POND_Z0 + 3 - z) * 2.0F;
+        }
+        return w;
+    }
+
+    /** The pond: clear and fairly deep, kelp, coral and seagrass on a sandy bottom; pads, petals and lanterns afloat. */
     private void pond() {
-        for (int z = 0; z < SZ; z++) {
-            for (int x = 0; x < SX; x++) {
-                float d = Mth.sqrt((x + 0.5F - POND_X) * (x + 0.5F - POND_X) + (z + 0.5F - POND_Z) * (z + 0.5F - POND_Z));
-                float edge = POND_R + Mth.sin(x * 0.7F + z * 0.4F) * 0.8F;
-                if (d < edge) {
-                    int depth = d < edge - 2.0F ? 3 : d < edge - 1.0F ? 2 : 1;
-                    set(x, FLOOR + 1, z, AIR);
-                    for (int k = 0; k < depth; k++) {
-                        set(x, FLOOR - k, z, Blocks.WATER.defaultBlockState());
+        Block[][] corals = {
+            {Blocks.TUBE_CORAL_BLOCK, Blocks.TUBE_CORAL_FAN}, {Blocks.BUBBLE_CORAL_BLOCK, Blocks.BUBBLE_CORAL},
+            {Blocks.BRAIN_CORAL_BLOCK, Blocks.BRAIN_CORAL_FAN}, {Blocks.FIRE_CORAL_BLOCK, Blocks.FIRE_CORAL}};
+        for (int z = POND_Z0; z < SZ; z++) {
+            float west = westShore(z);
+            for (int x = Mth.ceil(west); x <= DOCK_X1; x++) {
+                if (!air(x, FLOOR + 2, z)) {
+                    continue;
+                }
+                float edge = Math.min(Math.min(x - west, DOCK_X1 + 1 - x), z - POND_Z0 + 1);
+                int depth = edge < 1.5F ? 1 : edge < 3.0F ? 2 : edge < 5.0F ? 3 : 4;
+                set(x, FLOOR, z, AIR);
+                set(x, FLOOR + 1, z, AIR);
+                for (int k = 0; k < depth; k++) {
+                    set(x, WATER - k, z, Blocks.WATER.defaultBlockState());
+                }
+                int bottom = WATER - depth;
+                float b = random.nextFloat();
+                set(x, bottom, z, (b < 0.45F ? Blocks.SAND : b < 0.75F ? Blocks.CLAY : Blocks.GRAVEL).defaultBlockState());
+                float r = random.nextFloat();
+                if (r < 0.015F) {
+                    set(x, bottom, z, Blocks.SEA_LANTERN.defaultBlockState());
+                } else if (depth >= 3 && r < 0.2F) {
+                    int top = WATER - random.nextInt(2);
+                    for (int y = bottom + 1; y < top; y++) {
+                        set(x, y, z, Blocks.KELP_PLANT.defaultBlockState());
                     }
-                    set(x, FLOOR - depth, z, (random.nextFloat() < 0.6F ? Blocks.CLAY : Blocks.GRAVEL).defaultBlockState());
-                    float r = random.nextFloat();
-                    int bottom = FLOOR - depth + 1;
-                    if (depth >= 2 && r < 0.12F) {
-                        set(x, bottom, z, Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 1 + random.nextInt(4)));
-                    } else if (depth == 3 && r < 0.3F) {
-                        set(x, bottom, z, Blocks.KELP_PLANT.defaultBlockState());
-                        set(x, bottom + 1, z, Blocks.KELP.defaultBlockState());
-                    } else if (r < 0.55F) {
-                        set(x, bottom, z, Blocks.SEAGRASS.defaultBlockState());
-                    }
-                    if (random.nextFloat() < 0.06F) {
-                        set(x, FLOOR + 1, z, Blocks.LILY_PAD.defaultBlockState());
-                    }
-                } else if (d < edge + 1.3F && air(x, FLOOR + 1, z)) {
-                    float r = random.nextFloat();
-                    set(x, FLOOR, z, (r < 0.4F ? Blocks.MOSSY_COBBLESTONE : r < 0.7F ? Blocks.STONE : Blocks.MOSS_BLOCK).defaultBlockState());
-                    if (air(x, FLOOR + 1, z) && random.nextFloat() < 0.15F) {
-                        set(x, FLOOR + 1, z, Blocks.FERN.defaultBlockState());
-                    } else if (get(x, FLOOR + 1, z).is(Blocks.MOSS_CARPET)) {
-                        set(x, FLOOR + 1, z, AIR);
-                    }
+                    set(x, top, z, Blocks.KELP.defaultBlockState());
+                } else if (depth >= 2 && r < 0.28F) {
+                    Block[] coral = corals[random.nextInt(corals.length)];
+                    set(x, bottom, z, coral[0].defaultBlockState());
+                    set(x, bottom + 1, z, coral[1].defaultBlockState());
+                } else if (depth >= 2 && r < 0.34F) {
+                    set(x, bottom + 1, z, Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 1 + random.nextInt(4)));
+                } else if (r < 0.62F) {
+                    set(x, bottom + 1, z, Blocks.SEAGRASS.defaultBlockState());
+                }
+                float s = random.nextFloat();
+                if (s < 0.07F) {
+                    set(x, FLOOR, z, Blocks.LILY_PAD.defaultBlockState());
+                } else if (s < 0.095F) {
+                    set(x, FLOOR, z, Blocks.PINK_PETALS.defaultBlockState().setValue(PinkPetalsBlock.AMOUNT, 1 + random.nextInt(4))
+                            .setValue(PinkPetalsBlock.FACING, Direction.from2DDataValue(random.nextInt(4))));
+                } else if (s < 0.107F) {
+                    set(x, FLOOR, z, Blocks.LANTERN.defaultBlockState());
                 }
             }
         }
     }
 
+    /** A rim of mossy stone where the ground meets the water, ferns along it. */
+    private void banks() {
+        for (int z = 1; z < SZ - 1; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                if (!air(x, FLOOR + 2, z) || air(x, FLOOR, z) || get(x, WATER, z).is(Blocks.WATER)) {
+                    continue;
+                }
+                boolean shore = false;
+                for (Direction side : Direction.Plane.HORIZONTAL) {
+                    shore |= get(x + side.getStepX(), WATER, z + side.getStepZ()).is(Blocks.WATER);
+                }
+                if (!shore) {
+                    continue;
+                }
+                float r = random.nextFloat();
+                set(x, FLOOR, z, (r < 0.45F ? Blocks.MOSSY_COBBLESTONE : r < 0.7F ? Blocks.STONE : Blocks.MOSS_BLOCK).defaultBlockState());
+                set(x, FLOOR + 1, z, random.nextFloat() < 0.18F ? Blocks.FERN.defaultBlockState() : AIR);
+                set(x, WATER, z, Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+            }
+        }
+    }
+
+    private boolean railAt(int z) {
+        return z >= DOCK_Z0 && Math.abs(z - BRIDGE_Z) > 2 && z % 11 != 0 && air(DOCK_X0, FLOOR + 1, z) && z < SZ - 1
+                && air(DOCK_X0, FLOOR + 2, z);
+    }
+
+    /** The boardwalk down the east side of the pond, on piles, a railing on the water side with gaps to step down. */
+    private void dock() {
+        BlockState planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
+        BlockState edge = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z);
+        BlockState pile = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
+        for (int z = DOCK_Z0; z < SZ; z++) {
+            for (int x = DOCK_X0; x <= DOCK_X1; x++) {
+                if (!air(x, FLOOR + 1, z) && !get(x, FLOOR + 1, z).is(Blocks.MOSS_CARPET)) {
+                    continue;
+                }
+                set(x, FLOOR, z, x == DOCK_X0 ? edge : planks);
+                set(x, FLOOR + 1, z, AIR);
+                if (z % 5 == 0 && (x == DOCK_X0 || x == DOCK_X1)) {
+                    for (int y = WATER; y > 0 && (get(x, y, z).is(Blocks.WATER) || y == WATER); y--) {
+                        set(x, y, z, pile);
+                    }
+                }
+            }
+        }
+        boolean[] rail = new boolean[SZ + 1];
+        for (int z = 0; z < SZ; z++) {
+            rail[z] = railAt(z);
+        }
+        for (int z = DOCK_Z0; z < SZ; z++) {
+            if (rail[z]) {
+                set(DOCK_X0, FLOOR + 1, z, fence(rail[z - 1], false, rail[z + 1], false));
+            }
+        }
+        for (int z : new int[]{52}) {
+            if (rail[z]) {
+                set(DOCK_X0, FLOOR + 2, z, Blocks.LANTERN.defaultBlockState());
+            }
+        }
+        set(31, FLOOR + 1, 50, Blocks.BARREL.defaultBlockState());
+        set(31, FLOOR + 1, 51, Blocks.BARREL.defaultBlockState());
+        set(31, FLOOR + 2, 50, Blocks.BARREL.defaultBlockState());
+        set(31, FLOOR + 2, 51, Blocks.LANTERN.defaultBlockState());
+        set(31, FLOOR + 1, 53, Blocks.POTTED_RED_TULIP.defaultBlockState());
+        set(31, FLOOR + 1, 54, Blocks.POTTED_AZURE_BLUET.defaultBlockState());
+        set(31, FLOOR + 1, 48, Blocks.LANTERN.defaultBlockState());
+        set(31, FLOOR + 1, 35, Blocks.LANTERN.defaultBlockState());
+        set(31, FLOOR + 1, 22, Blocks.LANTERN.defaultBlockState());
+        set(32, FLOOR + 1, 21, Blocks.HAY_BLOCK.defaultBlockState());
+        set(32, FLOOR + 1, 20, Blocks.BARREL.defaultBlockState());
+    }
+
+    /** A footbridge over the north end of the pond from the west bank to the boardwalk. */
+    private void bridge() {
+        int x0 = Math.round(westShore(BRIDGE_Z)) - 2;
+        BlockState planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
+        BlockState edge = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.X);
+        for (int x = x0; x < DOCK_X0; x++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                set(x, FLOOR, BRIDGE_Z + dz, dz == 0 ? planks : edge);
+                set(x, FLOOR + 1, BRIDGE_Z + dz, AIR);
+                if (dz != 0) {
+                    set(x, FLOOR + 1, BRIDGE_Z + dz, fence(false, x < DOCK_X0 - 1, false, x > x0));
+                    if ((x - x0) % 4 == 2) {
+                        for (int y = WATER; y > 0 && get(x, y, BRIDGE_Z + dz).is(Blocks.WATER); y--) {
+                            set(x, y, BRIDGE_Z + dz, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y));
+                        }
+                    }
+                }
+            }
+        }
+        set(x0, FLOOR + 2, BRIDGE_Z - 1, Blocks.LANTERN.defaultBlockState());
+        set(x0, FLOOR + 2, BRIDGE_Z + 1, Blocks.LANTERN.defaultBlockState());
+    }
+
     /**
-     * A cottage against the west wall facing the pond: cobble footing, spruce walls framed in stripped logs, lit
-     * windows, a stone-brick gable roof with an overhang, a cobble chimney and lanterns under the eaves.
+     * A cottage dug into the north-west corner facing the farm: cobble footing, spruce walls framed in stripped logs,
+     * lit windows, a stone-brick gable roof with an overhang, a brick chimney and lanterns under the eaves.
      */
     private void cottage() {
-        int x0 = 8;
-        int x1 = 14;
-        int z0 = 18;
-        int z1 = 26;
-        int ridge = 11;
+        int x0 = 5;
+        int x1 = 11;
+        int z0 = 4;
+        int z1 = 11;
+        int ridge = 8;
+        int door = 8;
         carve(x0 - 1, FLOOR + 1, z0 - 1, x1 + 2, FLOOR + 11, z1 + 1);
+        box(x0 - 1, FLOOR, z0 - 1, x1 + 2, FLOOR, z1 + 1, Blocks.MOSS_BLOCK.defaultBlockState());
         BlockState planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
         BlockState post = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
         box(x0, FLOOR, z0, x1, FLOOR, z1, Blocks.COBBLESTONE.defaultBlockState());
@@ -320,21 +448,21 @@ final class MineScene {
                 boolean corner = (x == x0 || x == x1) && (z == z0 || z == z1);
                 set(x, FLOOR + 1, z, random.nextFloat() < 0.3F ? Blocks.MOSSY_COBBLESTONE.defaultBlockState() : Blocks.COBBLESTONE.defaultBlockState());
                 for (int y = FLOOR + 2; y <= FLOOR + 4; y++) {
-                    set(x, y, z, corner || z == 22 && x == x1 ? post : planks);
+                    set(x, y, z, corner || z == door && x == x1 ? post : planks);
                 }
             }
         }
-        for (int z : new int[]{19, 20, 24, 25}) {
+        for (int z : new int[]{z0 + 1, z0 + 2, z1 - 2, z1 - 1}) {
             set(x1, FLOOR + 2, z, pane(Direction.Axis.Z));
             set(x1, FLOOR + 3, z, pane(Direction.Axis.Z));
             set(x0, FLOOR + 3, z, pane(Direction.Axis.Z));
         }
-        set(11, FLOOR + 3, z1, pane(Direction.Axis.X));
-        set(11, FLOOR + 3, z0, pane(Direction.Axis.X));
-        BlockState door = Blocks.SPRUCE_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.WEST);
-        set(x1, FLOOR + 1, 22, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER));
-        set(x1, FLOOR + 2, 22, door.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
-        set(x1, FLOOR + 3, 22, post);
+        set(ridge, FLOOR + 3, z1, pane(Direction.Axis.X));
+        set(ridge, FLOOR + 3, z0, pane(Direction.Axis.X));
+        BlockState doorState = Blocks.SPRUCE_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.WEST);
+        set(x1, FLOOR + 1, door, doorState.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER));
+        set(x1, FLOOR + 2, door, doorState.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
+        set(x1, FLOOR + 3, door, post);
         int eaves = FLOOR + 5;
         for (int x = x0; x <= x1; x++) {
             set(x, eaves, z0, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.X));
@@ -365,42 +493,44 @@ final class MineScene {
             }
         }
         for (int y = FLOOR + 1; y <= eaves + 5; y++) {
-            set(9, y, 25, Blocks.BRICKS.defaultBlockState());
+            set(x0 + 1, y, z1 - 1, Blocks.BRICKS.defaultBlockState());
         }
-        set(9, eaves + 6, 25, Blocks.CAMPFIRE.defaultBlockState());
-        set(x1 + 1, eaves - 1, 20, hangingLantern());
-        set(x1 + 1, eaves - 1, 24, hangingLantern());
-        for (int z : new int[]{19, 20, 24, 25}) {
+        set(x0 + 1, eaves + 6, z1 - 1, Blocks.CAMPFIRE.defaultBlockState());
+        set(x1 + 1, eaves - 1, z0 + 2, hangingLantern());
+        set(x1 + 1, eaves - 1, z1 - 2, hangingLantern());
+        for (int z : new int[]{z0 + 1, z0 + 2, z1 - 2, z1 - 1}) {
             set(x1 + 1, FLOOR + 1, z, Blocks.MOSS_BLOCK.defaultBlockState());
             Block flower = z % 3 == 0 ? Blocks.CORNFLOWER : z % 3 == 1 ? Blocks.POPPY : Blocks.AZURE_BLUET;
             set(x1 + 1, FLOOR + 2, z, flower.defaultBlockState());
         }
-        set(x1 - 1, FLOOR + 1, 20, Blocks.BARREL.defaultBlockState());
-        set(x1 - 1, FLOOR + 2, 20, Blocks.LANTERN.defaultBlockState());
-        set(x1 - 1, FLOOR + 1, 24, Blocks.CRAFTING_TABLE.defaultBlockState());
-        set(x1 - 1, FLOOR + 2, 24, Blocks.LANTERN.defaultBlockState());
-        set(x0 + 1, FLOOR + 1, 21, facing(Blocks.FURNACE, Direction.EAST).setValue(BlockStateProperties.LIT, true));
-        box(x0 + 1, FLOOR + 1, 22, x0 + 1, FLOOR + 2, 23, Blocks.BOOKSHELF.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 18, Blocks.BARREL.defaultBlockState());
-        set(x1 + 2, FLOOR + 2, 18, Blocks.BARREL.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 17, Blocks.BARREL.defaultBlockState());
+        set(x1 - 1, FLOOR + 1, z0 + 2, Blocks.BARREL.defaultBlockState());
+        set(x1 - 1, FLOOR + 2, z0 + 2, Blocks.LANTERN.defaultBlockState());
+        set(x1 - 1, FLOOR + 1, z1 - 2, Blocks.CRAFTING_TABLE.defaultBlockState());
+        set(x1 - 1, FLOOR + 2, z1 - 2, Blocks.LANTERN.defaultBlockState());
+        set(x0 + 1, FLOOR + 1, z0 + 2, facing(Blocks.FURNACE, Direction.EAST).setValue(BlockStateProperties.LIT, true));
+        box(x0 + 1, FLOOR + 1, z0 + 3, x0 + 1, FLOOR + 2, z0 + 4, Blocks.BOOKSHELF.defaultBlockState());
+        set(x1 + 2, FLOOR + 1, z0, Blocks.BARREL.defaultBlockState());
+        set(x1 + 2, FLOOR + 2, z0, Blocks.BARREL.defaultBlockState());
+        set(x1 + 2, FLOOR + 1, z0 + 1, Blocks.BARREL.defaultBlockState());
     }
 
-    /** South of the cottage: crop rows with a channel, a fence on two sides, hay, barrels and a composter. */
+    /** Crop rows beyond the bridge with a channel down the middle, fenced, a farmer hoeing. */
     private void farm() {
-        int x0 = 9;
-        int x1 = 16;
-        int z0 = 28;
-        int z1 = 33;
-        carve(x0 - 1, FLOOR + 1, z0 - 1, x1 + 1, FLOOR + 4, z1 + 1);
+        int x0 = 15;
+        int x1 = 25;
+        int z0 = 4;
+        int z1 = 10;
+        carve(x0 - 1, FLOOR + 1, z0 - 1, x1 + 2, FLOOR + 4, z1 + 1);
         CropBlock wheat = (CropBlock) Blocks.WHEAT;
-        CropBlock[] rows = {wheat, (CropBlock) Blocks.CARROTS, null, (CropBlock) Blocks.POTATOES, (CropBlock) Blocks.BEETROOTS, wheat};
+        CropBlock[] rows = {wheat, (CropBlock) Blocks.CARROTS, (CropBlock) Blocks.POTATOES, null, (CropBlock) Blocks.BEETROOTS,
+            wheat, (CropBlock) Blocks.CARROTS};
         BlockState soil = Blocks.FARMLAND.defaultBlockState().setValue(FarmBlock.MOISTURE, 7);
         for (int z = z0; z <= z1; z++) {
             CropBlock crop = rows[z - z0];
             for (int x = x0; x <= x1; x++) {
                 if (crop == null) {
                     set(x, FLOOR, z, Blocks.WATER.defaultBlockState());
+                    set(x, FLOOR + 1, z, AIR);
                     continue;
                 }
                 set(x, FLOOR, z, soil);
@@ -410,165 +540,198 @@ final class MineScene {
         BlockState alongX = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.X);
         BlockState alongZ = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z);
         for (int x = x0 - 1; x <= x1 + 1; x++) {
-            set(x, FLOOR, z0 - 1, alongX);
             set(x, FLOOR, z1 + 1, alongX);
-            set(x, FLOOR + 1, z1 + 1, fence(false, x < x1 + 1, false, x > x0 - 1));
+            boolean gate = x == 19 || x == 20;
+            if (!gate) {
+                set(x, FLOOR + 1, z1 + 1, fence(false, x < x1 + 1 && x != 18, false, x > x0 - 1 && x != 21));
+            }
         }
         for (int z = z0; z <= z1; z++) {
             set(x0 - 1, FLOOR, z, alongZ);
             set(x1 + 1, FLOOR, z, alongZ);
             set(x0 - 1, FLOOR + 1, z, fence(z > z0, false, true, false));
+            set(x1 + 1, FLOOR + 1, z, fence(z > z0, false, true, false));
         }
         set(x0 - 1, FLOOR + 1, z1 + 1, fence(true, true, false, false));
-        set(x1 + 1, FLOOR + 1, z1 + 1, Blocks.SPRUCE_FENCE.defaultBlockState().setValue(CrossCollisionBlock.WEST, true));
+        set(x1 + 1, FLOOR + 1, z1 + 1, fence(true, false, false, true));
+        set(x0 - 1, FLOOR + 2, z1 + 1, Blocks.LANTERN.defaultBlockState());
         set(x1 + 1, FLOOR + 2, z1 + 1, Blocks.LANTERN.defaultBlockState());
-        set(x0 - 1, FLOOR + 2, z0, Blocks.LANTERN.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 29, Blocks.HAY_BLOCK.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 30, Blocks.HAY_BLOCK.defaultBlockState());
-        set(x1 + 2, FLOOR + 2, 29, Blocks.HAY_BLOCK.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 32, Blocks.COMPOSTER.defaultBlockState());
-        set(x1 + 2, FLOOR + 1, 33, Blocks.BARREL.defaultBlockState());
-        set(x1 + 2, FLOOR + 2, 33, Blocks.LANTERN.defaultBlockState());
-        set(13, FLOOR + 1, 32, AIR);
-        world.figures.add(new CaveWorld.Figure(13.5F, FLOOR + 0.9375F, 32.5F, 200.0F, false, 5,
+        set(x1 + 2, FLOOR + 1, z0 + 1, Blocks.HAY_BLOCK.defaultBlockState());
+        set(x1 + 2, FLOOR + 1, z0 + 2, Blocks.HAY_BLOCK.defaultBlockState());
+        set(x1 + 2, FLOOR + 2, z0 + 1, Blocks.HAY_BLOCK.defaultBlockState());
+        set(x1 + 2, FLOOR + 1, z0 + 4, Blocks.COMPOSTER.defaultBlockState());
+        set(x1 + 2, FLOOR + 1, z0 + 5, Blocks.BARREL.defaultBlockState());
+        set(x1 + 2, FLOOR + 2, z0 + 5, Blocks.LANTERN.defaultBlockState());
+        set(19, FLOOR + 1, 9, AIR);
+        world.figures.add(new CaveWorld.Figure(19.5F, FLOOR + 0.9375F, 9.5F, 20.0F, false, 5,
                 new ItemStack(Items.IRON_HOE), ItemStack.EMPTY, true));
     }
 
-    /** A workshop dug into the west wall north of the cottage: furnaces, anvil, smithing table, a smith at work. */
-    private void workshop() {
-        carve(4, FLOOR + 1, 11, 11, FLOOR + 4, 16);
-        box(4, FLOOR, 11, 11, FLOOR, 16, Blocks.SPRUCE_PLANKS.defaultBlockState());
-        set(4, FLOOR + 1, 12, Blocks.CRAFTING_TABLE.defaultBlockState());
-        set(4, FLOOR + 1, 13, facing(Blocks.FURNACE, Direction.EAST).setValue(BlockStateProperties.LIT, true));
-        set(4, FLOOR + 1, 14, facing(Blocks.BLAST_FURNACE, Direction.EAST).setValue(BlockStateProperties.LIT, true));
-        set(4, FLOOR + 1, 15, Blocks.SMITHING_TABLE.defaultBlockState());
-        set(4, FLOOR + 2, 13, Blocks.LANTERN.defaultBlockState());
-        set(6, FLOOR + 1, 16, facing(Blocks.ANVIL, Direction.EAST));
-        set(8, FLOOR + 1, 16, Blocks.GRINDSTONE.defaultBlockState());
-        set(6, FLOOR + 1, 11, Blocks.BARREL.defaultBlockState());
-        set(7, FLOOR + 1, 11, Blocks.BARREL.defaultBlockState());
-        set(6, FLOOR + 2, 11, Blocks.BARREL.defaultBlockState());
-        set(9, FLOOR + 1, 11, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH));
-        blockEntity(9, FLOOR + 1, 11, "minecraft:chest");
-        BlockState post = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
-        for (int z : new int[]{11, 16}) {
-            for (int y = FLOOR + 1; y <= FLOOR + 3; y++) {
-                set(11, y, z, post);
-            }
-        }
-        for (int z = 11; z <= 16; z++) {
-            set(11, FLOOR + 4, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
-            set(12, FLOOR + 4, z, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
-        }
-        set(8, FLOOR + 3, 13, hangingLantern());
-        set(8, FLOOR + 4, 13, Blocks.CHAIN.defaultBlockState());
-        world.figures.add(new CaveWorld.Figure(6.5F, FLOOR + 1, 15.2F, 0.0F, false, 11,
-                new ItemStack(Items.IRON_INGOT), ItemStack.EMPTY, true));
-    }
-
-    /** Behind an amethyst-studded arch in the north wall: an enchanting table ringed by bookshelves and candles. */
+    /** In the west wall: an enchanting table ringed by bookshelves and candles behind an amethyst-studded arch. */
     private void enchantingRoom() {
-        carve(16, FLOOR + 1, 1, 22, FLOOR + 5, 8);
+        int x0 = 0;
+        int x1 = 6;
+        int z0 = 22;
+        int z1 = 28;
+        int mid = 25;
         BlockState bricks = Blocks.STONE_BRICKS.defaultBlockState();
         for (int y = FLOOR + 1; y <= FLOOR + 5; y++) {
-            for (int z = 1; z <= 8; z++) {
-                set(16, y, z, random.nextFloat() < 0.3F ? Blocks.MOSSY_STONE_BRICKS.defaultBlockState() : bricks);
-                set(22, y, z, random.nextFloat() < 0.3F ? Blocks.MOSSY_STONE_BRICKS.defaultBlockState() : bricks);
-            }
-            for (int x = 16; x <= 22; x++) {
-                set(x, y, 1, bricks);
-                set(x, y, 8, random.nextFloat() < 0.25F ? Blocks.CRACKED_STONE_BRICKS.defaultBlockState() : bricks);
+            for (int z = z0; z <= z1; z++) {
+                for (int x = x0; x <= x1; x++) {
+                    boolean wall = x == x0 || x == x1 || z == z0 || z == z1;
+                    float r = random.nextFloat();
+                    set(x, y, z, !wall ? AIR : r < 0.25F ? Blocks.MOSSY_STONE_BRICKS.defaultBlockState()
+                            : r < 0.4F ? Blocks.CRACKED_STONE_BRICKS.defaultBlockState() : bricks);
+                }
             }
         }
-        box(16, FLOOR + 6, 1, 22, FLOOR + 6, 8, Blocks.DEEPSLATE_TILES.defaultBlockState());
-        carve(18, FLOOR + 1, 8, 20, FLOOR + 3, 8);
-        set(18, FLOOR + 3, 8, stairs(Blocks.STONE_BRICK_STAIRS, Direction.WEST, true));
-        set(20, FLOOR + 3, 8, stairs(Blocks.STONE_BRICK_STAIRS, Direction.EAST, true));
-        box(17, FLOOR, 2, 21, FLOOR, 7, Blocks.POLISHED_DEEPSLATE.defaultBlockState());
-        set(19, FLOOR + 1, 4, Blocks.ENCHANTING_TABLE.defaultBlockState());
-        blockEntity(19, FLOOR + 1, 4, "minecraft:enchanting_table");
-        for (int z = 2; z <= 6; z++) {
-            box(17, FLOOR + 1, z, 17, FLOOR + 2, z, Blocks.BOOKSHELF.defaultBlockState());
-            box(21, FLOOR + 1, z, 21, FLOOR + 2, z, Blocks.BOOKSHELF.defaultBlockState());
-        }
-        box(18, FLOOR + 1, 2, 20, FLOOR + 2, 2, Blocks.BOOKSHELF.defaultBlockState());
-        for (int[] c : new int[][]{{17, 3}, {17, 6}, {21, 2}, {21, 5}, {19, 2}}) {
+        box(x0, FLOOR + 6, z0, x1, FLOOR + 6, z1, Blocks.DEEPSLATE_TILES.defaultBlockState());
+        box(x0 + 1, FLOOR, z0 + 1, x1 - 1, FLOOR, z1 - 1, Blocks.POLISHED_DEEPSLATE.defaultBlockState());
+        carve(x1, FLOOR + 1, mid - 1, x1, FLOOR + 3, mid + 1);
+        set(x1, FLOOR + 3, mid - 1, stairs(Blocks.STONE_BRICK_STAIRS, Direction.NORTH, true));
+        set(x1, FLOOR + 3, mid + 1, stairs(Blocks.STONE_BRICK_STAIRS, Direction.SOUTH, true));
+        set(2, FLOOR + 1, mid, Blocks.ENCHANTING_TABLE.defaultBlockState());
+        blockEntity(2, FLOOR + 1, mid, "minecraft:enchanting_table");
+        box(x0 + 1, FLOOR + 1, z0 + 1, x0 + 1, FLOOR + 2, z1 - 1, Blocks.BOOKSHELF.defaultBlockState());
+        box(x0 + 2, FLOOR + 1, z0 + 1, x1 - 2, FLOOR + 2, z0 + 1, Blocks.BOOKSHELF.defaultBlockState());
+        box(x0 + 2, FLOOR + 1, z1 - 1, x1 - 2, FLOOR + 2, z1 - 1, Blocks.BOOKSHELF.defaultBlockState());
+        for (int[] c : new int[][]{{1, 23}, {1, 26}, {3, 23}, {4, 27}, {1, 25}}) {
             set(c[0], FLOOR + 3, c[1], Blocks.CANDLE.defaultBlockState().setValue(CandleBlock.CANDLES, 1 + random.nextInt(3))
                     .setValue(BlockStateProperties.LIT, true));
         }
-        set(21, FLOOR + 3, 4, Blocks.LANTERN.defaultBlockState());
-        for (int x = 15; x <= 23; x++) {
+        set(3, FLOOR + 3, 27, Blocks.LANTERN.defaultBlockState());
+        for (int z = z0 - 1; z <= z1 + 1; z++) {
             for (int y = FLOOR + 1; y <= FLOOR + 6; y++) {
-                if (random.nextFloat() < 0.35F && (x < 17 || x > 21 || y > FLOOR + 4) && !air(x, y, 8)) {
-                    set(x, y, 8, random.nextFloat() < 0.2F ? Blocks.BUDDING_AMETHYST.defaultBlockState() : Blocks.AMETHYST_BLOCK.defaultBlockState());
-                    if (air(x, y, 9) && random.nextFloat() < 0.6F) {
-                        set(x, y, 9, Blocks.AMETHYST_CLUSTER.defaultBlockState().setValue(AmethystClusterBlock.FACING, Direction.SOUTH));
-                    }
+                boolean arch = Math.abs(z - mid) <= 1 && y <= FLOOR + 3;
+                if (arch || random.nextFloat() > 0.35F || air(x1, y, z)) {
+                    continue;
+                }
+                set(x1, y, z, random.nextFloat() < 0.2F ? Blocks.BUDDING_AMETHYST.defaultBlockState() : Blocks.AMETHYST_BLOCK.defaultBlockState());
+                if (air(x1 + 1, y, z) && random.nextFloat() < 0.6F) {
+                    set(x1 + 1, y, z, Blocks.AMETHYST_CLUSTER.defaultBlockState().setValue(AmethystClusterBlock.FACING, Direction.EAST));
                 }
             }
         }
     }
 
-    /** A timbered side tunnel in the north wall, ending at a small diamond vein the player is digging out. */
-    private void mineTunnel() {
-        carve(28, FLOOR + 1, 1, 32, FLOOR + 4, 10);
-        for (int x = 27; x <= 33; x++) {
-            for (int y = FLOOR + 1; y <= FLOOR + 4; y++) {
-                set(x, y, 0, random.nextFloat() < 0.1F ? Blocks.DEEPSLATE_IRON_ORE.defaultBlockState() : Blocks.DEEPSLATE.defaultBlockState());
+    /**
+     * A stone-brick mill against the west wall with lit windows, and on its south side a waterwheel standing in a bay
+     * of the pond, its face towards the far end of the hall.
+     */
+    private void waterwheel() {
+        int x0 = 3;
+        int x1 = 11;
+        int z0 = 30;
+        int z1 = 37;
+        for (int z = z0; z <= z1; z++) {
+            for (int x = x0; x <= x1; x++) {
+                for (int y = 1; y <= FLOOR + 7; y++) {
+                    float r = random.nextFloat();
+                    set(x, y, z, (r < 0.3F ? Blocks.MOSSY_STONE_BRICKS : r < 0.4F ? Blocks.CRACKED_STONE_BRICKS : Blocks.STONE_BRICKS).defaultBlockState());
+                }
+                boolean edge = x == x1 || z == z0 || z == z1;
+                set(x, FLOOR + 8, z, edge ? slab(Blocks.STONE_BRICK_SLAB, SlabType.BOTTOM) : Blocks.STONE_BRICKS.defaultBlockState());
             }
         }
-        for (int z = 1; z <= 9; z++) {
-            for (int y = FLOOR + 1; y <= FLOOR + 4; y++) {
-                if (!air(27, y, z)) {
-                    set(27, y, z, Blocks.DEEPSLATE.defaultBlockState());
+        for (int z : new int[]{z0 + 2, z0 + 5}) {
+            set(x1, FLOOR + 3, z, pane(Direction.Axis.Z));
+            set(x1, FLOOR + 4, z, pane(Direction.Axis.Z));
+            set(x1 - 1, FLOOR + 3, z, Blocks.SHROOMLIGHT.defaultBlockState());
+            set(x1 - 1, FLOOR + 4, z, Blocks.SHROOMLIGHT.defaultBlockState());
+        }
+        for (int x : new int[]{x0 + 2, x1 - 1}) {
+            set(x, FLOOR + 3, z1, pane(Direction.Axis.X));
+            set(x, FLOOR + 3, z1 - 1, Blocks.SHROOMLIGHT.defaultBlockState());
+        }
+        set(x0 + 1, FLOOR + 6, z1, Blocks.SHROOMLIGHT.defaultBlockState());
+        set(x1, FLOOR + 6, z1, Blocks.SHROOMLIGHT.defaultBlockState());
+        set(x1 + 1, FLOOR + 5, z0 + 1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST));
+        int cx = 8;
+        int cy = FLOOR + 1;
+        BlockState rim = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+        for (int dy = -5; dy <= 5; dy++) {
+            for (int dx = -5; dx <= 5; dx++) {
+                float d = Mth.sqrt(dx * dx + dy * dy);
+                if (d >= 3.5F && d < 4.5F) {
+                    set(cx + dx, cy + dy, z1 + 1, rim);
+                    set(cx + dx, cy + dy, z1 + 3, rim);
+                } else if (d >= 1.0F && d < 3.5F && (dx == 0 || dy == 0)) {
+                    BlockState spoke = log(Blocks.STRIPPED_DARK_OAK_LOG, dy == 0 ? Direction.Axis.X : Direction.Axis.Y);
+                    set(cx + dx, cy + dy, z1 + 1, spoke);
+                    set(cx + dx, cy + dy, z1 + 3, spoke);
                 }
-                if (!air(33, y, z)) {
-                    set(33, y, z, Blocks.DEEPSLATE.defaultBlockState());
+            }
+        }
+        for (int i = 0; i < 12; i++) {
+            float a = i * Mth.TWO_PI / 12.0F;
+            int px = cx + Math.round(4.8F * Mth.cos(a));
+            int py = cy + Math.round(4.8F * Mth.sin(a));
+            for (int z = z1 + 1; z <= z1 + 3; z++) {
+                set(px, py, z, Blocks.SPRUCE_PLANKS.defaultBlockState());
+            }
+        }
+        for (int z = z1; z <= z1 + 4; z++) {
+            set(cx, cy, z, log(Blocks.DARK_OAK_LOG, Direction.Axis.Z));
+        }
+    }
+
+    /** A timbered mine tunnel into the east wall, ending at a small diamond vein the player is digging out. */
+    private void mineTunnel() {
+        int x0 = 35;
+        int x1 = 43;
+        int z0 = 6;
+        int z1 = 10;
+        int mid = 8;
+        for (int x = x0; x <= x1 + 1; x++) {
+            for (int y = FLOOR; y <= FLOOR + 5; y++) {
+                for (int z = z0 - 1; z <= z1 + 1; z++) {
+                    boolean inside = x <= x1 && y > FLOOR && y < FLOOR + 5 && z >= z0 && z <= z1;
+                    set(x, y, z, inside ? AIR : random.nextFloat() < 0.08F && y > FLOOR ? Blocks.DEEPSLATE_IRON_ORE.defaultBlockState()
+                            : (y == FLOOR ? Blocks.COBBLED_DEEPSLATE : Blocks.DEEPSLATE).defaultBlockState());
                 }
             }
         }
         BlockState diamond = Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState();
-        set(30, FLOOR + 1, 0, diamond);
-        set(30, FLOOR + 2, 0, diamond);
-        set(31, FLOOR + 2, 0, diamond);
+        set(x1 + 1, FLOOR + 1, mid, diamond);
+        set(x1 + 1, FLOOR + 2, mid, diamond);
+        set(x1 + 1, FLOOR + 2, mid + 1, diamond);
         BlockState post = Blocks.SPRUCE_LOG.defaultBlockState();
-        for (int z : new int[]{8, 10}) {
+        for (int x : new int[]{x0 + 1, x0 + 3}) {
             for (int y = FLOOR + 1; y <= FLOOR + 3; y++) {
-                set(28, y, z, post);
-                set(32, y, z, post);
+                set(x, y, z0, post);
+                set(x, y, z1, post);
             }
-            for (int x = 28; x <= 32; x++) {
-                set(x, FLOOR + 4, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.X));
+            for (int z = z0; z <= z1; z++) {
+                set(x, FLOOR + 4, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
             }
         }
-        box(28, FLOOR, 1, 32, FLOOR, 9, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(28, FLOOR + 3, 4, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST));
-        set(32, FLOOR + 3, 2, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.WEST));
-        set(28, FLOOR + 1, 6, Blocks.LANTERN.defaultBlockState());
-        set(32, FLOOR + 1, 1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(28, FLOOR + 1, 1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(28, FLOOR + 2, 1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        for (int z = 3; z <= 10; z++) {
-            set(30, FLOOR + 1, z, Blocks.RAIL.defaultBlockState());
+        set(x0 + 5, FLOOR + 3, z0, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH));
+        set(x1 - 1, FLOOR + 3, z1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.NORTH));
+        set(x0 + 2, FLOOR + 1, z1, Blocks.LANTERN.defaultBlockState());
+        set(x1, FLOOR + 1, z0, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        set(x1, FLOOR + 1, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        set(x1, FLOOR + 2, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        for (int x = x0 - 3; x <= x1 - 3; x++) {
+            if (air(x, FLOOR + 1, mid)) {
+                set(x, FLOOR + 1, mid, Blocks.RAIL.defaultBlockState().setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST));
+            }
         }
-        world.figures.add(new CaveWorld.Figure(30.5F, FLOOR + 1, 2.7F, 180.0F, true, 0,
+        world.figures.add(new CaveWorld.Figure(41.6F, FLOOR + 1, mid + 0.5F, -90.0F, true, 0,
                 new ItemStack(Items.IRON_PICKAXE), new ItemStack(Items.TORCH), true));
     }
 
-    /** By the east wall: friends round a campfire on stair benches, supplies stacked behind. */
+    /** East of the boardwalk under the cherry tree: friends round a campfire on stair benches, supplies behind. */
     private void camp() {
-        int fx = 38;
-        int fz = 25;
+        int fx = 33;
+        int fz = 30;
         set(fx, FLOOR + 1, fz, Blocks.CAMPFIRE.defaultBlockState());
         set(fx, FLOOR, fz, Blocks.COBBLESTONE.defaultBlockState());
-        set(fx - 3, FLOOR + 1, fz, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
-        set(fx - 3, FLOOR + 1, fz + 1, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
-        set(fx, FLOOR + 1, fz + 3, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, false));
-        set(fx + 1, FLOOR + 1, fz + 3, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, false));
-        set(fx + 2, FLOOR + 1, fz - 3, Blocks.BARREL.defaultBlockState());
-        set(fx + 3, FLOOR + 1, fz - 3, Blocks.BARREL.defaultBlockState());
-        set(fx + 2, FLOOR + 2, fz - 3, Blocks.BARREL.defaultBlockState());
-        float[][] friends = {{36.2F, 24.0F}, {38.6F, 27.8F}, {40.2F, 23.8F}};
+        set(fx - 2, FLOOR + 1, fz - 1, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
+        set(fx + 2, FLOOR + 1, fz + 2, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, false));
+        set(fx + 3, FLOOR + 1, fz + 3, Blocks.BARREL.defaultBlockState());
+        set(fx + 3, FLOOR + 1, fz + 4, Blocks.BARREL.defaultBlockState());
+        set(fx + 3, FLOOR + 2, fz + 3, Blocks.LANTERN.defaultBlockState());
+        float[][] friends = {{31.7F, 30.0F}, {33.2F, 32.4F}, {35.0F, 29.2F}};
         ItemStack[] hands = {new ItemStack(Items.TORCH), new ItemStack(Items.BREAD), new ItemStack(Items.IRON_SHOVEL)};
         int[] skins = {2, 9, 14};
         for (int i = 0; i < friends.length; i++) {
@@ -578,10 +741,48 @@ final class MineScene {
         }
     }
 
-    /** Stone paths between everything, three wide, a lamp set into the ground every few steps. */
+    /** Off the boardwalk, dug into the east wall: furnaces, anvil, smithing table, books and a smith at work. */
+    private void workshop() {
+        int x0 = 31;
+        int x1 = 39;
+        int z0 = 38;
+        int z1 = 46;
+        carve(x0, FLOOR + 1, z0, x1, FLOOR + 5, z1);
+        box(x0, FLOOR, z0, x1, FLOOR, z1, Blocks.SPRUCE_PLANKS.defaultBlockState());
+        set(x1, FLOOR + 1, z0 + 1, Blocks.CRAFTING_TABLE.defaultBlockState());
+        set(x1, FLOOR + 1, z0 + 2, facing(Blocks.FURNACE, Direction.WEST).setValue(BlockStateProperties.LIT, true));
+        set(x1, FLOOR + 1, z0 + 3, facing(Blocks.BLAST_FURNACE, Direction.WEST).setValue(BlockStateProperties.LIT, true));
+        set(x1, FLOOR + 1, z0 + 4, Blocks.SMITHING_TABLE.defaultBlockState());
+        set(x1, FLOOR + 2, z0 + 2, Blocks.LANTERN.defaultBlockState());
+        box(x1, FLOOR + 1, z0 + 5, x1, FLOOR + 2, z1 - 1, Blocks.BOOKSHELF.defaultBlockState());
+        set(x1 - 1, FLOOR + 1, z1 - 1, facing(Blocks.LECTERN, Direction.WEST));
+        set(34, FLOOR + 1, 44, facing(Blocks.ANVIL, Direction.EAST));
+        set(36, FLOOR + 1, z1, Blocks.GRINDSTONE.defaultBlockState());
+        set(32, FLOOR + 1, z0, Blocks.BARREL.defaultBlockState());
+        set(33, FLOOR + 1, z0, Blocks.BARREL.defaultBlockState());
+        set(32, FLOOR + 2, z0, Blocks.BARREL.defaultBlockState());
+        set(36, FLOOR + 1, z0, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH));
+        blockEntity(36, FLOOR + 1, z0, "minecraft:chest");
+        BlockState post = log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Y);
+        for (int z : new int[]{z0, z1}) {
+            for (int y = FLOOR + 1; y <= FLOOR + 4; y++) {
+                set(x0, y, z, post);
+            }
+        }
+        for (int z = z0; z <= z1; z++) {
+            set(x0, FLOOR + 5, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
+            set(x0 - 1, FLOOR + 5, z, stairs(Blocks.SPRUCE_STAIRS, Direction.EAST, false));
+        }
+        set(35, FLOOR + 4, 42, hangingLantern());
+        set(35, FLOOR + 5, 42, Blocks.CHAIN.defaultBlockState());
+        world.figures.add(new CaveWorld.Figure(35.5F, FLOOR + 1, 42.5F, 45.0F, false, 11,
+                new ItemStack(Items.IRON_INGOT), ItemStack.EMPTY, true));
+    }
+
+    /** Stone paths round the north end and down the west bank, three wide, a lamp set into the ground every few steps. */
     private void paths() {
-        int[][] legs = {{15, 22, 20, 22}, {20, 22, 20, 11}, {20, 13, 12, 14}, {20, 11, 30, 11}, {20, 22, 21, 34},
-            {21, 34, 34, 35}, {34, 35, 37, 28}};
+        int[][] legs = {{10, 20, 10, 29}, {10, 20, 12, 13}, {12, 8, 12, 13}, {12, 12, 30, 12}, {30, 12, 35, 8},
+            {10, 46, 10, 56}};
         for (int[] leg : legs) {
             int steps = Math.max(Math.abs(leg[2] - leg[0]), Math.abs(leg[3] - leg[1]));
             for (int i = 0; i <= steps; i++) {
@@ -599,9 +800,9 @@ final class MineScene {
 
     private void pave(int x, int z, boolean lamp) {
         BlockState under = get(x, FLOOR, z);
-        if (!(under.is(Blocks.MOSS_BLOCK) || under.is(Blocks.GRAVEL) || under.is(Blocks.COARSE_DIRT) || under.is(Blocks.STONE)
-                || under.is(Blocks.MOSSY_COBBLESTONE)) || !(air(x, FLOOR + 1, z) || get(x, FLOOR + 1, z).is(Blocks.MOSS_CARPET)
-                || get(x, FLOOR + 1, z).is(Blocks.FERN))) {
+        BlockState above = get(x, FLOOR + 1, z);
+        if (!(under.is(Blocks.MOSS_BLOCK) || under.is(Blocks.GRAVEL) || under.is(Blocks.STONE) || under.is(Blocks.MOSSY_COBBLESTONE))
+                || !(above.isAir() || above.is(Blocks.MOSS_CARPET) || above.is(Blocks.FERN))) {
             return;
         }
         set(x, FLOOR + 1, z, AIR);
@@ -644,141 +845,90 @@ final class MineScene {
                 }
             }
         }
-        for (int i = 0; i < 18; i++) {
-            int dx = random.nextInt(9) - 4;
-            int dz = random.nextInt(9) - 4;
-            int y = top - 3;
-            if (get(cx + dx, y, cz + dz).is(Blocks.CHERRY_LEAVES) && air(cx + dx, y - 1, cz + dz)) {
-                set(cx + dx, y - 1, cz + dz, blossom);
-            }
-        }
         for (int i = 0; i < 14; i++) {
             int px = x + random.nextInt(9) - 4;
             int pz = z + random.nextInt(9) - 4;
             if (air(px, FLOOR + 1, pz) && get(px, FLOOR, pz).is(Blocks.MOSS_BLOCK)) {
-                set(px, FLOOR + 1, pz, Blocks.PINK_PETALS.defaultBlockState());
+                set(px, FLOOR + 1, pz, Blocks.PINK_PETALS.defaultBlockState().setValue(PinkPetalsBlock.AMOUNT, 1 + random.nextInt(4)));
             }
         }
     }
 
-    /** Two timber bridges spanning the shaft high up, lanterns under their beams and glow berries hanging below. */
-    private void bridges() {
-        bridge(true, 14, 25, 27);
-        bridge(false, 20, 31, 13);
+    /** Azalea bushes, ferns and grass over the open moss, kept clear of where people stand. */
+    private void greenery() {
+        for (int z = 1; z < SZ - 1; z++) {
+            for (int x = 1; x < SX - 1; x++) {
+                if (!get(x, FLOOR, z).is(Blocks.MOSS_BLOCK) || !(air(x, FLOOR + 1, z) || get(x, FLOOR + 1, z).is(Blocks.MOSS_CARPET))) {
+                    continue;
+                }
+                boolean nearFigure = false;
+                for (CaveWorld.Figure figure : world.figures) {
+                    nearFigure |= Math.abs(figure.x() - x - 0.5F) < 2.0F && Math.abs(figure.z() - z - 0.5F) < 2.0F;
+                }
+                if (nearFigure) {
+                    continue;
+                }
+                float r = random.nextFloat();
+                Block plant = r < 0.03F ? Blocks.AZALEA : r < 0.045F ? Blocks.FLOWERING_AZALEA : r < 0.1F ? Blocks.FERN
+                        : r < 0.19F ? Blocks.SHORT_GRASS : r < 0.196F ? Blocks.LANTERN : null;
+                if (plant != null) {
+                    set(x, FLOOR + 1, z, plant.defaultBlockState());
+                }
+            }
+        }
     }
 
-    /** A bridge along x ({@code alongX}) or z, three wide centred on {@code across}, its deck at {@code y}. */
-    private void bridge(boolean alongX, int across, int y, int person) {
-        int length = alongX ? SX : SZ;
-        int start = -1;
-        int end = -1;
-        for (int i = 0; i < length; i++) {
-            boolean open = alongX ? air(i, y, across) : air(across, y, i);
-            if (open && start < 0) {
-                start = i;
-            }
-            if (open) {
-                end = i;
-            }
-        }
-        if (start < 0) {
-            return;
-        }
-        BlockState deck = Blocks.SPRUCE_PLANKS.defaultBlockState();
-        for (int i = start - 1; i <= end + 1; i++) {
-            for (int w = -1; w <= 1; w++) {
-                int x = alongX ? i : across + w;
-                int z = alongX ? across + w : i;
-                set(x, y, z, w == 0 || random.nextFloat() < 0.85F ? deck : Blocks.STRIPPED_SPRUCE_LOG.defaultBlockState());
-                if (w != 0) {
-                    boolean prev = i > start - 1;
-                    boolean next = i < end + 1;
-                    set(x, y + 1, z, alongX ? fence(false, next, false, prev) : fence(prev, false, next, false));
+    /**
+     * The roof: moss in patches, lamps set flush into the rock, glow berries hanging thick (never below head height
+     * over the walkways), clumps of azalea leaves and spore blossoms.
+     */
+    private void roof(ImprovedNoise noise) {
+        for (int z = 0; z < SZ; z++) {
+            for (int x = 0; x < SX; x++) {
+                int top = ceiling(x, FLOOR + 1, z);
+                if (top < FLOOR + 7) {
+                    continue;
                 }
-            }
-            if ((i - start) % 5 == 0) {
-                for (int w = -2; w <= 2; w++) {
-                    int x = alongX ? i : across + w;
-                    int z = alongX ? across + w : i;
-                    set(x, y - 1, z, log(Blocks.DARK_OAK_LOG, alongX ? Direction.Axis.Z : Direction.Axis.X));
+                int y = top + 1;
+                if (!rock(get(x, y, z))) {
+                    continue;
                 }
-                set(alongX ? i : across, y - 2, alongX ? across : i, hangingLantern());
-            }
-            for (int w : new int[]{-1, 1}) {
-                if (random.nextFloat() < 0.45F) {
-                    int x = alongX ? i : across + w;
-                    int z = alongX ? across + w : i;
-                    int top = y - 1;
-                    if (!air(x, top, z)) {
-                        continue;
-                    }
-                    int vine = 2 + random.nextInt(7);
-                    for (int k = 0; k < vine && air(x, top - k, z); k++) {
-                        Block block = k == vine - 1 ? Blocks.CAVE_VINES : Blocks.CAVE_VINES_PLANT;
+                if (noise.noise(x * 0.2, 50.0, z * 0.2) > 0.15) {
+                    set(x, y, z, Blocks.MOSS_BLOCK.defaultBlockState());
+                }
+                float r = random.nextFloat();
+                if (r < 0.02F) {
+                    set(x, y, z, warmLamp());
+                } else if (r < 0.15F) {
+                    int longest = Math.min(6, top - (FLOOR + 6) + 1);
+                    int length = 1 + random.nextInt(longest);
+                    for (int k = 0; k < length; k++) {
+                        Block block = k == length - 1 ? Blocks.CAVE_VINES : Blocks.CAVE_VINES_PLANT;
                         set(x, top - k, z, block.defaultBlockState().setValue(CaveVines.BERRIES, random.nextFloat() < 0.55F));
                     }
-                }
-            }
-        }
-        float px = alongX ? person + 0.5F : across + 0.5F;
-        float pz = alongX ? across + 0.5F : person + 0.5F;
-        world.figures.add(new CaveWorld.Figure(px, y + 1, pz, alongX ? 0.0F : -90.0F, false, 7, ItemStack.EMPTY, ItemStack.EMPTY, false));
-    }
-
-    /** A patch of amethyst in the wall, found by heading out from the centre along {@code (dx, dz)} at height {@code y}. */
-    private void amethyst(float dx, float dz, int y) {
-        float x = CX;
-        float z = CZ;
-        while (world.contains((int) x, y, (int) z) && air((int) x, y, (int) z)) {
-            x += dx * 0.5F;
-            z += dz * 0.5F;
-        }
-        int cx = (int) x;
-        int cz = (int) z;
-        for (int oy = -4; oy <= 4; oy++) {
-            for (int oz = -4; oz <= 4; oz++) {
-                for (int ox = -4; ox <= 4; ox++) {
-                    float d = Mth.sqrt(ox * ox + oy * oy * 1.4F + oz * oz) + random.nextFloat() * 0.8F;
-                    if (d < 4.2F && rock(get(cx + ox, y + oy, cz + oz))) {
-                        set(cx + ox, y + oy, cz + oz, random.nextFloat() < 0.25F ? Blocks.BUDDING_AMETHYST.defaultBlockState()
-                                : Blocks.AMETHYST_BLOCK.defaultBlockState());
+                } else if (r < 0.175F) {
+                    Block leaf = random.nextFloat() < 0.4F ? Blocks.FLOWERING_AZALEA_LEAVES : Blocks.AZALEA_LEAVES;
+                    set(x, top, z, leaves(leaf));
+                    if (random.nextFloat() < 0.5F && top - 1 > FLOOR + 6) {
+                        set(x, top - 1, z, leaves(leaf));
                     }
-                }
-            }
-        }
-        for (int oy = -5; oy <= 5; oy++) {
-            for (int oz = -5; oz <= 5; oz++) {
-                for (int ox = -5; ox <= 5; ox++) {
-                    int px = cx + ox;
-                    int py = y + oy;
-                    int pz = cz + oz;
-                    if (!air(px, py, pz) || random.nextFloat() > 0.55F) {
-                        continue;
-                    }
-                    for (Direction side : Direction.values()) {
-                        BlockState support = get(px - side.getStepX(), py - side.getStepY(), pz - side.getStepZ());
-                        if (support.is(Blocks.AMETHYST_BLOCK) || support.is(Blocks.BUDDING_AMETHYST)) {
-                            Block crystal = random.nextFloat() < 0.6F ? Blocks.AMETHYST_CLUSTER : Blocks.LARGE_AMETHYST_BUD;
-                            set(px, py, pz, crystal.defaultBlockState().setValue(AmethystClusterBlock.FACING, side));
-                            break;
-                        }
-                    }
+                } else if (r < 0.18F) {
+                    set(x, top, z, Blocks.SPORE_BLOSSOM.defaultBlockState());
                 }
             }
         }
     }
 
-    /** Warm lamps set flush into the rock all the way up the walls. */
+    /** Warm lamps set flush into the walls here and there. */
     private void wallLights() {
-        Block[] lamps = {Blocks.SHROOMLIGHT, Blocks.SHROOMLIGHT, Blocks.SHROOMLIGHT, Blocks.OCHRE_FROGLIGHT};
         for (int z = 0; z < SZ; z++) {
             for (int y = FLOOR + 3; y < SY - 2; y++) {
                 for (int x = 0; x < SX; x++) {
-                    if (!rock(get(x, y, z)) || random.nextFloat() > 0.02F) {
+                    if (!rock(get(x, y, z)) || random.nextFloat() > 0.012F) {
                         continue;
                     }
-                    if (air(x + 1, y, z) || air(x - 1, y, z) || air(x, y, z + 1) || air(x, y, z - 1) || air(x, y - 1, z)) {
-                        set(x, y, z, lamps[random.nextInt(lamps.length)].defaultBlockState());
+                    if (air(x + 1, y, z) || air(x - 1, y, z) || air(x, y, z + 1) || air(x, y, z - 1)) {
+                        set(x, y, z, warmLamp());
                     }
                 }
             }
@@ -802,33 +952,16 @@ final class MineScene {
                         }
                         if (y <= FLOOR + 3 && random.nextFloat() < 0.45F) {
                             set(x, y, z, Blocks.MOSS_BLOCK.defaultBlockState());
-                        } else if (y > FLOOR + 6 && random.nextFloat() < 0.025F) {
+                        } else if (y > FLOOR + 5 && random.nextFloat() < 0.04F) {
                             BlockState vine = Blocks.VINE.defaultBlockState().setValue(VineBlock.getPropertyForFace(side.getOpposite()), true);
-                            int length = 2 + random.nextInt(7);
-                            for (int k = 0; k < length && air(ax, y - k, az) && y - k > FLOOR + 1; k++) {
+                            int length = 2 + random.nextInt(6);
+                            for (int k = 0; k < length && air(ax, y - k, az) && y - k > FLOOR + 2; k++) {
                                 set(ax, y - k, az, vine);
                             }
                         }
                         break;
                     }
                 }
-            }
-        }
-    }
-
-    /** Glow berries hanging from the roof of the shaft. */
-    private void ceilingVines() {
-        for (int i = 0; i < 260; i++) {
-            int x = 2 + random.nextInt(SX - 4);
-            int z = 2 + random.nextInt(SZ - 4);
-            int top = ceiling(x, FLOOR + 1, z);
-            if (top < 36) {
-                continue;
-            }
-            int length = Math.min(top - 34, 2 + random.nextInt(10));
-            for (int k = 0; k < length; k++) {
-                Block block = k == length - 1 ? Blocks.CAVE_VINES : Blocks.CAVE_VINES_PLANT;
-                set(x, top - k, z, block.defaultBlockState().setValue(CaveVines.BERRIES, random.nextFloat() < 0.5F));
             }
         }
     }
