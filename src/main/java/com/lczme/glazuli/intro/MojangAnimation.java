@@ -30,13 +30,13 @@ import org.joml.Matrix4f;
  * Frames are read straight from the mod file: the first reload hasn't made the mod's resources available yet.
  */
 final class MojangAnimation {
-    /** The original 39 frames at 14 fps, interpolated four times over (RIFE) to 57 fps. */
-    private static final int FRAMES = 153;
-    private static final float FRAME_SECONDS = 0.0175F;
+    /** The original 39 frames at 14 fps, interpolated eight times over (RIFE) to 114 fps. */
+    private static final int FRAMES = 305;
+    private static final float FRAME_SECONDS = 0.00875F;
     /** How long the last frame stays, to the end of the sound. */
     private static final float LAST_FRAME_SECONDS = 0.57F;
     /** Frames decoded ahead of the one shown; only the shown frame is on the GPU. */
-    private static final int LOOKAHEAD = 12;
+    private static final int LOOKAHEAD = 16;
     /** Cross-fade from the early window's static logo to the first frame. */
     private static final float INTRO_FADE_SECONDS = 0.4F;
     private static final float BAR_FADE_SECONDS = 0.25F;
