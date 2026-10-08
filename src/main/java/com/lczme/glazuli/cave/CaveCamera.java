@@ -32,7 +32,9 @@ final class CaveCamera {
     private static final float MIN_FLIGHT_SECONDS = 1.2F;
     private static final float MAX_FLIGHT_SECONDS = 2.6F;
     private static final float FOLLOW_SECONDS = 0.05F;
-    private static final float TURN_SMOOTH_SECONDS = 0.1F;
+    /** A camera redirected mid-flight first carries on this long along its old heading, curving onto the new path. */
+    private static final float CARRY_SECONDS = 0.25F;
+    private static final float TURN_SMOOTH_SECONDS = 0.3F;
     private static final float DIVE_TIME_CONSTANT = 2.4F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
@@ -78,11 +80,6 @@ final class CaveCamera {
     private double flightStart;
     private float flightSeconds = 1.0F;
     private float startSpeed;
-    /** View at the start of the flight, and how far the yaw turns (fixed then, so it never flips side). */
-    private float flightYaw;
-    private float flightYawTurn;
-    private float flightPitch;
-    private float flightLookDistance;
     /** Look direction as yaw/pitch in degrees (unwrapped), each with a lead angle and velocities. */
     private final float[] yaw = new float[4];
     private final float[] pitch = new float[4];
@@ -202,11 +199,26 @@ final class CaveCamera {
             if (cut || mode != Mode.SPOT) {
                 eyeVelocity.zero();
             }
-            planFlight(goalEye, goalDir, cut);
-            flightYaw = yaw[0];
-            flightYawTurn = Mth.wrapDegrees(goalYaw - flightYaw);
-            flightPitch = pitch[0];
-            flightLookDistance = lookDistance;
+            Vector3f via = null;
+            if (!cut && world != null && eyeVelocity.length() > 1.0F) {
+                for (float ahead = CARRY_SECONDS; ahead > 0.05F && via == null; ahead *= 0.5F) {
+                    Vector3f p = new Vector3f(eyeVelocity).mul(ahead).add(eye);
+                    if (CameraPath.clear(world, eye, p)) {
+                        via = p;
+                    }
+                }
+            }
+            flight = new ArrayList<>(cut || world == null ? List.of(new Vector3f(goalEye), new Vector3f(goalEye))
+                    : CameraPath.find(world, eye, via, goalEye));
+            flight.set(0, new Vector3f(eye));
+            Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
+            startSpeed = via != null ? eyeVelocity.length()
+                    : heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
+            float length = CameraPath.length(flight);
+            flightSeconds = Mth.clamp(FLIGHT_BASE_SECONDS + length / FLIGHT_BLOCKS_PER_SECOND, MIN_FLIGHT_SECONDS, MAX_FLIGHT_SECONDS);
+            if (startSpeed * flightSeconds > 2.0F * length) {
+                flightSeconds = Math.max(0.4F, 2.0F * length / startSpeed);
+            }
             flightStart = now;
             mode = Mode.SPOT;
             spot = next;
@@ -219,73 +231,14 @@ final class CaveCamera {
         float eased = t * t * t * (10.0F - 15.0F * t + 6.0F * t * t) + carry * (t - 6.0F * t * t * t + 8.0F * t * t * t * t - 3.0F * t * t * t * t * t);
         CameraPath.at(flight, eased * length, lead);
         smoothDamp(eye, lead, eyeVelocity, FOLLOW_SECONDS, dt);
-        // The view keeps its heading while the camera pulls back, swings round on the way and settles as it pushes in.
-        float w = smoothstep(0.15F, 0.85F, eased);
-        float yawTurn = flightYawTurn + Mth.wrapDegrees(goalYaw - flightYaw - flightYawTurn);
-        turn(yaw, flightYaw + yawTurn * w);
-        turn(pitch, Mth.lerp(w, flightPitch, goalPitch));
-        lookDistance = Mth.lerp(w, flightLookDistance, goalDistance);
+        turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
+        turn(pitch, goalPitch);
+        lookDistance = Mth.lerp(1.0F - (float) Math.exp(-dt * 4.0F), lookDistance, goalDistance);
         float yawRad = yaw[0] * Mth.DEG_TO_RAD;
         float pitchRad = pitch[0] * Mth.DEG_TO_RAD;
         float horizontal = Mth.cos(pitchRad);
         target.set(Mth.sin(yawRad) * horizontal, Mth.sin(pitchRad), Mth.cos(yawRad) * horizontal).mul(lookDistance).add(eye);
         fogEnd = baseFogEnd;
-    }
-
-    /**
-     * The flight from the eye to {@code goalEye}: a curve that pulls back and up from the current view (or carries on
-     * along the current heading when already moving) and pushes in to the new spot from behind and above it, drawn
-     * tighter where walls are close; if no such curve is clear, a path round the walls.
-     */
-    private void planFlight(Vector3f goalEye, Vector3f goalDir, boolean cut) {
-        flightSeconds = MIN_FLIGHT_SECONDS;
-        startSpeed = 0.0F;
-        if (cut || world == null) {
-            flight = new ArrayList<>(List.of(new Vector3f(goalEye), new Vector3f(goalEye)));
-            return;
-        }
-        float chord = eye.distance(goalEye);
-        float seconds = Mth.clamp(FLIGHT_BASE_SECONDS + chord / FLIGHT_BLOCKS_PER_SECOND, MIN_FLIGHT_SECONDS, MAX_FLIGHT_SECONDS);
-        boolean moving = eyeVelocity.length() > 1.0F;
-        Vector3f fromDir = new Vector3f(target).sub(eye);
-        List<Vector3f> curve = null;
-        for (float reach = Mth.clamp(chord * 0.4F, 1.5F, 9.0F); reach > 0.4F && curve == null; reach *= 0.6F) {
-            Vector3f p1 = moving ? new Vector3f(eyeVelocity).mul(seconds / 3.0F).add(eye) : pullBack(eye, fromDir, reach);
-            Vector3f p2 = pullBack(goalEye, goalDir, reach);
-            curve = CameraPath.bezier(world, new Vector3f(eye), p1, p2, new Vector3f(goalEye));
-            if (curve == null && moving) {
-                moving = false;
-            }
-        }
-        if (curve != null) {
-            flight = new ArrayList<>(curve);
-            startSpeed = moving ? eyeVelocity.length() : 0.0F;
-        } else {
-            Vector3f via = null;
-            for (float reach = 3.0F; reach > 0.4F && via == null; reach *= 0.6F) {
-                Vector3f p = pullBack(eye, fromDir, reach);
-                if (CameraPath.clear(world, eye, p)) {
-                    via = p;
-                }
-            }
-            flight = new ArrayList<>(CameraPath.find(world, eye, via, goalEye));            Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
-            startSpeed = heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
-        }
-        flight.set(0, new Vector3f(eye));
-        float length = CameraPath.length(flight);
-        flightSeconds = Mth.clamp(FLIGHT_BASE_SECONDS + length / FLIGHT_BLOCKS_PER_SECOND, MIN_FLIGHT_SECONDS, MAX_FLIGHT_SECONDS);
-        if (startSpeed * flightSeconds > 2.0F * length) {
-            flightSeconds = Math.max(0.4F, 2.0F * length / startSpeed);
-        }
-    }
-
-    /** Behind {@code from} (looking along {@code dir}) by {@code reach}, and up by about half that. */
-    private static Vector3f pullBack(Vector3f from, Vector3f dir, float reach) {
-        Vector3f back = new Vector3f(-dir.x, 0.0F, -dir.z);
-        if (back.lengthSquared() > 1.0E-4F) {
-            back.normalize(reach);
-        }
-        return back.add(0.0F, reach * 0.45F, 0.0F).add(from);
     }
 
     /** Angle state: {@code [value, velocity, lead, lead velocity]}. */
