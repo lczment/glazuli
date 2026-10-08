@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.DoublePlantBlock;
 import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LanternBlock;
@@ -26,6 +27,7 @@ import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.SweetBerryBushBlock;
 import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -604,6 +606,24 @@ final class MineScene {
         set(crowX, FLOOR + 3, crowZ, facing(Blocks.CARVED_PUMPKIN, Direction.SOUTH));
         set(crowX - 1, FLOOR + 2, crowZ, fence(false, true, false, false));
         set(crowX + 1, FLOOR + 2, crowZ, fence(false, false, false, true));
+        Block[] border = {Blocks.PUMPKIN, Blocks.SWEET_BERRY_BUSH, Blocks.LILAC, Blocks.PUMPKIN, Blocks.ROSE_BUSH, Blocks.MELON,
+            Blocks.SWEET_BERRY_BUSH, Blocks.PEONY, Blocks.PUMPKIN, Blocks.SWEET_BERRY_BUSH, Blocks.LILAC};
+        for (int x = x0; x <= x1; x++) {
+            int z = z0 - 1;
+            if (!air(x, FLOOR + 1, z) || !air(x, FLOOR + 2, z)) {
+                continue;
+            }
+            Block plant = border[(x - x0) % border.length];
+            set(x, FLOOR, z, Blocks.MOSS_BLOCK.defaultBlockState());
+            if (plant instanceof DoublePlantBlock) {
+                set(x, FLOOR + 1, z, plant.defaultBlockState().setValue(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER));
+                set(x, FLOOR + 2, z, plant.defaultBlockState().setValue(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER));
+            } else if (plant == Blocks.SWEET_BERRY_BUSH) {
+                set(x, FLOOR + 1, z, plant.defaultBlockState().setValue(SweetBerryBushBlock.AGE, 3));
+            } else {
+                set(x, FLOOR + 1, z, plant.defaultBlockState());
+            }
+        }
         set(19, FLOOR + 1, 9, AIR);
         world.figures.add(new CaveWorld.Figure(19.5F, FLOOR + 0.9375F, 9.5F, 20.0F, false, 5,
                 new ItemStack(Items.IRON_HOE), ItemStack.EMPTY, true));
