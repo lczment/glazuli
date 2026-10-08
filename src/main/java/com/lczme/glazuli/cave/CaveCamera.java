@@ -1,6 +1,7 @@
 package com.lczme.glazuli.cave;
 
 import com.lczme.glazuli.anim.Easing;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.client.gui.screens.ConnectScreen;
@@ -22,12 +23,14 @@ final class CaveCamera {
     static final float FOG_END = 60.0F;
     private static final float INTRO_SECONDS = 3.4F;
     /**
-     * Flights between spots follow a lead point through two critically damped springs, so the camera eases in and out
-     * and a change of menu mid-flight bends the path instead of stopping it dead.
+     * Flights between spots: a lead point travels a path round any walls, speeding up to a cruise and braking to
+     * arrive, and the eye follows it on a short critically damped spring, rounding the corners. A change of menu
+     * mid-flight starts the new path from where the camera is at the speed it already has.
      */
-    private static final float SMOOTH_SECONDS = 0.32F;
+    private static final float CRUISE_SPEED = 22.0F;
+    private static final float ACCELERATION = 36.0F;
+    private static final float FOLLOW_SECONDS = 0.06F;
     private static final float TURN_SMOOTH_SECONDS = 0.3F;
-    private static final float MAX_SPEED = 32.0F;
     private static final float DIVE_TIME_CONSTANT = 2.4F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
@@ -59,6 +62,8 @@ final class CaveCamera {
     }
 
     private final CameraRig rig;
+    @Nullable
+    private final CaveWorld world;
     private final float baseFogEnd;
     final Vector3f eye = new Vector3f();
     final Vector3f target = new Vector3f();
@@ -66,7 +71,10 @@ final class CaveCamera {
 
     private final Vector3f eyeVelocity = new Vector3f();
     private final Vector3f lead = new Vector3f();
-    private final Vector3f leadVelocity = new Vector3f();
+    /** The flight to the current spot (its last point kept on the drifting spot), how far along and how fast. */
+    private List<Vector3f> flight = List.of();
+    private float travelled;
+    private float speed;
     /** Look direction as yaw/pitch in degrees (unwrapped), each with a lead angle and velocities. */
     private final float[] yaw = new float[4];
     private final float[] pitch = new float[4];
@@ -84,8 +92,9 @@ final class CaveCamera {
     private float dt;
 
     /** {@code introFlown}: a scene switched to later starts at its spot instead of replaying the startup flight. */
-    CaveCamera(CameraRig rig, float fogEnd, boolean introFlown) {
+    CaveCamera(CameraRig rig, @Nullable CaveWorld world, float fogEnd, boolean introFlown) {
         this.rig = rig;
+        this.world = world;
         this.baseFogEnd = fogEnd;
         this.fogEnd = fogEnd;
         this.introFlown = introFlown;
@@ -183,15 +192,26 @@ final class CaveCamera {
                 lookDistance = Math.max(dir.length(), 0.01F);
             }
             if (cut || mode != Mode.SPOT) {
-                lead.set(eye);
                 eyeVelocity.zero();
-                leadVelocity.zero();
+                speed = 0.0F;
             }
+            flight = new ArrayList<>(cut || world == null ? List.of(new Vector3f(goalEye), new Vector3f(goalEye))
+                    : CameraPath.find(world, eye, goalEye));
+            flight.set(0, new Vector3f(eye));
+            Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
+            speed = heading.lengthSquared() > 1.0E-6F ? Math.max(0.0F, eyeVelocity.dot(heading.normalize())) : 0.0F;
+            travelled = 0.0F;
             mode = Mode.SPOT;
             spot = next;
         }
-        smoothDamp(lead, goalEye, leadVelocity, SMOOTH_SECONDS, MAX_SPEED, dt);
-        smoothDamp(eye, lead, eyeVelocity, SMOOTH_SECONDS, Float.MAX_VALUE, dt);
+        flight.get(flight.size() - 1).set(goalEye);
+        float length = CameraPath.length(flight);
+        float braking = Mth.sqrt(2.0F * ACCELERATION * Math.max(0.0F, length - travelled));
+        float wanted = Math.min(CRUISE_SPEED, braking);
+        speed = speed < wanted ? Math.min(wanted, speed + ACCELERATION * dt) : wanted;
+        travelled = Math.min(length, travelled + speed * dt);
+        CameraPath.at(flight, travelled, lead);
+        smoothDamp(eye, lead, eyeVelocity, FOLLOW_SECONDS, dt);
         turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
         turn(pitch, goalPitch);
         lookDistance = Mth.lerp(1.0F - (float) Math.exp(-dt * 4.0F), lookDistance, goalDistance);
@@ -237,19 +257,14 @@ final class CaveCamera {
         return goal + (change + temp) * decay;
     }
 
-    private static void smoothDamp(Vector3f value, Vector3f goal, Vector3f velocity, float smoothTime, float maxSpeed, float dt) {
+    private static void smoothDamp(Vector3f value, Vector3f goal, Vector3f velocity, float smoothTime, float dt) {
         float omega = 2.0F / smoothTime;
         float x = omega * dt;
         float decay = 1.0F / (1.0F + x + 0.48F * x * x + 0.235F * x * x * x);
         Vector3f change = new Vector3f(value).sub(goal);
-        float maxChange = maxSpeed * smoothTime;
-        if (change.lengthSquared() > maxChange * maxChange) {
-            change.normalize(maxChange);
-        }
-        Vector3f clampedGoal = new Vector3f(value).sub(change);
         Vector3f temp = new Vector3f(change).mul(omega).add(velocity).mul(dt);
         velocity.sub(temp.x * omega, temp.y * omega, temp.z * omega).mul(decay);
-        value.set(change).add(temp).mul(decay).add(clampedGoal);
+        value.set(change).add(temp).mul(decay).add(goal);
     }
 
     /** Development screenshots: holds the idle drift still so two frames differ only by what moves in the scene. */

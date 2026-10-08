@@ -141,7 +141,7 @@ public final class CaveBackground {
 
     private static CaveCamera camera(CaveWorld scene) {
         if (camera == null) {
-            camera = new CaveCamera(scene.rig(), scene.look().fogEnd(), introDone);
+            camera = new CaveCamera(scene.rig(), scene, scene.look().fogEnd(), introDone);
         }
         return camera;
     }
