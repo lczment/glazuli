@@ -61,6 +61,12 @@ public final class CaveWorld implements BlockAndTintGetter {
                   boolean swings) {
     }
 
+    /** Foxes curled up asleep; drawn, like the people, only by the world renderer. */
+    final List<SleepingFox> foxes = new ArrayList<>();
+
+    record SleepingFox(float x, float y, float z, float yaw, boolean cub) {
+    }
+
     CaveWorld(int sizeX, int sizeY, int sizeZ, @Nullable byte[] sky, boolean open, CameraRig rig, SceneLook look) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
@@ -74,7 +80,7 @@ public final class CaveWorld implements BlockAndTintGetter {
     }
 
     boolean needsWorld() {
-        return !blockEntities.isEmpty() || !figures.isEmpty();
+        return !blockEntities.isEmpty() || !figures.isEmpty() || !foxes.isEmpty();
     }
 
     CameraRig rig() {

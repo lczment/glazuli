@@ -5,6 +5,7 @@ import com.lczme.glazuli.anim.AnimClock;
 import com.lczme.glazuli.config.GlazuliConfig;
 import com.lczme.glazuli.mixin.CameraAccessor;
 import com.lczme.glazuli.mixin.ClientPacketListenerAccessor;
+import com.lczme.glazuli.mixin.FoxInvoker;
 import com.lczme.glazuli.mixin.GameRendererAccessor;
 import com.lczme.glazuli.mixin.LevelRendererAccessor;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -41,6 +42,8 @@ import net.minecraft.stats.StatsCounter;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
@@ -133,6 +136,7 @@ public final class ShaderCave {
     @Nullable
     private static LocalPlayer player;
     private static List<ScenePlayer> figures = List.of();
+    private static List<Fox> foxes = List.of();
     /** The scene {@link #level} (or the pending one) shows; another scene rebuilds the level. */
     @Nullable
     private static CaveWorld builtFor;
@@ -261,6 +265,7 @@ public final class ShaderCave {
         level = null;
         player = null;
         figures = List.of();
+        foxes = List.of();
         gameMode = null;
         pendingLevel = null;
         pendingListener = null;
@@ -334,6 +339,25 @@ public final class ShaderCave {
             people.add(person);
         }
         figures = people;
+        List<Fox> sleepers = new java.util.ArrayList<>();
+        for (CaveWorld.SleepingFox spec : builtFor.foxes) {
+            Fox fox = EntityType.FOX.create(cave);
+            if (fox == null) {
+                continue;
+            }
+            fox.moveTo(spec.x(), spec.y(), spec.z(), spec.yaw(), 0.0F);
+            fox.setYHeadRot(spec.yaw());
+            fox.yBodyRot = spec.yaw();
+            fox.yBodyRotO = spec.yaw();
+            fox.yHeadRotO = spec.yaw();
+            ((FoxInvoker) fox).glazuli$setSleeping(true);
+            if (spec.cub()) {
+                fox.setAge(-24000);
+            }
+            cave.addEntity(fox);
+            sleepers.add(fox);
+        }
+        foxes = sleepers;
         level = cave;
         player = stand;
         gameMode = new MultiPlayerGameMode(minecraft, listener);
@@ -519,6 +543,10 @@ public final class ShaderCave {
             double now = AnimClock.now();
             for (ScenePlayer person : figures) {
                 person.pose(eye, now);
+            }
+            for (Fox fox : foxes) {
+                // Nothing ticks this level, and a sleeping fox's head rocks with its tick count.
+                fox.tickCount = (int) (now * 20.0) + fox.getId() * 37;
             }
             // Iris only swaps in the pack's programs while the main target is bound, as it is for a normal world frame.
             minecraft.getMainRenderTarget().bindWrite(true);

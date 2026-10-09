@@ -12,6 +12,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.AmethystClusterBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.CaveVines;
 import net.minecraft.world.level.block.ChestBlock;
@@ -50,8 +51,8 @@ import org.joml.Vector3f;
  * the bridge, an enchanting room behind an amethyst arch. The menus' views all stand close round the title view, so
  * the camera never has far to go: the player digging out a diamond vein in an amethyst pocket at the back of a shallow
  * mine cut in the west wall (singleplayer), friends at a campfire under a cherry tree in a bay of the east wall
- * (multiplayer), a workshop off the boardwalk (options), the waterwheel (mods) and the candles afloat on the pond
- * (everything else).
+ * (multiplayer), a workshop off the boardwalk (options), foxes asleep in a den beside the mine cut (mods) and the
+ * candles afloat on the pond (everything else).
  */
 final class MineScene {
     private static final int SX = 46;
@@ -98,7 +99,7 @@ final class MineScene {
             {12.3F, 9.3F, 51.8F, 4.5F, 8.0F, 52.3F},
             {28.5F, 9.4F, 57.0F, 35.5F, 7.6F, 51.5F},
             {28.8F, 9.4F, 45.2F, 36.0F, 7.8F, 41.5F},
-            {13.5F, 9.5F, 47.5F, 8.0F, 7.6F, 39.0F},
+            {9.6F, 8.9F, 46.1F, 3.8F, 6.9F, 45.3F},
             {21.0F, 8.2F, 50.5F, 18.5F, 5.8F, 43.0F},
         };
         Vector3f[] eyes = new Vector3f[shots.length];
@@ -268,7 +269,67 @@ final class MineScene {
         flowers(noise);
         sporeBlossoms();
         geode();
+        foxDen();
         rockWindows();
+    }
+
+    /**
+     * A low mossy den dug into the west wall beside the mine cut, flowering azalea over its mouth and berry bushes
+     * before it: two foxes and a cub curled up asleep in and in front of it (NeoForge's fox, for the mods menu).
+     */
+    private void foxDen() {
+        float cx = 3.0F;
+        float cz = 45.5F;
+        for (int z = 43; z <= 47; z++) {
+            for (int x = 0; x <= 5; x++) {
+                float u = (x + 0.5F - cx) / 3.0F;
+                float v = (z + 0.5F - cz) / 2.6F;
+                float r = u * u + v * v;
+                if (r >= 1.0F) {
+                    continue;
+                }
+                for (int y = FLOOR + 1; y <= FLOOR + (r < 0.45F ? 3 : 2); y++) {
+                    set(x, y, z, AIR);
+                }
+                set(x, FLOOR, z, Blocks.MOSS_BLOCK.defaultBlockState());
+                if (x < 2 && z != 45) {
+                    set(x, FLOOR + 1, z, Blocks.MOSS_CARPET.defaultBlockState());
+                }
+            }
+        }
+        BlockState azalea = leaves(Blocks.FLOWERING_AZALEA_LEAVES);
+        for (int z = 43; z <= 47; z++) {
+            for (int x = 4; x <= 6; x++) {
+                int y = FLOOR + (x == 6 ? 4 : 3);
+                if (air(x, y, z) && (z != 43 && z != 47 || x < 6)) {
+                    set(x, y, z, azalea);
+                }
+            }
+        }
+        set(1, FLOOR + 1, 45, candle(Blocks.WHITE_CANDLE, 3));
+        set(5, FLOOR + 1, 43, Blocks.LANTERN.defaultBlockState());
+        for (int[] bush : new int[][]{{6, 44}, {7, 47}}) {
+            if (standable(bush[0], bush[1])) {
+                set(bush[0], FLOOR + 1, bush[1], Blocks.SWEET_BERRY_BUSH.defaultBlockState().setValue(SweetBerryBushBlock.AGE, 3));
+            }
+        }
+        float[][] foxes = {{2.6F, 45.8F, 70.0F}, {3.7F, 44.4F, -40.0F}, {6.6F, 46.1F, -110.0F}};
+        for (int i = 0; i < foxes.length; i++) {
+            int bx = Mth.floor(foxes[i][0]);
+            int bz = Mth.floor(foxes[i][1]);
+            for (int z = bz - 2; z <= bz + 2; z++) {
+                for (int x = bx - 2; x <= bx + 2; x++) {
+                    if (get(x, FLOOR + 1, z).getBlock() instanceof FlowerBlock) {
+                        set(x, FLOOR + 1, z, AIR);
+                    }
+                }
+            }
+            set(bx, FLOOR + 1, bz, AIR);
+            if (get(bx, FLOOR, bz).isAir() || !get(bx, FLOOR, bz).getFluidState().isEmpty()) {
+                set(bx, FLOOR, bz, Blocks.MOSS_BLOCK.defaultBlockState());
+            }
+            world.foxes.add(new CaveWorld.SleepingFox(foxes[i][0], FLOOR + 1, foxes[i][1], foxes[i][2], i == 1));
+        }
     }
 
     /**
@@ -321,7 +382,7 @@ final class MineScene {
         int fx = face.getStepX();
         int fz = face.getStepZ();
         Direction side = face.getClockWise();
-        if (x >= 29 && z >= 36 || x <= 13 && (z <= 13 || z >= 20 && z <= 39 || z >= 45)) {
+        if (x >= 29 && z >= 36 || x <= 13 && (z <= 13 || z >= 20 && z <= 39 || z >= 41)) {
             return false;
         }
         for (int dy = -1; dy <= 2; dy++) {

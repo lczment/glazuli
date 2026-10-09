@@ -26,6 +26,7 @@
     "FontMixin",
     "FontStringRenderOutputMixin",
     "FontTextureMixin",
+    "FoxInvoker",
     "FlywheelVisualizationMixin",
     "GuiGraphicsMixin",
     "KeyboardHandlerMixin",
