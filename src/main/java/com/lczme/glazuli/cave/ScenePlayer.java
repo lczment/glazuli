@@ -26,6 +26,8 @@ import org.joml.Vector3f;
 final class ScenePlayer extends RemotePlayer {
     private static final PlayerTeam NO_NAME_TAG = noNameTag();
     private static final float NOTICE_DISTANCE = 4.5F;
+    /** The player's own figure notices the camera from further off: its menu's view stands back from it. */
+    private static final float SELF_NOTICE_DISTANCE = 8.5F;
     private static final float TURN_SECONDS = 0.55F;
     @Nullable
     private static CompletableFuture<PlayerSkin> ownSkin;
@@ -95,7 +97,7 @@ final class ScenePlayer extends RemotePlayer {
         float dx = eye.x - (float) getX();
         float dz = eye.z - (float) getZ();
         float distance = Mth.sqrt(dx * dx + dz * dz);
-        boolean noticed = figure.swings() && distance < NOTICE_DISTANCE;
+        boolean noticed = figure.swings() && distance < (figure.self() ? SELF_NOTICE_DISTANCE : NOTICE_DISTANCE);
         facing = Mth.clamp(facing + (noticed ? dt : -dt) / TURN_SECONDS, 0.0F, 1.0F);
         float turn = facing * facing * (3.0F - 2.0F * facing);
         float toCamera = (float) Math.toDegrees(Mth.atan2(-dx, dz));
