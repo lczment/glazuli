@@ -20,9 +20,11 @@ import com.lczme.glazuli.render.PackOverrides;
 import com.lczme.glazuli.render.QuitFade;
 import com.lczme.glazuli.render.ScreenFade;
 import com.lczme.glazuli.render.GlazuliShaders;
+import com.lczme.glazuli.title.MenuPreload;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -35,6 +37,7 @@ import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
@@ -72,6 +75,11 @@ public final class Glazuli {
         NeoForge.EVENT_BUS.addListener(ScreenFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener(QuitFade::onRenderFramePost);
         NeoForge.EVENT_BUS.addListener(GlyphWarmup::onRenderFramePost);
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event) -> {
+            if (event.getScreen() instanceof TitleScreen) {
+                MenuPreload.start();
+            }
+        });
         NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre event) -> {
             DarkText.reset();
             BlurFade.onFrameStart();
