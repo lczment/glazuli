@@ -241,8 +241,10 @@ final class CaveCamera {
                     }
                 }
             }
+            // Routed to where the spot rests, not where its drift has it now: drifted just behind a corner, the spot
+            // would send the route round past it and back. The end then follows the drift (below).
             flight = new ArrayList<>(cut || world == null ? List.of(new Vector3f(goalEye), new Vector3f(goalEye))
-                    : CameraPath.find(world, eye, via, goalEye));
+                    : CameraPath.find(world, eye, via, new Vector3f(rig.spotEye(next))));
             flight.set(0, new Vector3f(eye));
             flightPace = CameraPath.pace(flight);
             Vector3f heading = new Vector3f(flight.get(1)).sub(eye);
