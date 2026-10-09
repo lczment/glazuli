@@ -129,7 +129,7 @@ public final class DevHooks {
             new Shot("glazuli_autoshot_sodium_slider.png", SETTLED, () -> hover(220.0, 81.0)),
             new Shot("glazuli_autoshot_sodium_tab_mid.png", 0.1, () -> clickAt(0.12, 0.403), null, false),
             new Shot("glazuli_autoshot_sodium_tab_done.png", 0.8, () -> { }, null, false),
-            new Shot("glazuli_autoshot_create_world.png", 3.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
+            new Shot("glazuli_autoshot_create_world.png", 6.0, () -> CreateWorldScreen.openFresh(Minecraft.getInstance(), menu)),
             new Shot("glazuli_autoshot_create_world_tab_mid.png", 0.1, () -> clickAt(0.5, 12.0 / Minecraft.getInstance()
                     .getWindow().getGuiScaledHeight()), null, false),
             new Shot("glazuli_autoshot_create_world_tab_done.png", 0.8, () -> { }, null, false),

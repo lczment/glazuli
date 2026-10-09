@@ -21,6 +21,7 @@
     "ClientPacketListenerAccessor",
     "CommandSuggestionsListMixin",
     "CommandSuggestionsMixin",
+    "CreateWorldScreenMixin",
     "FontManagerAccessor",
     "FontManagerMixin",
     "FontMixin",
@@ -46,7 +47,8 @@
     "TitleScreenMixin",
     "ToastComponentMixin",
     "ToastInstanceMixin",
-    "TooltipRenderUtilMixin"
+    "TooltipRenderUtilMixin",
+    "WorldOpenFlowsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
