@@ -46,10 +46,12 @@ import org.joml.Vector3f;
  * A lantern-lit grotto round a long pond (title: looking down the water from just above it). A boardwalk runs down the
  * east side, a waterwheel stands in a bay of the west wall, a bridge crosses the far end, and glow berries and leaves
  * hang thick from a low roof with lamps set into it; lily pads, petals and floating lanterns on the water, kelp and
- * coral under it, candles on the railings and the stones, drifts of flowers on the moss. Round the edge: the player
- * digging out a diamond vein in an amethyst pocket at the back of a shallow mine cut (singleplayer),
- * friends at a campfire under a cherry tree (multiplayer), a workshop off the boardwalk (options), an enchanting room
- * behind an amethyst arch (mods) and a cottage with a farm beyond the bridge (everything else).
+ * coral under it, candles on the railings and the stones, drifts of flowers on the moss; a cottage and a farm beyond
+ * the bridge, an enchanting room behind an amethyst arch. The menus' views all stand close round the title view, so
+ * the camera never has far to go: the player digging out a diamond vein in an amethyst pocket at the back of a shallow
+ * mine cut in the west wall (singleplayer), friends at a campfire under a cherry tree in a bay of the east wall
+ * (multiplayer), a workshop off the boardwalk (options), the waterwheel (mods) and the candles afloat on the pond
+ * (everything else).
  */
 final class MineScene {
     private static final int SX = 46;
@@ -69,6 +71,11 @@ final class MineScene {
     private static final int DOCK_X1 = 30;
     private static final int DOCK_Z0 = 14;
     private static final int BRIDGE_Z = 18;
+    /** The mine cut: its mouth in the west wall, dug west, as wide as these. */
+    private static final int MINE_X = 7;
+    private static final int MINE_DIR = -1;
+    private static final int MINE_Z0 = 49;
+    private static final int MINE_Z1 = 55;
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final Block[] CANDLES = {Blocks.WHITE_CANDLE, Blocks.PINK_CANDLE, Blocks.LIGHT_BLUE_CANDLE, Blocks.PURPLE_CANDLE,
         Blocks.MAGENTA_CANDLE};
@@ -88,11 +95,11 @@ final class MineScene {
         CaveGenerator.light(world);
         float[][] shots = {
             {20.5F, 9.2F, 56.5F, 20.0F, 7.4F, 20.0F},
-            {31.8F, 9.4F, 12.2F, 38.6F, 8.0F, 8.2F},
-            {28.6F, 9.3F, 36.5F, 34.0F, 7.5F, 30.0F},
-            {29.0F, 9.0F, 41.5F, 35.5F, 7.8F, 42.5F},
-            {13.0F, 8.8F, 25.5F, 2.5F, 7.8F, 25.5F},
-            {19.5F, 10.0F, 21.0F, 19.5F, 7.0F, 7.0F},
+            {12.3F, 9.3F, 51.8F, 4.5F, 8.0F, 52.3F},
+            {28.5F, 9.4F, 57.0F, 35.5F, 7.6F, 51.5F},
+            {28.8F, 9.4F, 45.2F, 36.0F, 7.8F, 41.5F},
+            {13.5F, 9.5F, 47.5F, 8.0F, 7.6F, 39.0F},
+            {21.0F, 8.2F, 50.5F, 18.5F, 5.8F, 43.0F},
         };
         Vector3f[] eyes = new Vector3f[shots.length];
         Vector3f[] looks = new Vector3f[shots.length];
@@ -247,9 +254,9 @@ final class MineScene {
         workshop();
         paths();
         cherry(36, 28, 7, 4.2F);
-        cherry(6, 50, 6, 3.8F);
+        cherry(38, 49, 6, 3.6F);
         canopyLantern(34, 28);
-        canopyLantern(7, 48);
+        canopyLantern(38, 49);
         greenery();
         roof(noise);
         hangingLanterns();
@@ -314,7 +321,7 @@ final class MineScene {
         int fx = face.getStepX();
         int fz = face.getStepZ();
         Direction side = face.getClockWise();
-        if (x >= 33 && z <= 15 || x >= 29 && z >= 36 && z <= 48 || x <= 13 && (z <= 13 || z >= 20 && z <= 39)) {
+        if (x >= 29 && z >= 36 || x <= 13 && (z <= 13 || z >= 20 && z <= 39 || z >= 45)) {
             return false;
         }
         for (int dy = -1; dy <= 2; dy++) {
@@ -884,19 +891,23 @@ final class MineScene {
         }
     }
 
-    /** A shallow, wide-open cut in the east wall, the player digging out a small diamond vein at the back of it. */
+    /** A shallow, wide-open cut in the west wall, the player digging out a small diamond vein at the back of it. */
     private void mineTunnel() {
-        int x0 = 35;
-        int x1 = 39;
-        int z0 = 4;
-        int z1 = 12;
-        int mid = 8;
+        int z0 = MINE_Z0;
+        int z1 = MINE_Z1;
+        int mid = (z0 + z1) / 2;
         int top = FLOOR + 5;
+        // Columns counted into the cut: open from the mouth (0) to 4, the face being dug at 5.
+        int near = mineX(1);
+        int frame = mineX(2);
+        int far = mineX(4);
+        int face = mineX(5);
         BlockState deepslate = Blocks.DEEPSLATE.defaultBlockState();
-        for (int x = x0; x <= x1 + 1; x++) {
+        for (int d = 0; d <= 5; d++) {
+            int x = mineX(d);
             for (int z = z0 - 1; z <= z1 + 1; z++) {
                 for (int y = FLOOR; y <= top + 1; y++) {
-                    boolean inside = x <= x1 && y > FLOOR && y <= top && z >= z0 && z <= z1;
+                    boolean inside = d < 5 && y > FLOOR && y <= top && z >= z0 && z <= z1;
                     set(x, y, z, inside ? AIR : y == FLOOR ? Blocks.COBBLED_DEEPSLATE.defaultBlockState()
                             : Math.floorMod(x * 7 + y * 13 + z * 5, 11) == 0 ? Blocks.DEEPSLATE_IRON_ORE.defaultBlockState() : deepslate);
                 }
@@ -908,45 +919,51 @@ final class MineScene {
         // The draws the rest of the scene was laid out after: without them everything placed later would move.
         random.consumeCount(240);
         BlockState diamond = Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState();
-        set(x1 + 1, FLOOR + 1, mid, diamond);
-        set(x1 + 1, FLOOR + 2, mid, diamond);
-        set(x1 + 1, FLOOR + 2, mid + 1, diamond);
+        set(face, FLOOR + 1, mid, diamond);
+        set(face, FLOOR + 2, mid, diamond);
+        set(face, FLOOR + 2, mid + 1, diamond);
         BlockState post = Blocks.SPRUCE_LOG.defaultBlockState();
         for (int y = FLOOR + 1; y < top; y++) {
-            set(x0 + 2, y, z0, post);
-            set(x0 + 2, y, z1, post);
+            set(frame, y, z0, post);
+            set(frame, y, z1, post);
         }
         for (int z = z0; z <= z1; z++) {
-            set(x0 + 2, top, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
+            set(frame, top, z, log(Blocks.STRIPPED_SPRUCE_LOG, Direction.Axis.Z));
         }
-        set(x0 + 1, FLOOR + 3, z0, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH));
-        set(x1, FLOOR + 3, z1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.NORTH));
-        set(x0 + 1, FLOOR + 1, z1, Blocks.LANTERN.defaultBlockState());
-        set(x0 + 1, FLOOR + 1, z0, Blocks.BARREL.defaultBlockState());
-        set(x0 + 1, FLOOR + 1, z0 + 1, Blocks.BARREL.defaultBlockState());
-        set(x0 + 1, FLOOR + 2, z0, Blocks.LANTERN.defaultBlockState());
-        for (int[] web : new int[][]{{x1, z0}, {x1, z1}, {x1 - 1, z1}, {x0 + 3, z0}}) {
+        set(near, FLOOR + 3, z0, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH));
+        set(far, FLOOR + 3, z1, Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.NORTH));
+        set(near, FLOOR + 1, z1, Blocks.LANTERN.defaultBlockState());
+        set(near, FLOOR + 1, z0, Blocks.BARREL.defaultBlockState());
+        set(near, FLOOR + 1, z0 + 1, Blocks.BARREL.defaultBlockState());
+        set(near, FLOOR + 2, z0, Blocks.LANTERN.defaultBlockState());
+        for (int[] web : new int[][]{{far, z0}, {far, z1}, {mineX(3), z1}, {mineX(3), z0}}) {
             set(web[0], top, web[1], Blocks.COBWEB.defaultBlockState());
         }
-        set(x1, FLOOR + 1, z0, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(x1, FLOOR + 1, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(x1, FLOOR + 2, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
-        set(x1, FLOOR + 1, z1 - 1, slab(Blocks.COBBLED_DEEPSLATE_SLAB, SlabType.BOTTOM));
-        for (int x = x0 - 3; x <= x1 - 3; x++) {
-            if (air(x, FLOOR + 1, mid)) {
-                set(x, FLOOR + 1, mid, Blocks.RAIL.defaultBlockState().setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST));
+        set(far, FLOOR + 1, z0, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        set(far, FLOOR + 1, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        set(far, FLOOR + 2, z1, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
+        set(far, FLOOR + 1, z1 - 1, slab(Blocks.COBBLED_DEEPSLATE_SLAB, SlabType.BOTTOM));
+        for (int d = -3; d <= 2; d++) {
+            if (air(mineX(d), FLOOR + 1, mid)) {
+                set(mineX(d), FLOOR + 1, mid, Blocks.RAIL.defaultBlockState().setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST));
             }
         }
-        world.figures.add(new CaveWorld.Figure(x1 - 1.4F, FLOOR + 1, mid + 0.5F, -90.0F, true, 0,
-                new ItemStack(Items.IRON_PICKAXE), new ItemStack(Items.TORCH), true));
-        tunnelMouth(x0, z0, z1, top);
+        world.figures.add(new CaveWorld.Figure(MINE_X + 0.5F + MINE_DIR * 2.1F, FLOOR + 1, mid + 0.5F, MINE_DIR > 0 ? -90.0F : 90.0F,
+                true, 0, new ItemStack(Items.IRON_PICKAXE), new ItemStack(Items.TORCH), true));
+        tunnelMouth(z0, z1, top);
+    }
+
+    /** The column {@code d} blocks into the mine cut from its mouth (negative: out in front of it). */
+    private static int mineX(int d) {
+        return MINE_X + MINE_DIR * d;
     }
 
     /**
      * A timber portal the whole width of the cut, braced at the top corners, a lamp post either side and a heap of
      * what's come out of it.
      */
-    private void tunnelMouth(int x0, int z0, int z1, int top) {
+    private void tunnelMouth(int z0, int z1, int top) {
+        int x0 = MINE_X;
         BlockState post = log(Blocks.SPRUCE_LOG, Direction.Axis.Y);
         for (int y = FLOOR + 1; y <= top; y++) {
             set(x0, y, z0 - 1, post);
@@ -958,22 +975,22 @@ final class MineScene {
         set(x0, top, z0, stairs(Blocks.SPRUCE_STAIRS, Direction.NORTH, true));
         set(x0, top, z1, stairs(Blocks.SPRUCE_STAIRS, Direction.SOUTH, true));
         for (int z : new int[]{z0 - 1, z1 + 1}) {
-            if (standable(x0 - 1, z)) {
-                set(x0 - 1, FLOOR + 1, z, fence(false, false, false, false));
-                set(x0 - 1, FLOOR + 2, z, fence(false, false, false, false));
-                set(x0 - 1, FLOOR + 3, z, Blocks.LANTERN.defaultBlockState());
+            if (standable(mineX(-1), z)) {
+                set(mineX(-1), FLOOR + 1, z, fence(false, false, false, false));
+                set(mineX(-1), FLOOR + 2, z, fence(false, false, false, false));
+                set(mineX(-1), FLOOR + 3, z, Blocks.LANTERN.defaultBlockState());
             }
         }
         BlockState[] spoil = {Blocks.GRAVEL.defaultBlockState(), Blocks.COBBLED_DEEPSLATE.defaultBlockState(),
             Blocks.COAL_ORE.defaultBlockState(), Blocks.RAW_IRON_BLOCK.defaultBlockState(), Blocks.GRAVEL.defaultBlockState()};
-        int[][] heap = {{x0 - 2, z1 + 2}, {x0 - 1, z1 + 2}, {x0 - 2, z1 + 3}, {x0 - 3, z1 + 2}};
+        int[][] heap = {{mineX(-2), z1 + 1}, {mineX(-3), z1 + 1}, {mineX(-2), z1 + 2}, {mineX(-4), z1 + 1}};
         for (int i = 0; i < heap.length; i++) {
             if (standable(heap[i][0], heap[i][1])) {
                 set(heap[i][0], FLOOR + 1, heap[i][1], spoil[i % spoil.length]);
             }
         }
-        if (get(x0 - 2, FLOOR + 1, z1 + 2).is(Blocks.GRAVEL)) {
-            set(x0 - 2, FLOOR + 2, z1 + 2, slab(Blocks.COBBLED_DEEPSLATE_SLAB, SlabType.BOTTOM));
+        if (get(mineX(-2), FLOOR + 1, z1 + 1).is(Blocks.GRAVEL)) {
+            set(mineX(-2), FLOOR + 2, z1 + 1, slab(Blocks.COBBLED_DEEPSLATE_SLAB, SlabType.BOTTOM));
         }
     }
 
@@ -983,10 +1000,29 @@ final class MineScene {
         return air(x, FLOOR + 1, z) && air(x, FLOOR + 2, z) && !under.isAir() && under.getFluidState().isEmpty();
     }
 
-    /** East of the boardwalk under the cherry tree: friends round a campfire on stair benches, supplies behind. */
+    /**
+     * A bay dug into the east wall off the south end of the boardwalk, domed and mossy: friends round a campfire on
+     * stair benches, supplies behind.
+     */
     private void camp() {
-        int fx = 33;
-        int fz = 30;
+        int fx = 35;
+        int fz = 52;
+        for (int z = fz - 5; z <= fz + 5; z++) {
+            for (int x = DOCK_X1 + 2; x <= fx + 6; x++) {
+                float u = (x - fx - 0.5F) / 5.5F;
+                float v = (z - fz) / 5.0F;
+                float r = u * u * u * u + v * v * v * v;
+                if (r >= 1.0F) {
+                    continue;
+                }
+                for (int y = FLOOR + 1; y <= FLOOR + 6 + Math.round(2.0F * (1.0F - r)); y++) {
+                    set(x, y, z, AIR);
+                }
+                if (rock(get(x, FLOOR, z))) {
+                    set(x, FLOOR, z, Blocks.MOSS_BLOCK.defaultBlockState());
+                }
+            }
+        }
         set(fx, FLOOR + 1, fz, Blocks.CAMPFIRE.defaultBlockState());
         set(fx, FLOOR, fz, Blocks.COBBLESTONE.defaultBlockState());
         set(fx - 2, FLOOR + 1, fz - 1, stairs(Blocks.SPRUCE_STAIRS, Direction.WEST, false));
@@ -994,7 +1030,7 @@ final class MineScene {
         set(fx + 3, FLOOR + 1, fz + 3, Blocks.BARREL.defaultBlockState());
         set(fx + 3, FLOOR + 1, fz + 4, Blocks.BARREL.defaultBlockState());
         set(fx + 3, FLOOR + 2, fz + 3, Blocks.LANTERN.defaultBlockState());
-        float[][] friends = {{31.7F, 30.0F}, {33.2F, 32.4F}, {35.0F, 29.2F}};
+        float[][] friends = {{fx - 1.3F, fz}, {fx + 0.2F, fz + 2.4F}, {fx + 2.0F, fz - 0.8F}};
         ItemStack[] hands = {new ItemStack(Items.TORCH), new ItemStack(Items.BREAD), new ItemStack(Items.IRON_SHOVEL)};
         int[] skins = {2, 9, 14};
         for (int i = 0; i < friends.length; i++) {
@@ -1416,9 +1452,11 @@ final class MineScene {
      * into the cut but not where the miner stands and swings.
      */
     private void geode() {
-        for (int z = 3; z <= 13; z++) {
+        int mid = (MINE_Z0 + MINE_Z1) / 2;
+        for (int z = MINE_Z0 - 1; z <= MINE_Z1 + 1; z++) {
             for (int y = FLOOR + 1; y <= FLOOR + 6; y++) {
-                for (int x = 37; x <= 40; x++) {
+                for (int d = 2; d <= 5; d++) {
+                    int x = mineX(d);
                     BlockState state = get(x, y, z);
                     if (!(state.is(Blocks.DEEPSLATE) || state.is(Blocks.COBBLED_DEEPSLATE) || state.is(Blocks.DEEPSLATE_IRON_ORE))
                             || random.nextFloat() > 0.5F) {
@@ -1429,7 +1467,8 @@ final class MineScene {
                         int ax = x + side.getStepX();
                         int ay = y + side.getStepY();
                         int az = z + side.getStepZ();
-                        if (side != Direction.UP && ax >= 38 && ax <= 39 && air(ax, ay, az) && (Math.abs(az - 8) >= 2 || ay >= FLOOR + 4)) {
+                        if (side != Direction.UP && (ax == mineX(3) || ax == mineX(4)) && air(ax, ay, az)
+                                && (Math.abs(az - mid) >= 2 || ay >= FLOOR + 4)) {
                             open = side;
                         }
                     }

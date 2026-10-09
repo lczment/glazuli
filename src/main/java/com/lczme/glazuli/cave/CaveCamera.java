@@ -33,10 +33,10 @@ final class CaveCamera {
      * take a little longer), and the eye follows it on a short critically damped spring. A change of menu mid-flight
      * starts the new path from where the camera is, along its heading, at the speed it already has.
      */
-    private static final float FLIGHT_BASE_SECONDS = 0.45F;
-    private static final float FLIGHT_BLOCKS_PER_SECOND = 40.0F;
+    private static final float FLIGHT_BASE_SECONDS = 0.4F;
+    private static final float FLIGHT_BLOCKS_PER_SECOND = 45.0F;
     private static final float MIN_FLIGHT_SECONDS = 0.5F;
-    private static final float MAX_FLIGHT_SECONDS = 1.05F;
+    private static final float MAX_FLIGHT_SECONDS = 0.9F;
     /** Flights speed up and slow down over this part of their time and cruise in between, keeping the top speed low. */
     private static final float FLIGHT_EASE = 0.35F;
     private static final float FOLLOW_SECONDS = 0.05F;
