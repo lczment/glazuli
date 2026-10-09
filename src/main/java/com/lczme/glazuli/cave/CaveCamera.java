@@ -33,16 +33,16 @@ final class CaveCamera {
      * take a little longer), and the eye follows it on a short critically damped spring. A change of menu mid-flight
      * starts the new path from where the camera is, along its heading, at the speed it already has.
      */
-    private static final float FLIGHT_BASE_SECONDS = 0.9F;
-    private static final float FLIGHT_BLOCKS_PER_SECOND = 22.0F;
-    private static final float MIN_FLIGHT_SECONDS = 1.2F;
-    private static final float MAX_FLIGHT_SECONDS = 2.5F;
+    private static final float FLIGHT_BASE_SECONDS = 0.38F;
+    private static final float FLIGHT_BLOCKS_PER_SECOND = 100.0F;
+    private static final float MIN_FLIGHT_SECONDS = 0.42F;
+    private static final float MAX_FLIGHT_SECONDS = 0.6F;
     /** Flights speed up and slow down over this part of their time and cruise in between, keeping the top speed low. */
     private static final float FLIGHT_EASE = 0.35F;
     private static final float FOLLOW_SECONDS = 0.05F;
     /** A camera redirected mid-flight first carries on this long along its old heading, curving onto the new path. */
-    private static final float CARRY_SECONDS = 0.25F;
-    private static final float TURN_SMOOTH_SECONDS = 0.3F;
+    private static final float CARRY_SECONDS = 0.12F;
+    private static final float TURN_SMOOTH_SECONDS = 0.1F;
     private static final float DIVE_TIME_CONSTANT = 0.85F;
     /** A screen change after this long without rendering the cave cuts instead of flying. */
     private static final double CUT_GAP_SECONDS = 1.0;
@@ -267,7 +267,7 @@ final class CaveCamera {
         smoothDamp(eye, lead, eyeVelocity, FOLLOW_SECONDS, dt);
         turn(yaw, yaw[2] + Mth.wrapDegrees(goalYaw - yaw[2]));
         turn(pitch, goalPitch);
-        lookDistance = Mth.lerp(1.0F - (float) Math.exp(-dt * 4.0F), lookDistance, goalDistance);
+        lookDistance = Mth.lerp(1.0F - (float) Math.exp(-dt * 10.0F), lookDistance, goalDistance);
         float yawRad = yaw[0] * Mth.DEG_TO_RAD;
         float pitchRad = pitch[0] * Mth.DEG_TO_RAD;
         float horizontal = Mth.cos(pitchRad);
