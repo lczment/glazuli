@@ -3,6 +3,9 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.148'
     id 'idea'
+    id 'com.modrinth.minotaur' version '2.+'
+    // 1.3.x needs JVM 25; pin to a Java 21-compatible release.
+    id 'net.darkhax.curseforgegradle' version '1.1.28'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -230,5 +233,70 @@ idea {
     module {
         downloadSources = true
         downloadJavadoc = true
+    }
+}
+
+def releaseChangelog = file('docs/changelog_0.1.0.md').text
+def releaseDescription = file('docs/description_en.md').text
+
+modrinth {
+    token = System.getenv('MODRINTH_TOKEN') ?: findProperty('modrinth.token')
+    projectId = findProperty('modrinth.project') ?: 'glazuli'
+    versionNumber = project.version
+    versionName = "${mod_name} ${project.version}"
+    versionType = 'release'
+    uploadFile = jar
+    gameVersions = ['1.21.1']
+    loaders = ['neoforge']
+    changelog = releaseChangelog
+    syncBodyFrom = releaseDescription
+    dependencies {
+        optional.project 'sodium'
+        optional.project 'iris'
+        optional.project 'jei'
+        optional.project 'jade'
+        optional.project 'create'
+        optional.project 'curios'
+        optional.project 'sophisticated-backpacks'
+        optional.project 'sophisticated-core'
+        optional.project 'controlling'
+    }
+}
+
+tasks.named('modrinth').configure {
+    dependsOn tasks.named('modrinthSyncBody')
+}
+
+def curseProjectId = findProperty('curseforge.project')
+if (curseProjectId) {
+    tasks.register('publishCurseForge', net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+        group = 'publishing'
+        description = 'Uploads the built jar to CurseForge'
+        apiToken = System.getenv('CURSEFORGE_TOKEN') ?: findProperty('curseforge.token')
+        def mainFile = upload(curseProjectId.toString(), jar)
+        mainFile.displayName = "${mod_name} ${project.version}"
+        mainFile.changelogType = 'markdown'
+        mainFile.changelog = releaseChangelog
+        mainFile.releaseType = 'release'
+        mainFile.addGameVersion('1.21.1')
+        mainFile.addModLoader('NeoForge')
+        mainFile.addOptional('sodium')
+        mainFile.addOptional('iris-shaders')
+        mainFile.addOptional('jei')
+        mainFile.addOptional('jade')
+        mainFile.addOptional('create')
+        mainFile.addOptional('curios')
+        mainFile.addOptional('sophisticated-backpacks')
+        mainFile.addOptional('sophisticated-core')
+        mainFile.addOptional('controlling')
+    }
+}
+
+tasks.register('publishModPages') {
+    group = 'publishing'
+    description = 'Publishes the jar to both Modrinth and CurseForge'
+    dependsOn 'modrinth'
+    if (tasks.findByName('publishCurseForge') != null) {
+        dependsOn 'publishCurseForge'
     }
 }
