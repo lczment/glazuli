@@ -1,62 +1,53 @@
 # Glazuli
 
-Glazuli (琉璃) redoes Minecraft's loading screen, title screen and menus. Client-side only, works on any server.
+Glazuli (琉璃) is a UI polish mod that redoes the loading screen, title screen and in-game menus.
 
-**Note: this mod was developed with AI assistance.**
+**This mod was developed with AI assistance**
 
-## Startup
+## Startup sound
 
-After the red Mojang loading screen, the Mojang Studios logo animation plays with sound. The camera then flies through the logo into the menu scene and the title drops in letter by letter. Any key skips it. Resource reloads (packs, language, F3+T) use the same red screen, and quitting fades to black.
-
-The first time you reach the title screen, a short sound plays before the menu music, based on the first four notes of C418's "Minecraft". Put your own `startup.ogg` in `config/glazuli` to replace it.
+Rename your preferred sound to `startup.ogg` and put it in `config/glazuli` to replace the default.
 
 ## Menu scenes
 
-The panorama is replaced by a 3D scene. The camera moves for each menu and dives in when you join a world.
+Replaces the vanilla panorama with a 3D scene.
 
-Built-in: Cave, Lush Cave, Deep Dark, Ice Cave, Nether, Ocean Ruins, Plains Village at Dusk, Snowy Village at Night, Desert Village, Ancient City, Trial Chambers, Bastion Remnant, End City, plus a running factory if Create is installed.
-
-`/menuscene save <name>` saves the area around you to `config/glazuli/scenes` as a new scene. Switch scenes with the Scenes button on the title screen. Outdoor scenes follow your system clock, and Iris shader packs apply to them.
+- Built-in: Cave, Lush Cave, Deep Dark, Ice Cave, Nether, Ocean Ruins, Plains Village at Dusk, Snowy Village at Night, Desert Village, Ancient City, Trial Chambers, Bastion Remnant, End City; with Create installed, also a running factory scene
+- For a custom scene, run `/menuscene save <name>` in a world to save the area around you to `config/glazuli/scenes`, then switch with the Scenes button on the title screen
+- Outdoor scenes follow your system clock
+- With Iris shaders enabled, scenes are rendered with the shader pack
 
 ## Glass UI
 
-Panels, buttons, sliders, tooltips, chat, toasts, the boss bar and inventories become frosted glass. Buttons squash when pressed and screens fade between each other. Resource pack GUI textures still show; only the animations are kept.
+- Panels, buttons, sliders, tooltips, chat, toasts, the boss bar and inventories become frosted glass
+- Buttons squash slightly when pressed; screens fade between each other
+- Resource packs that change GUI textures still show those textures; only the animations are kept
+- The top-right button on the title screen restores vanilla menus; the pause menu has a separate toggle for in-game screens
+- The font is HarmonyOS Sans, or PingFang if installed. Drop a `.ttf`, `.otf` or `.ttc` into `config/glazuli/fonts` to use your own, or turn custom fonts off
 
-The top-right button on the title screen turns the menus back to vanilla, and the pause menu has a separate toggle for in-game screens.
+## Compatibility
 
-The font is HarmonyOS Sans, or PingFang if installed. Drop a `.ttf`, `.otf` or `.ttc` into `config/glazuli/fonts` to use your own, or turn it off.
-
-## Mod support
-
-- Sodium: glass video settings screen, based on Reese's Sodium Options
-- Iris: shaders in menu scenes, glass buttons on Iris screens
-- JEI: panels, buttons, search field
+- Sodium: glass video settings, based on Reese's Sodium Options; requires Sodium 0.8.13 or newer, below 0.9
+- Iris Shaders: shader packs in menu scenes; glass buttons on Iris's own screens
+- JEI: panels, buttons and search field
 - Jade: HUD tooltip
-- Create and addons: glass screens, factory scene
-- Curios: the side slot panel
+- Create and addons: glass panels on screens, plus the factory scene
+- Curios: the side accessory slot panel
 - Sophisticated Backpacks and Storage: windows, upgrade column, side tabs
-- Controlling: key bind search suggestions
+- Controlling (key-bind search): search suggestion dropdown
+- Also checked: Sodium Extra, Xaero's Minimap and World Map, AppleSkin, Waystones
+- Title-screen buttons added by other mods are kept
 
-Also checked: Sodium Extra, Xaero's Minimap and World Map, AppleSkin, Waystones. Title screen buttons added by other mods are kept.
+## Notes
 
-## Settings
+- Every feature can be turned off in Mods → Glazuli → Config. On weak GPUs, lower or disable Blur Quality; with a shader pack loaded, you can also turn off Shader Pack in Menu Scene.
+- On first launch, vanilla Menu Background Blur is set to 0 automatically. You can change it again in Accessibility settings.
 
-Every feature can be turned off in Mods > Glazuli > Config. On weak GPUs, lower or disable Blur Quality; with a shader pack loaded, turning off Shader Pack in Menu Scene brings the menu's GPU cost down to almost nothing. On first launch, vanilla's Menu Background Blur is set to 0; if you raise it again it stays.
+## License / credits
 
-## Requirements
-
-- Minecraft 1.21.1
-- NeoForge 21.1
-- Optional: Sodium 0.8.13 or newer (below 0.9), Iris, JEI, Jade, Create, Curios, Sophisticated Backpacks/Storage, Controlling
-
-## License
-
-The code is open source under LGPL-3.0. The bundled font, the Mojang logo animation and the startup sound keep their own terms, listed below.
-
-## Credits
-
-- Font: [HarmonyOS Sans](https://developer.huawei.com/consumer/cn/design/resource/), © Huawei Device Co., Ltd., used under the HarmonyOS Sans Fonts License Agreement.
-- Glass Sodium settings based on [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options) by FlashyReese (MIT).
-- Mojang Studios logo animation frames and sound from [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation) by Karasu-Lab, interpolated from 14 to 29 fps with [RIFE](https://github.com/hzwer/ECCV2022-RIFE). Artwork and sound belong to Mojang.
+- The code is open source under LGPL-3.0. The bundled font, Mojang logo animation and startup sound keep their own terms below.
+- Font: [HarmonyOS Sans](https://developer.huawei.com/consumer/cn/design/resource/), © Huawei Device Co., Ltd., under the HarmonyOS Sans Fonts License Agreement.
+- Glass Sodium settings based on FlashyReese's [Reese's Sodium Options](https://github.com/FlashyReese/reeses-sodium-options) (MIT).
+- Mojang Studios logo animation frames and sound from Karasu-Lab's [MojangLogoAnimation](https://github.com/Karasu-Lab/MojangLogoAnimation), interpolated from 14 to 29 fps with [RIFE](https://github.com/hzwer/ECCV2022-RIFE). Artwork and sound belong to Mojang.
 - Startup sound based on the opening of "Minecraft" by C418.
 - Not affiliated with Mojang.
